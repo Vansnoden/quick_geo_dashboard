@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from pydantic import BaseModel
+from uuid import UUID
 
 
 class UserBase(BaseModel):
@@ -24,3 +25,22 @@ class User(UserBase):
 
 class FileBase(BaseModel):
     file_path: str
+
+
+# dashboard
+
+class Dashboard(BaseModel):
+    id: int
+    user_id: int
+    name: str
+    code: UUID
+    data_table_name: str
+    ui_yaml_script: str
+    ui_js_script: str
+    create_date: datetime
+    last_update_date: datetime
+
+
+class DashboardCreate(BaseModel):
+    user_id: int
+    name: str

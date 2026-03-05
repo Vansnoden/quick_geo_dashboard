@@ -211,3 +211,26 @@ async def delete_user(user: Annotated[User, Depends(get_current_active_user)], d
     else:
         raise HTTPException(status_code=403, detail="Unauthorized action")
 
+
+# dashboards
+
+@app.get("/dashboards/", response_model=list[schemas.Dashboard], include_in_schema=True)
+def read_dashboards(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    users = crud.get_dashboards(db, skip=skip, limit=limit)
+    return users
+
+
+@app.post("/dashboards/add", response_model=schemas.Dashboard, include_in_schema=True)
+def create_dashboard(
+    user: Annotated[User, Depends(get_current_active_user)],
+    dashboard: schemas.DashboardCreate, 
+    db: Session = Depends(get_db)):
+    if user and dashboard.name:
+        return crud.create_dashboard(
+            db,
+            user,
+            dashboard,
+        )
+    if validate_user(user):
+        return crud.create_user(db=db, user=user)
+

@@ -5,7 +5,7 @@ from typing import List
 from sqlalchemy import and_
 from sqlalchemy.orm import Session, joinedload
 
-from database.utils import get_bool_val, get_float_val, get_int_val
+from database.utils import get_bool_val, get_float_val, get_int_val, get_uuid
 from . import models, schemas
 from passlib.context import CryptContext
 from pathlib import Path
@@ -25,6 +25,9 @@ import geopandas as gpd
 from shapely.geometry import Point
 from geoalchemy2 import Geometry
 import logging
+from slugify import slugify
+
+
 
 logger = logging.getLogger('uvicorn.error')
 logger.setLevel(logging.DEBUG)
@@ -69,3 +72,30 @@ def delete_user(db: Session, user_id: int):
     res = db.query(models.User).filter(models.User.id == user_id).delete()
     db.commit()
     return res
+
+
+# dashboards
+
+def get_dashboards(db: Session, skip: int = 0, limit: int = 0):
+    if skip and limit:
+        return db.query(models.Dashboard).offset(skip).limit(limit).all()
+    else:
+        return db.query(models.Dashboard).all()
+    
+
+def create_dashboard(db: Session, user: schemas.User, 
+                     dashboard: schemas.DashboardCreate) -> schemas.Dashboard:
+    db_dashboard =  models.Dashboard(
+        name=slugify(dashboard.name).lower(),
+        user_id=user.id,
+        code = get_uuid(),
+        data_table_name = "",
+        ui_yaml_script = "",
+        ui_js_script = "",
+        create_date=datetime.datetime.now(),
+        last_update_date=datetime.datetime.now()
+    )
+    db.add(db_dashboard)
+    db.commit()
+    db.refresh(db_dashboard)
+    return db_dashboard
