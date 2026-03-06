@@ -3,7 +3,7 @@
 import AuthError from "next-auth";
 import { } from './constants';
 import { cookies } from 'next/headers'
-import { signIn } from "@/auth";
+import { signIn, signOut } from "@/auth";
 
 
 export type State = {
@@ -38,4 +38,15 @@ export async function getToken(){
   const token = base_token?.value.split("__").join(" ")
   // return (session?.user as any).accessToken; // eslint-disable-line
   return token
+}
+
+
+export async function handleSignOut() {
+  // 1. Clear your custom cookie first
+  const cookieStore = await cookies();
+  cookieStore.delete('auth-token');
+  
+  // 2. Trigger the NextAuth signout
+  // This will throw a redirect error which Next.js handles automatically
+  await signOut({ redirectTo: '/login' });
 }

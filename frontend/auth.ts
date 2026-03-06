@@ -24,13 +24,16 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
 
                 if (!parsed.success) return null;
 
-                const formData = new FormData();
-                formData.append("username", parsed.data.username);
-                formData.append("password", parsed.data.password);
+                const searchParams = new URLSearchParams();
+                searchParams.append("username", parsed.data.username);
+                searchParams.append("password", parsed.data.password);
 
                 const response = await fetch(AUTH_URL, {
                     method: 'POST',
-                    body: formData
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: searchParams.toString()
                 });
 
                 if (!response.ok) return null;
