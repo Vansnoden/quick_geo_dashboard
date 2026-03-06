@@ -4,16 +4,20 @@ from enum import Enum
 from pprint import pprint
 import re, os
 import shutil
-from typing import Set
+from typing import Dict, Set
 import pandas as pd
 import openpyxl , csv
-
+import yaml
+import json
 from tqdm import tqdm
 import traceback
 import warnings
 import uuid
 import geopandas as gpd
 from shapely.geometry import Point
+import jsmin
+from sqlalchemy.orm import Session
+from backend.database import models
 
 
 DATE_FORMATS = [
@@ -197,3 +201,86 @@ def store_uploaded_file(upFileObj) -> str:
     with open(fname, "wb") as f:
         f.write(contents)
     return fname
+
+
+def validate_columns_against_data(config: Dict, db: Session, dashboard_id: int) -> None:
+    """
+    Check that all column names in charts and map exist in the dashboard's data table.
+    Raises ValueError if any column is missing.
+    """
+    dashboard = db.query(models.Dashboard).filter(models.Dashboard.id == dashboard_id).first()
+    if not dashboard or not dashboard.data_table_name:
+        # No data table yet – skip validation (or raise warning)
+        return
+
+    # Get actual column names from the data table (excluding 'id')
+    from sqlalchemy import inspect
+    inspector = inspect(db.bind)
+    columns = [col['name'] for col in inspector.get_columns(dashboard.data_table_name) if col['name'] != 'id']
+
+    errors = []
+
+    # Check map columns
+    map_config = config.get('map', {})
+    if 'lat' in map_config and map_config['lat'] not in columns:
+        errors.append(f"Map latitude column '{map_config['lat']}' not found in data")
+    if 'lon' in map_config and map_config['lon'] not in columns:
+        errors.append(f"Map longitude column '{map_config['lon']}' not found in data")
+
+    # Check chart columns
+    for idx, chart in enumerate(config.get('stats', [])):
+        x_col = chart.get('x')
+        if x_col and x_col not in columns:
+            errors.append(f"Chart {idx} ('{chart.get('title','')}') x column '{x_col}' not found")
+        y_def = chart.get('y', {})
+        if isinstance(y_def, dict):
+            y_col = y_def.get('column')
+            if y_col and y_col not in columns:
+                errors.append(f"Chart {idx} y column '{y_col}' not found")
+
+    if errors:
+        raise ValueError("Column validation failed:\n" + "\n".join(errors))
+
+
+def yaml_to_dashboard_js(yaml_text: str) -> str:
+    """
+    Convert YAML dashboard configuration to a minified JavaScript module.
+    Returns a string like 'export default {...};'
+    Raises ValueError on parsing/validation errors.
+    """
+    try:
+        data = yaml.safe_load(yaml_text)
+    except yaml.YAMLError as e:
+        raise ValueError(f"Invalid YAML: {e}")
+
+    if not isinstance(data, dict) or 'geo-dashboard' not in data:
+        raise ValueError("YAML must contain a top-level 'geo-dashboard' key")
+
+    config = data['geo-dashboard']
+    # Basic required fields
+    required_keys = ['name', 'template', 'stats', 'map', 'menus']
+    for key in required_keys:
+        if key not in config:
+            raise ValueError(f"Missing required key '{key}' in geo-dashboard")
+
+    # Optional: validate chart structure
+    if not isinstance(config['stats'], list):
+        raise ValueError("'stats' must be a list of chart definitions")
+    for idx, chart in enumerate(config['stats']):
+        if not isinstance(chart, dict):
+            raise ValueError(f"Chart at index {idx} is not an object")
+        if 'type' not in chart or 'title' not in chart or 'x' not in chart:
+            raise ValueError(f"Chart at index {idx} missing one of 'type', 'title', 'x'")
+        if 'y' not in chart:
+            raise ValueError(f"Chart at index {idx} missing 'y' definition")
+        # 'y' can be a dict with 'column' and 'aggregation', or just an aggregation count
+        if not isinstance(chart['y'], dict):
+            # assume simple aggregation count
+            pass
+        # further checks...
+
+    # Convert to compact JSON (no extra whitespace)
+    json_str = json.dumps(config, separators=(',', ':'), ensure_ascii=False)
+    # Wrap as an ES module export
+    js_code = jsmin.jsmin(f"export default {json_str};")
+    return js_code

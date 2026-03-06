@@ -5,14 +5,15 @@ import math
 import os, json, time
 from pathlib import Path
 import traceback
-from typing import Annotated, Any, List, Optional
+from typing import Annotated, Any, Dict, List, Optional
 import uuid
-from fastapi import Depends, FastAPI, Form, HTTPException, status, File, UploadFile, Body
+from fastapi import Depends, FastAPI, Form, HTTPException, Response, status, File, UploadFile, Body
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, BeforeValidator
-from database.utils import excel_to_csv, get_uuid
-from database.schemas import User, FileBase
+import yaml
+from database.utils import excel_to_csv, get_uuid, yaml_to_dashboard_js
+from database.schemas import DashboardConfigUpdate, User, FileBase
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from fastapi.middleware.cors import CORSMiddleware
@@ -329,3 +330,58 @@ async def add_dashboard_data(
     if not dashboard:
         raise HTTPException(status_code=404, detail="Dashboard not found")
     return dashboard
+
+
+@app.put("/dashboards/{dashboard_id}/config", response_model=schemas.Dashboard)
+def update_dashboard_config(
+    dashboard_id: int,
+    config_update: DashboardConfigUpdate,
+    user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    dashboard = crud.get_dashboard(db, dashboard_id)
+    if not dashboard:
+        raise HTTPException(404, "Dashboard not found")
+    if dashboard.user_id != user.id:
+        raise HTTPException(403, "Not authorized to modify this dashboard")
+
+    # Convert YAML to JS (with optional column validation)
+    try:
+        # Optional: validate columns if data exists
+        # validate_columns_against_data(yaml_data, db, dashboard_id)
+        js_code = yaml_to_dashboard_js(config_update.yaml_content)
+    except ValueError as e:
+        raise HTTPException(400, detail=str(e))
+
+    # Update dashboard
+    dashboard.ui_yaml_script = config_update.yaml_content
+    dashboard.ui_js_script = js_code
+    db.add(dashboard)
+    db.commit()
+    db.refresh(dashboard)
+    return dashboard
+
+
+@app.get("/dashboards/{dashboard_id}/dashboard.js")
+def get_dashboard_js(
+    dashboard_id: int,
+    db: Session = Depends(get_db)
+):
+    dashboard = crud.get_dashboard(db, dashboard_id)
+    if not dashboard or not dashboard.ui_js_script:
+        raise HTTPException(404, "Dashboard JS not found")
+    return Response(content=dashboard.ui_js_script, media_type="application/javascript")
+
+
+
+@app.get("/dashboards/{dashboard_id}/config", response_model=Dict)
+def get_dashboard_config(
+    dashboard_id: int,
+    db: Session = Depends(get_db)
+):
+    dashboard = crud.get_dashboard(db, dashboard_id)
+    if not dashboard or not dashboard.ui_yaml_script:
+        raise HTTPException(404, "Dashboard config not found")
+    # Optionally parse YAML to JSON and return
+    config = yaml.safe_load(dashboard.ui_yaml_script)
+    return config.get('geo-dashboard', {})

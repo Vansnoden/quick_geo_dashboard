@@ -47,3 +47,7 @@ class Dashboard(BaseModel):
 class DashboardCreate(BaseModel):
     user_id: int
     name: str
+
+
+class DashboardConfigUpdate(BaseModel):
+    yaml_content: str
