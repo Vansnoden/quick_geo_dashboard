@@ -40,6 +40,9 @@ class Dashboard(BaseModel):
     create_date: datetime
     last_update_date: datetime
 
+    class Config:
+        from_attributes = True
+
 
 class DashboardCreate(BaseModel):
     user_id: int

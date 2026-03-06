@@ -4,6 +4,7 @@ from enum import Enum
 from pprint import pprint
 import re, os
 import shutil
+from typing import Set
 import pandas as pd
 import openpyxl , csv
 
@@ -13,6 +14,119 @@ import warnings
 import uuid
 import geopandas as gpd
 from shapely.geometry import Point
+
+
+DATE_FORMATS = [
+    '%Y-%m-%d',      # 2025-03-06
+    '%Y/%m/%d',      # 2025/03/06
+    '%d-%m-%Y',      # 06-03-2025
+    '%d/%m/%Y',      # 06/03/2025
+    '%m-%d-%Y',      # 03-06-2025
+    '%m/%d/%Y',      # 03/06/2025
+    '%Y%m%d',        # 20250306
+]
+
+
+DATETIME_FORMATS = [
+    '%Y-%m-%d %H:%M:%S',
+    '%Y/%m/%d %H:%M:%S',
+    '%Y-%m-%dT%H:%M:%S',
+    '%Y-%m-%d %H:%M',
+    '%Y/%m/%d %H:%M',
+    '%d-%m-%Y %H:%M:%S',
+    '%d/%m/%Y %H:%M:%S',
+]
+
+
+def try_parse_int(s: str) -> bool:
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
+
+def try_parse_float(s: str) -> bool:
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
+
+
+def try_parse_date(s: str) -> bool:
+    for fmt in DATE_FORMATS:
+        try:
+            datetime.datetime.strptime(s, fmt)
+            return True
+        except ValueError:
+            continue
+    return False
+
+
+def try_parse_datetime(s: str) -> bool:
+    for fmt in DATETIME_FORMATS:
+        try:
+            datetime.datetime.strptime(s, fmt)
+            return True
+        except ValueError:
+            continue
+    return False
+
+
+def possible_types(value: str) -> Set[str]:
+    """
+    Return a set of type names that this string can be parsed as.
+    Always includes 'text' as a fallback.
+    """
+    types = set()
+    if try_parse_int(value):
+        types.add('int')
+        types.add('float')   # int is also float
+    if try_parse_float(value) and 'float' not in types:
+        types.add('float')
+    if try_parse_datetime(value):
+        types.add('datetime')
+        types.add('date')    # datetime implies date
+    elif try_parse_date(value):
+        types.add('date')
+    types.add('text')        # always possible
+    return types
+
+
+# Hierarchy: most specific to least specific
+TYPE_HIERARCHY = ['datetime', 'date', 'float', 'int', 'text']
+
+
+def choose_best_type(possible: Set[str]) -> str:
+    """Pick the most specific type from the set."""
+    for t in TYPE_HIERARCHY:
+        if t in possible:
+            return t
+    return 'text'  # fallback
+
+
+def sql_type_from_python_type(py_type: str, dialect: str) -> str:
+    """Map Python type name to SQL type string."""
+    if py_type == 'int':
+        return 'INTEGER'
+    elif py_type == 'float':
+        return 'FLOAT'
+    elif py_type == 'date':
+        # SQLite uses TEXT, PostgreSQL has DATE
+        return 'DATE' if dialect == 'postgresql' else 'TEXT'
+    elif py_type == 'datetime':
+        return 'TIMESTAMP' if dialect == 'postgresql' else 'TEXT'
+    else:  # 'text'
+        return 'TEXT'
+
+
+# ----------------------------------------------------------------------
+# Helper to sanitize column names for use as parameter keys
+# ----------------------------------------------------------------------
+def sanitize_column_name(name: str) -> str:
+    """Replace any character that is not alphanumeric or underscore with underscore."""
+    return re.sub(r'\W+', '_', name)
 
 
 def get_string_val(val):

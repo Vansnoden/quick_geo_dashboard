@@ -1,0 +1,883 @@
+Country,Lon,Lat,Specie counts,Year,method of collection,Form,species,link
+DJIBOUTI,41.90542,11.45154,1,2002,light trap,VL,Ph. orientalis,NA
+DJIBOUTI,42.20757,11.33353,1,2002,light trap,VL,Ph. orientalis,NA
+DJIBOUTI,42.70684,11.91436,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,41.8501,9.6009,1,1935,light trap,VL,Ph. langeroni,NA
+ETHIOPIA,34.18652,8.148301,1,1936,light trap,VL,Ph. martini,NA
+ETHIOPIA,39.5,9,1,1936,light trap,VL,Ph. martini,NA
+ETHIOPIA,34.18652,8.148301,1,1936,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,39.5,9,1,1936,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,36.29301,5.328381,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,36.72927,4.823017,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,37.41436,5.523014,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,37.56867,12.67608,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,37.87728,5.514972,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,37.88617,6.999015,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,37.90556,6.530494,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,38.1253,7.851393,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,38.25133,8.219373,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,38.34505,7.39016,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,38.4226,6.851448,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,38.50016,8.471962,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,38.79989,3.82571,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,38.93642,8.765908,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,38.98813,9.180867,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,39.42035,3.851505,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,40.02788,5.317119,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,40.19996,10.41322,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,40.23551,9.987033,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,42.24231,10.25426,1,2002,light trap,VL,Ph. martini,NA
+ETHIOPIA,35.30173,11.7135,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,35.57641,12.14666,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,35.67821,5.768023,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,35.92865,4.89768,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,35.96743,12.1593,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,36.05145,12.52234,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,36.35037,5.005533,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,36.48771,12.96046,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,36.91751,11.72616,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,37.42809,11.56791,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,39.11335,7.098236,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,39.86065,8.164797,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,40.04161,8.615569,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,40.32761,9.032295,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,40.70893,9.314629,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,40.80265,10.14115,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,40.93514,10.7037,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,40.95776,9.681163,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,41.11772,10.98934,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,41.22598,10.0107,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,41.37302,11.14871,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,41.6893,11.59877,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,41.77454,10.91002,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,41.81897,10.6378,1,2002,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,37.74258,6.300574,1,2022,Systematic literature review,CL,Ph. aculeatus,NA
+ETHIOPIA,37.65788,6.163634,1,2022,Systematic literature review,CL,Ph. arabicus,NA
+ETHIOPIA,38.7596,7.962086,1,2022,Systematic literature review,CL,Ph. arabicus,NA
+ETHIOPIA,39.31032,7.941359,1,2022,Systematic literature review,CL,Ph. arabicus,NA
+ETHIOPIA,39.58182,8.745824,1,2022,Systematic literature review,CL,Ph. arabicus,NA
+ETHIOPIA,40.3284,9.336334,1,2022,Systematic literature review,CL,Ph. arabicus,NA
+ETHIOPIA,36.46835,12.73273,1,2022,Systematic literature review,CL,Ph. duboscqi,NA
+ETHIOPIA,36.5815,5.858076,1,2022,Systematic literature review,CL,Ph. duboscqi,NA
+ETHIOPIA,36.82652,14.0983,1,2022,Systematic literature review,CL,Ph. duboscqi,NA
+ETHIOPIA,36.91274,13.52398,1,2022,Systematic literature review,CL,Ph. duboscqi,NA
+ETHIOPIA,37.41332,5.278296,1,2022,Systematic literature review,CL,Ph. duboscqi,NA
+ETHIOPIA,37.4578,12.71166,1,2022,Systematic literature review,CL,Ph. duboscqi,NA
+ETHIOPIA,37.80036,14.28714,1,2022,Systematic literature review,CL,Ph. duboscqi,NA
+ETHIOPIA,37.89556,12.26844,1,2022,Systematic literature review,CL,Ph. duboscqi,NA
+ETHIOPIA,38.70632,7.972755,1,2022,Systematic literature review,CL,Ph. duboscqi,NA
+ETHIOPIA,39.26503,8.021135,1,2022,Systematic literature review,CL,Ph. duboscqi,NA
+ETHIOPIA,40.2896,9.354708,1,2022,Systematic literature review,CL,Ph. duboscqi,NA
+ETHIOPIA,37.21846,12.838,1,2022,Systematic literature review,CL,Ph. gibiensis,NA
+ETHIOPIA,37.52634,8.571237,1,2022,Systematic literature review,CL,Ph. gibiensis,NA
+ETHIOPIA,37.70568,12.64121,1,2022,Systematic literature review,CL,Ph. gibiensis,NA
+ETHIOPIA,39.85295,11.11924,1,2022,Systematic literature review,CL,Ph. gibiensis,NA
+ETHIOPIA,36.83161,7.663844,1,2022,Systematic literature review,CL,Ph. longipes,NA
+ETHIOPIA,37.41366,12.86181,1,2022,Systematic literature review,CL,Ph. longipes,NA
+ETHIOPIA,37.48905,12.66025,1,2022,Systematic literature review,CL,Ph. longipes,NA
+ETHIOPIA,37.90049,12.14288,1,2022,Systematic literature review,CL,Ph. longipes,NA
+ETHIOPIA,38.62894,8.893803,1,2022,Systematic literature review,CL,Ph. longipes,NA
+ETHIOPIA,38.78606,9.020767,1,2022,Systematic literature review,CL,Ph. longipes,NA
+ETHIOPIA,38.90985,8.755731,1,2022,Systematic literature review,CL,Ph. longipes,NA
+ETHIOPIA,39.17052,13.65771,1,2022,Systematic literature review,CL,Ph. longipes,NA
+ETHIOPIA,39.31375,8.088379,1,2022,Systematic literature review,CL,Ph. longipes,NA
+ETHIOPIA,39.53276,11.21446,1,2022,Systematic literature review,CL,Ph. longipes,NA
+ETHIOPIA,39.55776,14.20683,1,2022,Systematic literature review,CL,Ph. longipes,NA
+ETHIOPIA,39.66925,11.06369,1,2022,Systematic literature review,CL,Ph. longipes,NA
+ETHIOPIA,40.74209,8.651382,1,2022,Systematic literature review,CL,Ph. longipes,NA
+ETHIOPIA,36.41819,12.77809,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,36.51302,5.78161,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,36.55864,14.20405,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,36.78083,14.2104,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,36.87288,13.55336,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,37.02603,13.3042,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,37.03793,13.39783,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,37.18235,13.19152,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,37.34978,13.01615,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,37.66243,6.160517,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,37.76242,12.07821,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,37.79098,14.40323,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,37.84812,12.31785,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,38.69679,7.906662,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,39.24154,4.830575,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,39.24511,4.815894,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,39.24948,7.96816,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,40.05569,4.799627,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,40.28582,9.308022,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,40.64766,5.200752,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,41.81731,9.587341,1,2022,Systematic literature review,VL,Ph. orientalis,NA
+ETHIOPIA,36.46757,12.73273,1,2022,Systematic literature review,CL,Ph. papatasi,NA
+ETHIOPIA,36.82496,14.0983,1,2022,Systematic literature review,CL,Ph. papatasi,NA
+ETHIOPIA,36.912350000000004,13.52398,1,2022,Systematic literature review,CL,Ph. papatasi,NA
+ETHIOPIA,37.07934,13.30549,1,2022,Systematic literature review,CL,Ph. papatasi,NA
+ETHIOPIA,37.2042,13.19156,1,2022,Systematic literature review,CL,Ph. papatasi,NA
+ETHIOPIA,37.7988,14.28558,1,2022,Systematic literature review,CL,Ph. papatasi,NA
+ETHIOPIA,36.49675,7.490063,1,2022,Systematic literature review,CL,Ph. pedifer,NA
+ETHIOPIA,37.66481,6.158533,1,2022,Systematic literature review,CL,Ph. pedifer,NA
+ETHIOPIA,36.43868,12.79155,1,2022,Systematic literature review,VL,Ph. rodhaini,NA
+ETHIOPIA,36.54309,5.771424,1,2022,Systematic literature review,VL,Ph. rodhaini,https://doi.org/10.1016/j.heliyon.2023.e14344
+ETHIOPIA,36.55094,14.20754,1,2022,Systematic literature review,VL,Ph. rodhaini,NA
+ETHIOPIA,36.7827,14.19038,1,2022,Systematic literature review,VL,Ph. rodhaini,NA
+ETHIOPIA,36.86307,13.55129,1,2022,Systematic literature review,VL,Ph. rodhaini,NA
+ETHIOPIA,37.05152,13.35036,1,2022,Systematic literature review,VL,Ph. rodhaini,NA
+ETHIOPIA,37.18271,13.18903,1,2022,Systematic literature review,VL,Ph. rodhaini,NA
+ETHIOPIA,37.322,12.97492,1,2022,Systematic literature review,VL,Ph. rodhaini,NA
+ETHIOPIA,37.38974,5.145409,1,2022,Systematic literature review,VL,Ph. rodhaini,NA
+ETHIOPIA,37.75329,12.06471,1,2022,Systematic literature review,VL,Ph. rodhaini,NA
+ETHIOPIA,37.78386,14.37453,1,2022,Systematic literature review,VL,Ph. rodhaini,NA
+ETHIOPIA,37.84106,12.29097,1,2022,Systematic literature review,VL,Ph. rodhaini,NA
+ETHIOPIA,38.69015,7.905366,1,2022,Systematic literature review,VL,Ph. rodhaini,NA
+ETHIOPIA,39.22821,7.980155,1,2022,Systematic literature review,VL,Ph. rodhaini,NA
+ETHIOPIA,39.61989,8.63475,1,2022,Systematic literature review,VL,Ph. rodhaini,NA
+ETHIOPIA,40.30935,9.32441,1,2022,Systematic literature review,VL,Ph. rodhaini,NA
+ETHIOPIA,36.46913,12.73117,1,2022,Systematic literature review,CL,Ph. bergeroti,NA
+ETHIOPIA,36.56589,14.17321,1,2022,Systematic literature review,CL,Ph. bergeroti,NA
+ETHIOPIA,36.91548,13.51774,1,2022,Systematic literature review,CL,Ph. bergeroti,NA
+ETHIOPIA,37.1683,13.07139,1,2022,Systematic literature review,CL,Ph. bergeroti,NA
+ETHIOPIA,37.37275,13.39601,1,2022,Systematic literature review,CL,Ph. bergeroti,NA
+ETHIOPIA,37.80192,14.28558,1,2022,Systematic literature review,CL,Ph. bergeroti,NA
+ETHIOPIA,40.2896,9.355489,1,2022,Systematic literature review,CL,Ph. bergeroti,NA
+ETHIOPIA,41.37737,11.54976,1,2022,Systematic literature review,CL,Ph. bergeroti,NA
+ETHIOPIA,41.82371,9.754234,1,2022,Systematic literature review,CL,Ph. bergeroti,NA
+ETHIOPIA,41.85649,9.598169,1,2022,Systematic literature review,CL,Ph. bergeroti,NA
+ETHIOPIA,38.76667,9.033333,1,1937,light trap,VL,Ph. longipes,NA
+ETHIOPIA,39.5,9,1,1939,light trap,CL,Ph. longipes,NA
+ETHIOPIA,39.5,9,1,1939,light trap,VL,Ph. martini,NA
+ETHIOPIA,39.5,9,1,1939,light trap,CL,Ph. saevus,NA
+ETHIOPIA,39.5,9,1,1974,light trap,CL,Ph. fantalensis,NA
+ETHIOPIA,39.5,9,1,1974,light trap,CL,Ph. gibiensis,NA
+ETHIOPIA,37.4,5.1667,1381,1990,Human bait,VL,Ph. martini,https://doi.org/10.1111/j.1365-2915.1996.tb00082.x
+ETHIOPIA,37.4,5.1667,599,1990,Human bait,VL,Ph. celiae,NA
+ETHIOPIA,37.4,5.1667,31,1990,Human bait,CL,Ph. duboscqi,NA
+ETHIOPIA,37.4,5.1667,1,1990,Human bait,VL,Ph. alexandri,NA
+ETHIOPIA,37.4,5.1667,23,1990,Human bait,Non-vector (S.),Se. bedfordi,NA
+ETHIOPIA,37.4,5.1667,917,1990,Human bait,Non-vector (S.),Se. schwetzi,NA
+ETHIOPIA,37.4,5.1667,29,1990,Human bait,Non-vector (S.),Se. Guggisberg,NA
+ETHIOPIA,37.4,5.1667,4,1990,Human bait,Non-vector (S.),Se. adleri,NA
+ETHIOPIA,37.4,5.1667,2,1990,Human bait,Non-vector (S.),Se. clydei,NA
+ETHIOPIA,37.4,5.1667,1954,1990,light trap,VL,Ph. martini,NA
+ETHIOPIA,37.4,5.1667,718,1990,light trap,VL,Ph. celiae,NA
+ETHIOPIA,37.4,5.1667,40,1990,light trap,CL,Ph. duboscqi,NA
+ETHIOPIA,37.4,5.1667,1,1990,light trap,VL,Ph. rodhaini,NA
+ETHIOPIA,37.4,5.1667,2,1990,light trap,VL,Ph. alexandri,NA
+ETHIOPIA,37.4,5.1667,519,1990,light trap,Non-vector (S.),Se. antennata,NA
+ETHIOPIA,37.4,5.1667,14,1990,light trap,Non-vector (S.),Se. cincta,NA
+ETHIOPIA,37.4,5.1667,3116,1990,light trap,Non-vector (S.),Se. bedfordi,NA
+ETHIOPIA,37.4,5.1667,2392,1990,light trap,Non-vector (S.),Se. schwetzi,NA
+ETHIOPIA,37.4,5.1667,2,1990,light trap,Non-vector (S.),Se. harveyi,NA
+ETHIOPIA,37.4,5.1667,46,1990,light trap,Non-vector (S.),Se. Guggisberg,NA
+ETHIOPIA,37.4,5.1667,4,1990,light trap,Non-vector (S.),Se. ruttledgei,NA
+ETHIOPIA,37.4,5.1667,6,1990,light trap,Non-vector (S.),Se. vorax,NA
+ETHIOPIA,37.4,5.1667,14,1990,light trap,Non-vector (S.),Se. adleri,NA
+ETHIOPIA,37.4,5.1667,424,1990,light trap,Non-vector (S.),Se. clydei,NA
+ETHIOPIA,37.4,5.1667,8,1990,light trap,Non-vector (S.),Se. subrecreta,NA
+ETHIOPIA,37.4,5.1667,4,1990,light trap,Non-vector (S.),Se. squamipleuris,NA
+ETHIOPIA,37.4,5.1667,12,1990,light trap,Non-vector (S.),Se. dreyfussi,NA
+ETHIOPIA,37.4,5.1667,9,1990,light trap,Non-vector (S.),Se. africana,NA
+ETHIOPIA,37.4,5.1667,11,1990,light trap,Non-vector (S.),Se. magna,NA
+ETHIOPIA,37.4,5.1667,2465,1990,Sticky trap,VL,Ph. martini,NA
+ETHIOPIA,37.4,5.1667,925,1990,Sticky trap,VL,Ph. celiae,NA
+ETHIOPIA,37.4,5.1667,117,1990,Sticky trap,CL,Ph. duboscqi,NA
+ETHIOPIA,37.4,5.1667,30,1990,Sticky trap,VL,Ph. rodhaini,NA
+ETHIOPIA,37.4,5.1667,1,1990,Sticky trap,CL,Ph. saevus,NA
+ETHIOPIA,37.4,5.1667,7775,1990,Sticky trap,Non-vector (S.),Se. antennata,NA
+ETHIOPIA,37.4,5.1667,287,1990,Sticky trap,Non-vector (S.),Se. cincta,NA
+ETHIOPIA,37.4,5.1667,4921,1990,Sticky trap,Non-vector (S.),Se. bedfordi,NA
+ETHIOPIA,37.4,5.1667,10763,1990,Sticky trap,Non-vector (S.),Se. schwetzi,NA
+ETHIOPIA,37.4,5.1667,8,1990,Sticky trap,Non-vector (S.),Se. kitonyi,NA
+ETHIOPIA,37.4,5.1667,673,1990,Sticky trap,Non-vector (S.),Se. Guggisberg,NA
+ETHIOPIA,37.4,5.1667,53,1990,Sticky trap,Non-vector (S.),Se. ruttledgei,NA
+ETHIOPIA,37.4,5.1667,7,1990,Sticky trap,Non-vector (S.),Se. vorax,NA
+ETHIOPIA,37.4,5.1667,63,1990,Sticky trap,Non-vector (S.),Se. adleri,NA
+ETHIOPIA,37.4,5.1667,238,1990,Sticky trap,Non-vector (S.),Se. clydei,NA
+ETHIOPIA,37.4,5.1667,8,1990,Sticky trap,Non-vector (S.),Se. subrecreta,NA
+ETHIOPIA,37.4,5.1667,20,1990,Sticky trap,Non-vector (S.),Se. graingeri,NA
+ETHIOPIA,37.4,5.1667,1,1990,Sticky trap,Non-vector (S.),Se. squamipleuris,NA
+ETHIOPIA,37.4,5.1667,35,1990,Sticky trap,Non-vector (S.),Se. africana,NA
+ETHIOPIA,37.4,5.1667,98,1990,Sticky trap,Non-vector (S.),Se. magna,NA
+ETHIOPIA,39.5,9,1,1996,light trap,CL,Ph. asfordi,NA
+ETHIOPIA,39.5,9,1,2003,light trap,CL,Ph. gemetchi,NA
+ETHIOPIA,39.3667,4.7833,7,2011,light trap,VL,P. celiae,NA
+ETHIOPIA,39.3667,4.7833,37,2011,light trap,VL,Ph. martini,https://doi.org/10.1603/ME12176
+ETHIOPIA,39.3667,4.7833,8,2011,light trap,VL,Ph. vansomerenae,NA
+ETHIOPIA,37.7376,14.3271,1,2011,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,39.3667,4.7833,1,2011,light trap,VL,Ph. vansomerenae,(PDF) First Record of Ph. (SynPh.) vansomerenae (Diptera: Psychodidae) in Ethiopia
+ETHIOPIA,37.7376,14.3271,1,2012,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,37.7162,14.4171,1,2013,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,37.7776,14.4026,1,2021,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,39.5,9,1,1938,LIVING_SPECIMEN,Non-vector (S.),Se. notata,NA
+ETHIOPIA,39.5,9,1,1938,LIVING_SPECIMEN,Non-vector (S.),Se. wurtzi,NA
+ETHIOPIA,35.9849,0.47136,2,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. antennata,NA
+ETHIOPIA,39.5,9,1,1991,LIVING_SPECIMEN,Non-vector (S.),Se. davidsoni,NA
+ETHIOPIA,38.21806,-0.30693,24,1991,PRESERVED_SPECIMEN,Non-vector (S.),Se. ingrami,NA
+ETHIOPIA,39.5,9,1,1997,LIVING_SPECIMEN,Non-vector (S.),Se. ashfordi,NA
+KENYA,35.9961,0.46998,1,1906,light trap,CL,Ph. duboscqi,NA
+KENYA,35.9961,0.46998,1,1906,light trap,VL,Ph. martini,NA
+KENYA,37.7,-1.65,1,1930,light trap,VL,Ph. martini,NA
+KENYA,35.9961,0.46998,1,1936,light trap,VL,Ph. martini,NA
+KENYA,37.7,-1.65,1,1936,light trap,VL,Ph. martini,NA
+KENYA,38.21806,-0.30693,1,1936,light trap,VL,Ph. martini,NA
+KENYA,34.64249,1.038858,1,2002,light trap,VL,Ph. martini,NA
+KENYA,34.6845,4.018344,1,2002,light trap,VL,Ph. martini,NA
+KENYA,35.07875,1.006548,1,2002,light trap,VL,Ph. martini,NA
+KENYA,35.14985,0.353823,1,2002,light trap,VL,Ph. martini,NA
+KENYA,35.45361,0.676965,1,2002,light trap,VL,Ph. martini,NA
+KENYA,35.63781,0.105803,1,2002,light trap,VL,Ph. martini,NA
+KENYA,36.02398,-0.04446,1,2002,light trap,VL,Ph. martini,NA
+KENYA,36.13224,4.166616,1,2002,light trap,VL,Ph. martini,NA
+KENYA,36.64283,-1.25054,1,2002,light trap,VL,Ph. martini,NA
+KENYA,37.74479,-0.62048,1,2002,light trap,VL,Ph. martini,NA
+KENYA,38.37817,-0.13899,1,2002,light trap,VL,Ph. martini,NA
+KENYA,38.42018,0.284345,1,2002,light trap,VL,Ph. martini,NA
+KENYA,38.48158,-1.39835,1,2002,light trap,VL,Ph. martini,NA
+KENYA,38.69567,-1.02842,1,2002,light trap,VL,Ph. martini,NA
+KENYA,38.72718,0.691506,1,2002,light trap,VL,Ph. martini,NA
+KENYA,38.94693,0.190631,1,2002,light trap,VL,Ph. martini,NA
+KENYA,38.96308,-1.52757,1,2002,light trap,VL,Ph. martini,NA
+KENYA,39.00025,1.189097,1,2002,light trap,VL,Ph. martini,NA
+KENYA,39.13032,-0.97187,1,2002,light trap,VL,Ph. martini,NA
+KENYA,39.31371,-0.18908,1,2002,light trap,VL,Ph. martini,NA
+KENYA,39.31532,-1.83605,1,2002,light trap,VL,Ph. martini,NA
+KENYA,39.37995,0.840144,1,2002,light trap,VL,Ph. martini,NA
+KENYA,39.67564,-0.39105,1,2002,light trap,VL,Ph. martini,NA
+KENYA,39.83399,-2.23974,1,2002,light trap,VL,Ph. martini,NA
+KENYA,39.9067,3.457251,1,2002,light trap,VL,Ph. martini,NA
+KENYA,40.01011,2.043496,1,2002,light trap,VL,Ph. martini,NA
+KENYA,40.41728,2.534299,1,2002,light trap,VL,Ph. martini,NA
+KENYA,40.67096,-2.88217,1,2002,light trap,VL,Ph. martini,NA
+KENYA,35.65882,4.477373,1,2002,light trap,VL,Ph. orientalis,https://doi.org/10.1111/j.1948-7134.2011.00109.x
+KENYA,37.378,-1.94526,1,2002,light trap,VL,Ph. orientalis,NA
+KENYA,38.91623,-0.41387,1,2002,light trap,VL,Ph. orientalis,NA
+KENYA,40.10544,1.030579,1,2002,light trap,VL,Ph. orientalis,NA
+KENYA,40.50615,1.715468,1,2002,light trap,VL,Ph. orientalis,NA
+KENYA,36.34764,-0.7752,1,1939,light trap,VL,Ph. saevus,NA
+KENYA,36.63648,-1.40478,1,1952,light trap,CL,Ph. guggisbergi,NA
+KENYA,38,1,1,1952,light trap,CL,Ph. guggisbergi,NA
+KENYA,38,1,1,1956,light trap,CL,Ph. guggisbergi,NA
+KENYA,38,1,1,1956,light trap,CL,Ph. Teesdale,NA
+KENYA,38,1,1,1956,light trap,VL,Ph. vansomerenae,NA
+KENYA,34.70206,0.847905,1,1962,light trap,VL,Ph. celiae,NA
+KENYA,37.7,-1.65,1,1962,light trap,VL,Ph. celiae,NA
+KENYA,38,1,1,1962,light trap,VL,Ph. celiae,NA
+KENYA,38.21806,-0.30693,1,1962,light trap,VL,Ph. celiae,NA
+KENYA,36.4333,-0.7333,1,1963,light trap,CL,Ph. aculeatus,NA
+KENYA,38.16667,-0.16667,1,1963,light trap,VL,Ph. celiae,NA
+KENYA,34.70206,0.847905,1,1972,light trap,CL,Ph. pedifer,NA
+KENYA,38,1,1,1972,light trap,CL,Ph. pedifer,NA
+KENYA,36.34764,-0.7752,1,1974,light trap,CL,Ph. aculeatus,NA
+KENYA,38,1,1,1974,light trap,CL,Ph. aculeatus,NA
+KENYA,38.21806,-0.30693,1,1974,light trap,CL,Ph. aculeatus,NA
+KENYA,34.70206,0.847905,1,1975,light trap,CL,Ph. elgonensis,NA
+KENYA,38,1,1,1975,light trap,CL,Ph. elgonensis,NA
+KENYA,37.90612,0.443172,1,1992,light trap,CL,Ph. duboscqi,NA
+KENYA,37.90612,0.443172,20,1993,light trap,CL,Ph. duboscqi,NA
+KENYA,38,1,1,1997,light trap,CL,Ph. mireillae,NA
+KENYA,3.61315,0.34514,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,3.6192,0.2342,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.08346,0.32854,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.08418,0.3287,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.12837,0.34396,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.12877,0.3426,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.12916,0.3432,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.13108,0.34826,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.13121,0.34407,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.13162,0.34508,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.13174,0.34888,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.13179,0.34411,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.13184,0.34692,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.13188,0.34877,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.13199,0.34406,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.132,0.34414,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.13222,0.34731,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.13236,0.34418,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.13323,0.34215,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.13334,0.34374,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.1334,0.34294,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.13511,0.34139,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.13908,0.34726,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.13927,0.34649,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.1426,0.33981,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.14851,0.34961,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.15122,0.34991,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.15427,0.34768,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.15547,0.34784,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.15552,0.34821,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.15737,0.22688,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.15744,0.22616,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.15815,0.22739,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.1583,0.23205,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.15858,0.22988,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.1586,0.23321,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.15868,0.23321,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.15936,0.23072,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.15983,0.23091,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.17879,0.2317,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.18059,0.22732,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.18089,0.23671,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.18094,0.22715,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.18251,0.22676,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.1826,0.22669,1,2016,Survey,CL,Ph. duboscqi,https://doi.org/10.1371/journal.pone.0227697
+KENYA,36.18322,0.22809,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.18482,0.22916,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.18484,0.22931000000000001,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.18488,0.22942,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.18862,0.23152,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,36.19177,0.23448,1,2016,Survey,CL,Ph. duboscqi,NA
+KENYA,38.72073,1.142882,1,2018,light trap,CL,Ph. duboscqi,NA
+KENYA,38.82362,1.225412,1,2018,light trap,CL,Ph. duboscqi,NA
+KENYA,38.82373,1.224821,1,2018,light trap,CL,Ph. duboscqi,NA
+KENYA,38.83637,1.257465,1,2018,light trap,CL,Ph. duboscqi,NA
+KENYA,36.17106,-1.83159,1,2021,light trap,CL,Ph. guggisbergi,NA
+KENYA,36.08566,-1.83149,1,2021,light trap,VL,Ph. martini,NA
+KENYA,36.10183,-1.83051,1,2021,light trap,VL,Ph. martini,NA
+KENYA,36.10271,-1.83057,1,2021,light trap,VL,Ph. martini,NA
+KENYA,36.10484,-1.86115,1,2021,light trap,VL,Ph. martini,NA
+KENYA,36.11843,-1.86428,1,2021,light trap,VL,Ph. martini,NA
+KENYA,36.11844,-1.86428,1,2021,light trap,VL,Ph. martini,NA
+KENYA,36.12027,-1.86453,1,2021,light trap,VL,Ph. martini,NA
+KENYA,36.15733,-1.87555,1,2021,light trap,VL,Ph. martini,NA
+KENYA,36.16353,-1.87469,1,2021,light trap,VL,Ph. martini,NA
+KENYA,36.16689,-1.83125,1,2021,light trap,VL,Ph. martini,NA
+KENYA,36.16782,-1.82799,1,2021,light trap,VL,Ph. martini,NA
+KENYA,37.48219,1.375818,1,2021,light trap,VL,Ph. martini,NA
+KENYA,37.48552,1.394356,1,2021,light trap,VL,Ph. martini,NA
+KENYA,37.82254,1.60193,1,2021,light trap,VL,Ph. martini,NA
+KENYA,37.82291,1.60225,1,2021,light trap,VL,Ph. martini,NA
+KENYA,37.82302,1.652,1,2021,light trap,VL,Ph. martini,NA
+KENYA,37.82323,1.60132,1,2021,light trap,VL,Ph. martini,NA
+KENYA,37.82352,1.60224,1,2021,light trap,VL,Ph. martini,NA
+KENYA,37.83868,1.60074,1,2021,light trap,VL,Ph. martini,NA
+KENYA,37.8686,1.834045,1,2021,light trap,VL,Ph. martini,NA
+KENYA,36.11818,-1.86519,1,2021,light trap,VL,Ph. orientalis,NA
+KENYA,36.15733,-1.87555,1,2021,light trap,VL,Ph. orientalis,NA
+KENYA,38.72,1.14,1,2021,light trap,VL,Ph. orientalis,NA
+KENYA,38.82,1.22,1,2021,light trap,VL,Ph. orientalis,NA
+KENYA,38.82,1.23,1,2021,light trap,VL,Ph. orientalis,NA
+KENYA,38.84,1.26,1,2021,light trap,VL,Ph. orientalis,NA
+KENYA,36.15839,-1.82787,1,2021,light trap,CL,Ph. saevus,NA
+KENYA,36.16782,-1.82799,1,2021,light trap,CL,Ph. saevus,NA
+KENYA,36.17106,-1.83159,1,2021,light trap,CL,Ph. saevus,NA
+KENYA,36.0836,-0.58291,1,2025,light trap,CL,Ph. guggisbergi,NA
+KENYA,36.23702,-0.56858,1,2025,light trap,CL,Ph. guggisbergi,NA
+KENYA,36.26566,-0.38608,1,2025,light trap,CL,Ph. guggisbergi,NA
+KENYA,35.96565,0.94725,1,2025,light trap,VL,Ph. martini,NA
+KENYA,36.17547,-1.86212,1,2025,light trap,VL,Ph. martini,NA
+KENYA,36.0836,-0.58291,1,2025,light trap,CL,Ph. mireillae,NA
+KENYA,36.23702,-0.56858,1,2025,light trap,CL,Ph. mireillae,NA
+KENYA,36.0836,-0.58291,1,2025,light trap,CL,Ph. saevus,NA
+KENYA,36.10271,-1.83057,1,2025,light trap,CL,Ph. saevus,NA
+KENYA,36.1077,-1.84811,1,2025,light trap,CL,Ph. saevus,NA
+KENYA,36.11608,-2.1029,1,2025,light trap,CL,Ph. saevus,NA
+KENYA,36.23702,-0.56858,1,2025,light trap,CL,Ph. saevus,NA
+KENYA,35.98594,0.02337,1,2025,light trap,Non-vector (S.),Se. africana,NA
+KENYA,36.01557,0.01419,1,2025,light trap,Non-vector (S.),Se. africana,NA
+KENYA,36.17106,-1.83159,1,2025,light trap,Non-vector (S.),Se. africana,NA
+KENYA,36.23702,-0.56858,1,2025,light trap,Non-vector (S.),Se. africana,NA
+KENYA,36.15733,-1.87555,1,2025,light trap,Non-vector (S.),Se. bedfordi,NA
+KENYA,35.96565,0.94725,1,2025,light trap,Non-vector (S.),Se. clydei,NA
+KENYA,35.98594,0.02337,1,2025,light trap,Non-vector (S.),Se. clydei,NA
+KENYA,36.01557,0.01419,1,2025,light trap,Non-vector (S.),Se. clydei,NA
+KENYA,36.10672,-1.8601,1,2025,light trap,Non-vector (S.),Se. clydei,NA
+KENYA,36.17547,-1.86212,1,2025,light trap,Non-vector (S.),Se. clydei,NA
+KENYA,35.96565,0.94725,1,2025,light trap,Non-vector (S.),Se. dreyfussi,NA
+KENYA,35.96565,0.94725,1,2025,light trap,Non-vector (S.),Se.,NA
+KENYA,35.98594,0.02337,1,2025,light trap,Non-vector (S.),Se.,NA
+KENYA,36.01557,0.01419,1,2025,light trap,Non-vector (S.),Se.,NA
+KENYA,35.96565,0.94725,1,2025,light trap,Non-vector (S.),Se. schwetzi,NA
+KENYA,35.98594,0.02337,1,2025,light trap,Non-vector (S.),Se. schwetzi,NA
+KENYA,36.01557,0.01419,1,2025,light trap,Non-vector (S.),Se. schwetzi,NA
+KENYA,37.78849,1.61478,2,2021,light trap,VL,Ph. alexandri,NA
+KENYA,37.81061,1.59642,13,2021,light trap,VL,Ph. alexandri,NA
+KENYA,37.84256,1.59769,134,2021,light trap,VL,Ph. alexandri,NA
+KENYA,37.78849,1.61478,3,2021,light trap,VL,Ph. orientalis,NA
+KENYA,37.81061,1.59642,1,2021,light trap,VL,Ph. orientalis,NA
+KENYA,37.81629,1.660026,4,2021,light trap,VL,Ph. orientalis,NA
+KENYA,37.84256,1.59769,5,2021,light trap,VL,Ph. orientalis,NA
+KENYA,37.86963,1.835081,4,2021,light trap,VL,Ph. orientalis,NA
+KENYA,37.86963,1.835081,13,2021,light trap,CL,Ph. saevus,NA
+KENYA,37.86963,1.835081,25,2021,light trap,Non-vector (S.),Se.affinis,NA
+KENYA,37.78849,1.61478,2,2021,light trap,Non-vector (S.),Se. africana,NA
+KENYA,37.81629,1.660026,2,2021,light trap,Non-vector (S.),Se. africana,NA
+KENYA,37.84256,1.59769,25,2021,light trap,Non-vector (S.),Se. africana,NA
+KENYA,37.86963,1.835081,1,2021,light trap,Non-vector (S.),Se. africana,NA
+KENYA,37.78849,1.61478,2,2021,light trap,Non-vector (S.),Se. bedfordi,NA
+KENYA,37.81629,1.660026,4,2021,light trap,Non-vector (S.),Se. bedfordi,NA
+KENYA,37.84256,1.59769,2,2021,light trap,Non-vector (S.),Se. bedfordi,NA
+KENYA,37.78849,1.61478,206,2021,light trap,Non-vector (S.),Se. clydei,NA
+KENYA,37.81061,1.59642,16,2021,light trap,Non-vector (S.),Se. clydei,NA
+KENYA,37.81629,1.660026,78,2021,light trap,Non-vector (S.),Se. clydei,NA
+KENYA,37.84256,1.59769,205,2021,light trap,Non-vector (S.),Se. clydei,NA
+KENYA,37.86963,1.835081,97,2021,light trap,Non-vector (S.),Se. clydei,NA
+KENYA,37.81061,1.59642,1,2021,light trap,Non-vector (S.),Se. dreyfussi,NA
+KENYA,37.84256,1.59769,7,2021,light trap,Non-vector (S.),Se. dreyfussi,NA
+KENYA,37.86963,1.835081,1,2021,light trap,Non-vector (S.),Se. harveyi,NA
+KENYA,37.86963,1.835081,2,2021,light trap,Non-vector (S.),Se.,NA
+KENYA,37.78849,1.61478,1,2021,light trap,Non-vector (S.),Se. schwetzi,NA
+KENYA,37.81061,1.59642,7,2021,light trap,Non-vector (S.),Se. schwetzi,NA
+KENYA,37.81629,1.660026,10,2021,light trap,Non-vector (S.),Se. schwetzi,NA
+KENYA,37.84256,1.59769,5,2021,light trap,Non-vector (S.),Se. schwetzi,NA
+KENYA,37.86963,1.835081,14,2021,light trap,Non-vector (S.),Se. schwetzi,NA
+KENYA,37.78849,1.61478,27,2021,light trap,Non-vector (S.),Se. squamipleuris,NA
+KENYA,37.81061,1.59642,2,2021,light trap,Non-vector (S.),Se. squamipleuris,NA
+KENYA,37.81629,1.660026,40,2021,light trap,Non-vector (S.),Se. squamipleuris,NA
+KENYA,37.84256,1.59769,24,2021,light trap,Non-vector (S.),Se. squamipleuris,NA
+KENYA,37.86963,1.835081,12,2021,light trap,Non-vector (S.),Se. squamipleuris,NA
+KENYA,37.78849,1.61478,1,2021,light trap,Non-vector (S.),Se.yusafi,NA
+KENYA,37.86963,1.835081,8,2021,light trap,Non-vector (S.),Se. yvonnae,NA
+KENYA,38,1,1,1930,LIVING_SPECIMEN,Non-vector (S.),Se.yusafi,NA
+KENYA,38,1,1,1932,PRESERVED_SPECIMEN,Non-vector (S.),Se. subrecreta,NA
+KENYA,34.20946,-0.43316,1,1940,PRESERVED_SPECIMEN,Non-vector (S.),Se. africana,NA
+KENYA,35.7599,0.07806,1,1940,PRESERVED_SPECIMEN,Non-vector (S.),Se. africana,NA
+KENYA,37.7,-1.65,2,1940,PRESERVED_SPECIMEN,Non-vector (S.),Se. africana,NA
+KENYA,38.21806,-0.30693,9,1940,PRESERVED_SPECIMEN,Non-vector (S.),Se. africana,NA
+KENYA,39.6671,-4.05403,2,1940,PRESERVED_SPECIMEN,Non-vector (S.),Se. congolensis,NA
+KENYA,38,1,1,1952,LIVING_SPECIMEN,Non-vector (S.),Se. blossi,NA
+KENYA,38,1,1,1952,LIVING_SPECIMEN,Non-vector (S.),Se. gracilis,NA
+KENYA,34.70206,0.847905,7,1952,PRESERVED_SPECIMEN,Non-vector (S.),Se. graingeri,NA
+KENYA,38.21806,-0.30693,22,1952,LIVING_SPECIMEN,Non-vector (S.),Se. graingeri,NA
+KENYA,38,1,1,1956,PRESERVED_SPECIMEN,Non-vector (S.),Se. garnhami,NA
+KENYA,38,1,1,1956,PRESERVED_SPECIMEN,Non-vector (S.),Se. graingeri,NA
+KENYA,38,1,1,1956,LIVING_SPECIMEN,Non-vector (S.),Se. harveyi,NA
+KENYA,37.7,-1.65,66,1956,PRESERVED_SPECIMEN,Non-vector (S.),Se. ingrami,NA
+KENYA,38,1,1,1956,LIVING_SPECIMEN,Non-vector (S.),Se. multidens,NA
+KENYA,38,1,1,1956,LIVING_SPECIMEN,Non-vector (S.),Se. rosannae,NA
+KENYA,38.3476,-0.26869,1,1957,PRESERVED_SPECIMEN,Non-vector (S.),Se. kirki,NA
+KENYA,37.9956,-1.3749,1,1958,PRESERVED_SPECIMEN,Non-vector (S.),Se. adleri,NA
+KENYA,37.8952,-0.77284,1,1958,PRESERVED_SPECIMEN,Non-vector (S.),Se. kirki,NA
+KENYA,38.21806,-0.30693,18,1958,PRESERVED_SPECIMEN,Non-vector (S.),Se. kirki,NA
+KENYA,37.6568,-0.21587,1,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. antennata,NA
+KENYA,37.8952,-0.77283,1,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. clydei,NA
+KENYA,38.21806,-0.30693,162,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. clydei,NA
+KENYA,37.9645,-2.41087,2,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. freetownensis,NA
+KENYA,37.7,-1.65,14,1959,LIVING_SPECIMEN,Non-vector (S.),Se. garnhami,NA
+KENYA,38.21806,-0.30693,171,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. garnhami,NA
+KENYA,34.18652,8.148301,163,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. ingrami,NA
+KENYA,35.01667,1.483333,4,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. ingrami,NA
+KENYA,35.6147,0.89387,1,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. ingrami,NA
+KENYA,35.9961,0.46998,104,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. ingrami,NA
+KENYA,39.6009,-4.03791,1,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. meilloni,NA
+KENYA,37.7,-1.65,14,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+KENYA,39.6031,-4.03944,1,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+KENYA,37.9645,-2.41087,2,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. squamipleuris,NA
+KENYA,38.21806,-0.30693,18,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. subrecreta,NA
+KENYA,40.202,-2.41597,2,1959,LIVING_SPECIMEN,Non-vector (S.),Se. subrecreta,NA
+KENYA,34.75202,0.28277,128,1960,PRESERVED_SPECIMEN,Non-vector (S.),Se. decipiens,NA
+KENYA,34.754,0.28185,4,1960,PRESERVED_SPECIMEN,Non-vector (S.),Se. decipiens,NA
+KENYA,38,1,1,1963,LIVING_SPECIMEN,Non-vector (S.),Se. kitonyi,NA
+KENYA,38,1,1,1963,PRESERVED_SPECIMEN,Non-vector (S.),Se. teesdalei,NA
+KENYA,33.7538,3.84807,1,1965,PRESERVED_SPECIMEN,Non-vector (S.),Se.affinis,NA
+KENYA,34.9451,1.95425,3,1967,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+KENYA,34.9451,1.95425,9,1967,MATERIAL_SAMPLE,Non-vector (S.),Se. schwetzi,NA
+KENYA,33.7538,3.84807,1,1968,PRESERVED_SPECIMEN,Non-vector (S.),Se.affinis,NA
+KENYA,39.6671,-4.05403,2,1968,PRESERVED_SPECIMEN,Non-vector (S.),Se. africana,NA
+KENYA,35.99,0.47,1,1968,PRESERVED_SPECIMEN,Non-vector (S.),Se. antennata,NA
+KENYA,34.1347,3.51198,1,1968,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+KENYA,34.9451,1.95425,47,1968,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+KENYA,34.9453,1.95423,1,1968,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+KENYA,34.9451,1.95425,1,1968,PRESERVED_SPECIMEN,Non-vector (S.),Se. clydei,NA
+KENYA,34.1336,3.51309,26,1968,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+KENYA,35.99,0.47,3,1968,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+KENYA,34.9451,1.95425,1,1969,PRESERVED_SPECIMEN,Non-vector (S.),Se. adleri,NA
+KENYA,37.7,-1.65,24,1969,PRESERVED_SPECIMEN,Non-vector (S.),Se.affinis,NA
+KENYA,35.9849,0.47136,1,1981,PRESERVED_SPECIMEN,Non-vector (S.),Se. cincta,NA
+KENYA,35.9849,0.47136,1,1981,PRESERVED_SPECIMEN,Non-vector (S.),Se. congolensis,NA
+KENYA,39.5708,-4.3208,1,1981,PRESERVED_SPECIMEN,Non-vector (S.),Se. meilloni,NA
+KENYA,35.9849,0.47136,2,1981,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+KENYA,39.5708,-4.3208,2,1981,LIVING_SPECIMEN,Non-vector (S.),Se. teesdalei,NA
+KENYA,35.7599,0.07806,9,1985,PRESERVED_SPECIMEN,Non-vector (S.),Se. antennata,NA
+KENYA,36.0658,0.3524,14,1985,PRESERVED_SPECIMEN,Non-vector (S.),Se. antennata,NA
+KENYA,35.7599,0.07806,1,1985,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+KENYA,35.7599,0.07806,12,1985,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+KENYA,35.9665,0.46659,2,1985,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+KENYA,35.9961,0.46998,22,1985,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+KENYA,36.0658,0.3524,11,1985,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+KENYA,35.9662,0.46601,2,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. adleri,NA
+KENYA,35.9746,0.301,3,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. adleri,NA
+KENYA,35.9849,0.47136,1,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. adleri,NA
+KENYA,35.99,0.47,1,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. adleri,NA
+KENYA,35.01667,1.483333,14,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. africana,NA
+KENYA,35.9746,0.301,1,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. africana,NA
+KENYA,35.9849,0.47136,1,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. africana,NA
+KENYA,35.9961,0.46998,15,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. africana,NA
+KENYA,34.5908,8.2469,36,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. antennata,NA
+KENYA,35.01667,1.483333,23,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. antennata,NA
+KENYA,35.7599,0.07806,8,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. antennata,NA
+KENYA,35.9746,0.301,15,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. antennata,NA
+KENYA,35.99,0.47,2,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. antennata,NA
+KENYA,36.0658,0.3524,5,1986,MATERIAL_SAMPLE,Non-vector (S.),Se. antennata,NA
+KENYA,34.70206,0.847905,13,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+KENYA,35.01667,1.483333,28,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+KENYA,35.9746,0.301,4,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+KENYA,35.9849,0.47136,2,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+KENYA,35.9961,0.46998,234,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+KENYA,36.0658,0.3524,1,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+KENYA,35.9746,0.301,9,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. clydei,NA
+KENYA,35.9849,0.47136,4,1986,MATERIAL_SAMPLE,Non-vector (S.),Se. clydei,NA
+KENYA,36.0658,0.3524,4,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. clydei,NA
+KENYA,35.9746,0.301,17,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+KENYA,35.9849,0.47136,12,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+KENYA,35.99,0.47,4,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+KENYA,36.0658,0.3524,4,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+KENYA,35.9961,0.46998,390,1987,PRESERVED_SPECIMEN,Non-vector (S.),Se. antennata,NA
+KENYA,38,1,1,1987,LIVING_SPECIMEN,Non-vector (S.),Se. magna,NA
+KENYA,42.3,2.3,1,1993,PRESERVED_SPECIMEN,Non-vector (S.),Se. clydei,NA
+KENYA,45.03,2.12,2,1993,PRESERVED_SPECIMEN,Non-vector (S.),Se. clydei,NA
+KENYA,45.03,2.12,87,1993,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+KENYA,38.72073,1.142882,1,2018,MATERIAL_SAMPLE,Non-vector (S.),Se. squamipleuris,NA
+KENYA,38.83637,1.257465,5,2018,PRESERVED_SPECIMEN,Non-vector (S.),Se. squamipleuris,NA
+KENYA,38.84,1.26,5,2018,PRESERVED_SPECIMEN,Non-vector (S.),Se. squamipleuris,NA
+KENYA,37.82273,1.60163,1,2021,MATERIAL_SAMPLE,Non-vector (S.),Se. anodontis,NA
+KENYA,34.20946,-0.43316,12,2021,PRESERVED_SPECIMEN,Non-vector (S.),Se. antennata,NA
+KENYA,36.10271,-1.83057,1,2021,PRESERVED_SPECIMEN,Non-vector (S.),Se. antennata,NA
+KENYA,37.7,-1.65,262,2021,PRESERVED_SPECIMEN,Non-vector (S.),Se. antennata,NA
+KENYA,38.21806,-0.30693,95,2021,PRESERVED_SPECIMEN,Non-vector (S.),Se. antennata,NA
+KENYA,36.12027,-1.86453,1,2021,PRESERVED_SPECIMEN,Non-vector (S.),Se. clydei,NA
+KENYA,37.48227,1.375816,1,2021,MATERIAL_SAMPLE,Non-vector (S.),Se. schwetzi,NA
+KENYA,37.48587,1.393609,1,2021,MATERIAL_SAMPLE,Non-vector (S.),Se. schwetzi,NA
+KENYA,37.78524,1.61811,1,2021,MATERIAL_SAMPLE,Non-vector (S.),Se. schwetzi,NA
+KENYA,37.81061,1.59642,1,2021,MATERIAL_SAMPLE,Non-vector (S.),Se. schwetzi,NA
+KENYA,36.09828,-1.83675,1,2021,MATERIAL_SAMPLE,Non-vector (S.),Se. squamipleuris,NA
+KENYA,38.72,1.14,1,2021,MATERIAL_SAMPLE,Non-vector (S.),Se. squamipleuris,NA
+SOMALIA,43.18188,0.34332,1,2002,light trap,VL,Ph. martini,NA
+SOMALIA,43.28852,1.168096,1,2002,light trap,VL,Ph. martini,NA
+SOMALIA,43.42102,0.732705,1,2002,light trap,VL,Ph. martini,NA
+SOMALIA,43.68923,3.277403,1,2002,light trap,VL,Ph. martini,NA
+SOMALIA,44.30969,3.669315,1,2002,light trap,VL,Ph. martini,NA
+SOMALIA,44.56175,10.02681,1,2002,light trap,VL,Ph. martini,NA
+SOMALIA,45.16606,10.29401,1,2002,light trap,VL,Ph. martini,NA
+SOMALIA,45.55384,10.40209,1,2002,light trap,VL,Ph. martini,NA
+SOMALIA,45.20322,9.738697,1,2002,light trap,VL,Ph. orientalis,NA
+SOUTH SUDAN,34.25309,4.702252,1,2002,light trap,VL,Ph. martini,NA
+SOUTH SUDAN,29.58672,8.806427,1,2002,light trap,VL,Ph. orientalis,NA
+SOUTH SUDAN,31.40932,9.112871,1,2002,light trap,VL,Ph. orientalis,NA
+SOUTH SUDAN,32.00393,9.680367,1,2002,light trap,VL,Ph. orientalis,NA
+SOUTH SUDAN,35.47462,5.118196,1,2002,light trap,VL,Ph. orientalis,NA
+SOUTH SUDAN,30.305988,8.18854,1,1991,light trap/oiled papers,CL,Ph. papatasi,https://www.cabidigitallibrary.org/doi/full/10.5555/19930514859
+SOUTH SUDAN,32.480597,10.46973,1621,1962,Oiled papers,VL,Ph. orientalis,https://academic.oup.com/jme/article-abstract/1/3/213/2218852
+SOUTH SUDAN,32.480597,10.46973,57,1962,Oiled papers,VL,Ph. rodhaini,NA
+SOUTH SUDAN,32.480597,10.46973,5438,1962,Oiled papers,CL,Ph. antennatus,NA
+SOUTH SUDAN,32.480597,10.46973,1520,1962,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SOUTH SUDAN,32.480597,10.46973,789,1962,Oiled papers,Non-vector (S.),Se. squamipleuris,NA
+SOUTH SUDAN,30.305988,8.18854,1,1991,light trap/oiled papers,CL,Ph. papatasi,https://www.cabidigitallibrary.org/doi/full/10.5555/19930514859
+SOUTH SUDAN,35.71375,4.783368,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,35.1233,14.0533,1,1998,light trap,CL,Ph. Duboscqi,NA
+SUDAN,35.1233,14.0533,1,1999,light trap,CL,Ph. Duboscqi,NA
+SUDAN,35.1233,14.0533,2,2000,light trap,CL,Ph. Duboscqi,NA
+SUDAN,35.1233,14.0533,34,1997,light trap,VL,Ph. rodhaini,NA
+SUDAN,35.1233,14.0533,27,1998,light trap,VL,Ph. rodhaini,NA
+SUDAN,35.1233,14.0533,24,1999,light trap,VL,Ph. rodhaini,NA
+SUDAN,35.1233,14.0533,5,2000,light trap,VL,Ph. rodhaini,NA
+SUDAN,35.1233,14.0533,1,1999,light trap,CL,Ph. bergeroti,NA
+SUDAN,33.5372,14.3947,1,1936,light trap,CL,Ph. papatasi,NA
+SUDAN,33.9266,13.1449,1,1936,light trap,CL,Ph. papatasi,NA
+SUDAN,35.70891,15.0002,1,2002,light trap,VL,Ph. martini,NA
+SUDAN,35.92865,15.72313,1,2002,light trap,VL,Ph. martini,NA
+SUDAN,37.7433,14.3742,1,2002,light trap,VL,Ph. martini,NA
+SUDAN,25.09486,12.04871,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,26.07079,12.07715,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,26.68478,10.94354,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,32.37717,15.34484,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,33.50175,13.04233,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,33.69565,12.74938,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,34.19654,12.09927,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,34.4486,12.45924,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,34.57301,12.34562,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,34.84123,11.98075,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,35.06906,12.97306,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,35.14177,12.26984,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,35.15308,12.4119,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,35.21448,11.93175,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,35.75092,13.16508,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,35.91896,13.9034,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,36.14193,13.42925,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,36.2615,14.18555,1,2002,light trap,VL,Ph. orientalis,NA
+SUDAN,33.5372,14.3947,1,1957,light trap,CL,Ph. papatasi,NA
+SUDAN,33.9266,13.1449,1,1957,light trap,CL,Ph. papatasi,NA
+SUDAN,22.42942,13.4038,1,2018,light trap,VL,Ph. orientalis,https://doi.org/10.1371/journal.pone.0236253
+SUDAN,35.1233,14.0533,344,1997,light trap,Non-vector (S.),Se. clydei,NA
+SUDAN,35.1233,14.0533,455,1998,light trap,Non-vector (S.),Se. clydei,NA
+SUDAN,35.1233,14.0533,814,1999,light trap,Non-vector (S.),Se. clydei,NA
+SUDAN,35.1233,14.0533,232,2000,light trap,Non-vector (S.),Se. clydei,DOI: 10.1179/000349802125001474
+SUDAN,35.1233,14.0533,186,1997,light trap,Non-vector (S.),Se. magna,NA
+SUDAN,35.1233,14.0533,93,1998,light trap,Non-vector (S.),Se. magna,NA
+SUDAN,35.1233,14.0533,98,1999,light trap,Non-vector (S.),Se. magna,NA
+SUDAN,35.1233,14.0533,923,2000,light trap,Non-vector (S.),Se. magna,NA
+SUDAN,35.1233,14.0533,16,1997,light trap,Non-vector (S.),Se. antennata,NA
+SUDAN,35.1233,14.0533,39,1998,light trap,Non-vector (S.),Se. antennata,NA
+SUDAN,35.1233,14.0533,113,1999,light trap,Non-vector (S.),Se. antennata,NA
+SUDAN,35.1233,14.0533,118,2000,light trap,Non-vector (S.),Se. antennata,NA
+SUDAN,35.1233,14.0533,32,1997,light trap,Non-vector (S.),Se. cincta,NA
+SUDAN,35.1233,14.0533,8,1998,light trap,Non-vector (S.),Se. cincta,NA
+SUDAN,35.1233,14.0533,8,1999,light trap,Non-vector (S.),Se. cincta,NA
+SUDAN,35.1233,14.0533,127,2000,light trap,Non-vector (S.),Se. cincta,NA
+SUDAN,35.1233,14.0533,41,1997,light trap,Non-vector (S.),Se. africana,NA
+SUDAN,35.1233,14.0533,6,1998,light trap,Non-vector (S.),Se. africana,NA
+SUDAN,35.1233,14.0533,10,1999,light trap,Non-vector (S.),Se. africana,NA
+SUDAN,35.1233,14.0533,14,2000,light trap,Non-vector (S.),Se. africana,NA
+SUDAN,35.1233,14.0533,14,1997,light trap,Non-vector (S.),Se. adleri,NA
+SUDAN,35.1233,14.0533,2,1998,light trap,Non-vector (S.),Se. adleri,NA
+SUDAN,35.1233,14.0533,1,1999,light trap,Non-vector (S.),Se. adleri,NA
+SUDAN,35.1233,14.0533,2,2000,light trap,Non-vector (S.),Se. adleri,NA
+SUDAN,35.1233,14.0533,1,1997,light trap,Non-vector (S.),Se. squamipleuris,NA
+SUDAN,35.1233,14.0533,6,1999,light trap,Non-vector (S.),Se. squamipleuris,NA
+SUDAN,35.1233,14.0533,9,2000,light trap,Non-vector (S.),Se. squamipleuris,NA
+SUDAN,35.1233,14.0533,9,1997,light trap,Non-vector (S.),Se. bedfordi,NA
+SUDAN,35.1233,14.0533,1,1998,light trap,Non-vector (S.),Se. bedfordi,NA
+SUDAN,35.1233,14.0533,1,2000,light trap,Non-vector (S.),Se. bedfordi,NA
+SUDAN,35.1233,14.0533,5,1997,light trap,Non-vector (S.),Se. christophersi,NA
+SUDAN,35.1233,14.0533,3,1998,light trap,Non-vector (S.),Se. christophersi,NA
+SUDAN,35.1233,14.0533,1,1997,light trap,Non-vector (S.),Se. wansoni,NA
+SUDAN,35.1233,14.0533,1,1999,light trap,Non-vector (S.),Se. wansoni,NA
+SUDAN,35.1233,14.0533,6,2000,light trap,Non-vector (S.),Se. wansoni,NA
+SUDAN,35.1233,14.0533,2,1998,light trap,Non-vector (S.),Se. tiberiadis,NA
+SUDAN,35.1233,14.0533,2,1999,light trap,Non-vector (S.),Se. tiberiadis,NA
+SUDAN,35.1233,14.0533,2,2000,light trap,Non-vector (S.),Se. tiberiadis,NA
+SUDAN,35.1233,14.0533,3,1998,light trap,Non-vector (S.),Se. yusafi,NA
+SUDAN,35.1233,14.0533,1,1999,light trap,Non-vector (S.),Se. yusafi,NA
+SUDAN,35.1233,14.0533,1,2000,light trap,Non-vector (S.),Se. yusafi,NA
+SUDAN,35.1233,14.0533,3,1999,light trap,Non-vector (S.),Se. heischi,NA
+SUDAN,35.1233,14.0533,1,1997,light trap,Non-vector (S.),Se. ingrami,NA
+SUDAN,35.1233,14.0533,1,1997,light trap,Non-vector (S.),Se. lesleyae,NA
+SUDAN,35.1233,14.0533,1,2000,light trap,Non-vector (S.),Se. palestinensis,NA
+SUDAN,35.1233,14.0533,1,1999,light trap,Non-vector (S.),Se. schoutedeni,NA
+SUDAN,35.1233,14.0533,2359,1997,light trap,Non-vector (S.),Se. schwetzi,NA
+SUDAN,35.1233,14.0533,1242,1998,light trap,Non-vector (S.),Se. schwetzi,NA
+SUDAN,35.1233,14.0533,3140,1999,light trap,Non-vector (S.),Se. schwetzi,NA
+SUDAN,35.1233,14.0533,620,2000,light trap,Non-vector (S.),Se. schwetzi,NA
+SUDAN,24.8991,11.98373,1,2018,light trap,VL,Ph. orientalis,NA
+SUDAN,25.31063,13.53884,1,2018,light trap,VL,Ph. orientalis,NA
+SUDAN,30.21338,13.17479,1,2018,light trap,VL,Ph. orientalis,NA
+SUDAN,30.3489,20.79997,1,2018,light trap,VL,Ph. orientalis,NA
+SUDAN,30.3677,20.79403,1,2018,light trap,VL,Ph. orientalis,NA
+SUDAN,30.41716,19.15781,1,2018,light trap,VL,Ph. orientalis,NA
+SUDAN,31.39603,21.77092,1,2018,light trap,VL,Ph. orientalis,NA
+SUDAN,32.3007,13.93454,1,2018,light trap,VL,Ph. orientalis,NA
+SUDAN,32.44662,15.7147,1,2018,light trap,VL,Ph. orientalis,NA
+SUDAN,32.51982,15.4852,1,2018,light trap,VL,Ph. orientalis,NA
+SUDAN,32.66821,15.40803,1,2018,light trap,VL,Ph. orientalis,NA
+SUDAN,32.73202,13.10158,1,2018,light trap,VL,Ph. orientalis,NA
+SUDAN,33.94089,13.10158,1,2018,light trap,VL,Ph. orientalis,NA
+SUDAN,34.01014,17.49981,1,2018,light trap,VL,Ph. orientalis,NA
+SUDAN,36.41403,15.33532,1,2018,light trap,VL,Ph. orientalis,NA
+SUDAN,35.1511,12.8791,1,2020,light trap,VL,Ph. orientalis,https://doi.org/10.1111/mve.12683
+SUDAN,36.1472,13.6516,1,2020,light trap,VL,Ph. orientalis,NA
+SOMALIA,48,6,1,1960,LIVING_SPECIMEN,Non-vector (S.),Se. choumarai,NA
+SOMALIA,35.99,0.47,5,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. clydei,NA
+SOMALIA,35.9961,0.46998,7,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. clydei,NA
+SOMALIA,45.03,2.12,3,1993,PRESERVED_SPECIMEN,Non-vector (S.),Se. magna,NA
+SOMALIA,42.3,2.3,23,1993,PRESERVED_SPECIMEN,Non-vector (S.),Se. magna,NA
+SOMALIA,43.87,4.18,8,1993,PRESERVED_SPECIMEN,Non-vector (S.),Se. magna,NA
+SOMALIA,45.03,2.12,7,1993,PRESERVED_SPECIMEN,Non-vector (S.),Se. magna,NA
+SOMALIA,45.03,2.12,5,1993,PRESERVED_SPECIMEN,Non-vector (S.),Se.yusafi,NA
+SOMALIA,35.97917,1.00325,2,2019,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+TANZANIA,39.21,-6.15,1,1845,light trap,CL,Ph. pungens,NA
+TANZANIA,35.88222,-3.38528,5,2010,light trap,VL,Ph. martini,NA
+TANZANIA,37.13333,-3.38333,2,2010,light trap,VL,Ph. martini,NA
+TANZANIA,37.19361,-3.44417,8,2010,light trap,VL,Ph. martini,NA
+TANZANIA,37.85806,-4.23361,3,2010,light trap,VL,Ph. martini,https://doi.org/10.1603/ME12147
+TANZANIA,37.93361,-4.56139,3,2010,light trap,VL,Ph. martini,NA
+TANZANIA,35.88222,-3.38528,0,2010,light trap,VL,Ph. vansomerenae,NA
+TANZANIA,37.13333,-3.38333,0,2010,light trap,VL,Ph. vansomerenae,NA
+TANZANIA,37.19361,-3.44417,1,2010,light trap,VL,Ph. vansomerenae,NA
+TANZANIA,37.85806,-4.23361,0,2010,light trap,VL,Ph. vansomerenae,NA
+TANZANIA,37.93361,-4.56139,0,2010,light trap,VL,Ph. vansomerenae,NA
+TANZANIA,35.88222,-3.38528,0,2010,light trap,Non-vector (S.),Se. adleri,NA
+TANZANIA,37.13333,-3.38333,0,2010,light trap,Non-vector (S.),Se. adleri,NA
+TANZANIA,37.19361,-3.44417,1,2010,light trap,Non-vector (S.),Se. adleri,NA
+TANZANIA,37.85806,-4.23361,1,2010,light trap,Non-vector (S.),Se. adleri,NA
+TANZANIA,37.93361,-4.56139,0,2010,light trap,Non-vector (S.),Se. adleri,NA
+TANZANIA,35.88222,-3.38528,1,2010,light trap,Non-vector (S.),Se. antennata,NA
+TANZANIA,37.13333,-3.38333,6,2010,light trap,Non-vector (S.),Se. antennata,NA
+TANZANIA,37.19361,-3.44417,12,2010,light trap,Non-vector (S.),Se. antennata,NA
+TANZANIA,37.85806,-4.23361,2,2010,light trap,Non-vector (S.),Se. antennata,NA
+TANZANIA,37.93361,-4.56139,6,2010,light trap,Non-vector (S.),Se. antennata,NA
+TANZANIA,35.88222,-3.38528,2,2010,light trap,Non-vector (S.),Se. bedfordi,NA
+TANZANIA,37.13333,-3.38333,9,2010,light trap,Non-vector (S.),Se. bedfordi,NA
+TANZANIA,37.19361,-3.44417,21,2010,light trap,Non-vector (S.),Se. bedfordi,NA
+TANZANIA,37.85806,-4.23361,19,2010,light trap,Non-vector (S.),Se. bedfordi,NA
+TANZANIA,37.93361,-4.56139,23,2010,light trap,Non-vector (S.),Se. bedfordi,NA
+TANZANIA,35.88222,-3.38528,5,2010,light trap,Non-vector (S.),Se. clydei,NA
+TANZANIA,37.13333,-3.38333,9,2010,light trap,Non-vector (S.),Se. clydei,NA
+TANZANIA,37.19361,-3.44417,23,2010,light trap,Non-vector (S.),Se. clydei,NA
+TANZANIA,37.85806,-4.23361,6,2010,light trap,Non-vector (S.),Se. clydei,NA
+TANZANIA,37.93361,-4.56139,15,2010,light trap,Non-vector (S.),Se. clydei,NA
+TANZANIA,35.88222,-3.38528,12,2010,light trap,Non-vector (S.),Se. schwetzi,NA
+TANZANIA,37.13333,-3.38333,15,2010,light trap,Non-vector (S.),Se. schwetzi,NA
+TANZANIA,37.19361,-3.44417,44,2010,light trap,Non-vector (S.),Se. schwetzi,NA
+TANZANIA,37.85806,-4.23361,2,2010,light trap,Non-vector (S.),Se. schwetzi,NA
+TANZANIA,37.93361,-4.56139,22,2010,light trap,Non-vector (S.),Se. schwetzi,NA
+TANZANIA,35.88222,-3.38528,8,2010,light trap,Non-vector (S.),Se. squamipleuris,NA
+TANZANIA,37.13333,-3.38333,4,2010,light trap,Non-vector (S.),Se. squamipleuris,NA
+TANZANIA,37.19361,-3.44417,45,2010,light trap,Non-vector (S.),Se. squamipleuris,NA
+TANZANIA,37.85806,-4.23361,2,2010,light trap,Non-vector (S.),Se. squamipleuris,NA
+TANZANIA,37.93361,-4.56139,1,2010,light trap,Non-vector (S.),Se. squamipleuris,NA
+TANZANIA,39.21,-6.15,1,2011,light trap,CL,Ph. pungens,NA
+UGANDA,34.59563,1.521046,1,2002,light trap,VL,Ph. martini,NA
+UGANDA,32.5,1.25,1,1950,LIVING_SPECIMEN,Non-vector (S.),Se. lumsdeni,NA
+UGANDA,32.5,1.25,1,1951,LIVING_SPECIMEN,Non-vector (S.),Se. wynnae,NA
+UGANDA,38.21806,-0.30693,4,1957,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+UGANDA,38.3476,-0.26869,1,1957,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+UGANDA,33.7538,3.84807,11,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se.affinis,NA
+UGANDA,35.6147,0.89387,2,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se.affinis,NA
+UGANDA,38.21806,-0.30693,52,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se.affinis,NA
+UGANDA,34.20946,-0.43316,1,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+UGANDA,37.7,-1.65,407,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+UGANDA,38.21806,-0.30693,61,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+UGANDA,32.2292,0.12367,1,1959,PRESERVED_SPECIMEN,Non-vector (S.),Se. simillima,NA
+UGANDA,34.1347,3.51198,24,1968,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+UGANDA,34.9451,1.95425,35,1968,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+UGANDA,38.21806,-0.30693,12,1970,PRESERVED_SPECIMEN,Non-vector (S.),Se. adleri,NA
+UGANDA,35.9849,0.47136,1,1985,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+UGANDA,33.7538,3.84807,7,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+UGANDA,34.9451,1.95425,2,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. bedfordi,NA
+UGANDA,37.7,-1.65,6,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. clydei,NA
+UGANDA,35.7599,0.07806,10,1986,PRESERVED_SPECIMEN,Non-vector (S.),Se. schwetzi,NA
+ETHIOPIA,37.4,12.2,7313,2012,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,36.16,12.95,2967,2013,light trap,VL,Ph. orientalis,NA
+ETHIOPIA,37.4,12.2,2016,2012,Sticky Trap,VL,Ph. orientalis,NA
+ETHIOPIA,36.16,12.95,1466,2013,Sticky Trap,VL,Ph. orientalis,NA
+ETHIOPIA,36.16,12.95,2,2013,Pyrethrum trap,VL,Ph. orientalis,NA
+ETHIOPIA,37.4,12.2,1,2012,light trap,VL,Ph. rodhaini,NA
+ETHIOPIA,36.16,12.95,199,2013,light trap,VL,Ph. rodhaini,NA
+ETHIOPIA,36.16,12.95,52,2013,Sticky Trap,VL,Ph. rodhaini,NA
+ETHIOPIA,36.16,12.95,8,2013,light trap,CL,Ph. duboscqi,NA
+ETHIOPIA,36.16,12.95,2,2013,light trap,CL,Ph. papatasi,NA
+ETHIOPIA,36.16,12.95,1,2013,Sticky Trap,CL,Ph. papatasi,NA
+ETHIOPIA,36.16,12.95,30,2013,light trap,CL,Ph. bergeroti,NA
+ETHIOPIA,36.16,12.95,2,2013,light trap,VL,Ph. martini,NA
+ETHIOPIA,37.4,12.2,7,2012,light trap,Non-vector (S.),Se. clydei,NA
+ETHIOPIA,36.16,12.95,9078,2013,light trap,Non-vector (S.),Se. clydei,NA
+ETHIOPIA,36.16,12.95,2134,2013,Sticky Trap,Non-vector (S.),Se. clydei,NA
+ETHIOPIA,36.16,12.95,4,2013,Pyrethrum trap,Non-vector (S.),Se. clydei,NA
+ETHIOPIA,37.4,12.2,45,2012,light trap,Non-vector (S.),Se.africana,NA
+ETHIOPIA,36.16,12.95,3359,2013,light trap,Non-vector (S.),Se. africana,NA
+ETHIOPIA,37.4,12.2,28,2012,Sticky Trap,Non-vector (S.),Se. africana,NA
+ETHIOPIA,36.16,12.95,819,2013,Sticky Trap,Non-vector (S.),Se. africana,NA
+ETHIOPIA,36.16,12.95,76,2013,Pyrethrum trap,Non-vector (S.),Se. africana,NA
+ETHIOPIA,37.4,12.2,492,2012,light trap,Non-vector (S.),Se. bedfordi,NA
+ETHIOPIA,36.16,12.95,6571,2013,light trap,Non-vector (S.),Se. bedfordi,NA
+ETHIOPIA,37.4,12.2,203,2012,Sticky Trap,Non-vector (S.),Se. bedfordi,NA
+ETHIOPIA,36.16,12.95,715,2013,Sticky Trap,Non-vector (S.),Se. bedfordi,NA
+ETHIOPIA,36.16,12.95,16,2013,Pyrethrum trap,Non-vector (S.),Se. bedfordi,NA
+ETHIOPIA,37.4,12.2,165,2012,light trap,Non-vector (S.),Se. schwetzi,NA
+ETHIOPIA,36.16,12.95,1712,2013,light trap,Non-vector (S.),Se. schwetzi,NA
+ETHIOPIA,37.4,12.2,53,2012,Sticky Trap,Non-vector (S.),Se. schwetzi,NA
+ETHIOPIA,36.16,12.95,1217,2013,Sticky Trap,Non-vector (S.),Se. schwetzi,NA
+ETHIOPIA,37.4,12.2,298,2012,light trap,Non-vector (S.),Se. squamipleuris,NA
+ETHIOPIA,36.16,12.95,3881,2013,light trap,Non-vector (S.),Se. squamipleuris,NA
+ETHIOPIA,37.4,12.2,155,2012,Sticky Trap,Non-vector (S.),Se. squamipleuris,NA
+ETHIOPIA,36.16,12.95,2006,2013,Sticky Trap,Non-vector (S.),Se. squamipleuris,NA
+ETHIOPIA,36.16,12.95,2,2013,Pyrethrum trap,Non-vector (S.),Se. squamipleuris,NA
+ETHIOPIA,36.16,12.95,64,2013,light trap,Non-vector (S.),Se. adleri,NA
+ETHIOPIA,36.16,12.95,27,2013,Sticky Trap,Non-vector (S.),Se. adleri,NA
+ETHIOPIA,36.16,12.95,3577,2013,light trap,Non-vector (S.),Se. antenna,NA
+ETHIOPIA,36.16,12.95,385,2013,Sticky Trap,Non-vector (S.),Se. antenna,NA
+ETHIOPIA,36.16,12.95,216,2013,Pyrethrum trap,Non-vector (S.),Se. antenna,NA
+ETHIOPIA,36.16,12.95,4,2013,light trap,Non-vector (S.),Se. yusafi,NA
+ETHIOPIA,36.16,12.95,3,2013,Sticky Trap,Non-vector (S.),Se. yusafi,NA
+ETHIOPIA,36.16,12.95,2,2013,light trap,Non-vector (S.),Se. affinis,NA
+ETHIOPIA,36.16,12.95,3,2013,light trap,Non-vector (S.),Se. buxtoni,NA
+ETHIOPIA,36.16,12.95,28,2013,light trap,Non-vector (S.),Se. dubia,NA
+ETHIOPIA,36.16,12.95,4,2013,Sticky Trap,Non-vector (S.),Se. dubia,NA
+ETHIOPIA,36.16,12.95,2,2013,light trap,Non-vector (S.),Se. suberecta,NA
+ETHIOPIA,36.16,12.95,1,2013,Pyrethrum trap,Non-vector (S.),Se. christophersi,NA
+ETHIOPIA,39.3667,4.7833,7,2011,Sticky trap,VL,P. celiae,NA
+ETHIOPIA,39.3667,4.7833,37,2011,Sticky trap,VL,Ph. martini,NA
+ETHIOPIA,39.3667,4.7833,8,2011,Sticky trap,VL,Ph. vansomerenae,NA
+SUDAN,29.34746797,10.94265731,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,DOI: https://doi.org/10.1017/S0007485300027826
+SUDAN,30.54586505,11.35949108,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,30.54586505,11.67211641,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,30.96269882,12.24526284,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,31.09295937,11.95868962,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,30.85849038,11.98474173,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,30.18113551,13.26129515,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,24.52782753,12.24526284,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,34.87051539,12.06289806,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,34.06289997,13.1570867,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,33.85448309,13.54786836,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,33.48975354,13.57392047,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,35.00077595,13.54786836,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,35.26129705,13.78233736,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,35.67813082,14.25127534,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,35.86049559,13.70418102,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,36.25127725,13.67812891,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,37.29336167,18.94065523,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,34.24526474,17.79436237,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,32.13504379,18.57592569,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,30.33744817,19.09696789,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,30.31139606,19.56590588,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,33.54185776,14.48574434,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,33.25528454,14.95468233,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,32.36951279,14.06891057,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SUDAN,33.86099611,14.83744783,1,1951,Oiled papers,VL,Ph. orientalis,NA
+SUDAN,34.30388199,13.66510286,1,1951,Oiled papers,VL,Ph. orientalis,NA
+SUDAN,35.0593932,14.04285846,1,1951,Oiled papers,VL,Ph. orientalis,NA
+SUDAN,35.03334108,13.6520768,1,1951,Oiled papers,VL,Ph. orientalis,NA
+SUDAN,36.16009486,14.32291865,1,1951,Oiled papers,VL,Ph. orientalis,NA
+SUDAN,25.27486035,13.47721675,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,30.31160171,13.00827876,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,30.69369933,12.53934077,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,31.80525605,12.36566003,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,32.72576395,12.95617454,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,32.27419403,13.87668244,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,32.63892358,13.73773785,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,33.07312542,14.22404391,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,32.7605001,14.65824576,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,33.21207001,14.74508612,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,33.55943149,14.29351621,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,33.71574415,14.50193309,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,33.59416763,13.51195289,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,34.08047369,12.8519661,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,34.75782857,13.25143179,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,35.53939188,13.94615474,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,35.78254491,13.56405712,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,32.72576395,15.23139219,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,32.74313202,15.422441,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,34.09784177,17.62818635,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,34.13257792,18.02765204,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,32.15261752,18.56606233,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,32.031041,18.3229093,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,31.38842228,17.83660323,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,30.91948429,17.97554782,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,30.4505463,19.08710454,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,30.85001199,20.07708474,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,31.31894998,21.50126678,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,31.56210301,21.86599632,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,36.89410163,21.50126678,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,37.74513724,18.5834304,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,37.2414631,19.10447261,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,36.35569134,15.61348981,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,36.39042749,16.20400431,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SUDAN,34.9421587,13.73674616,1,1951,Oiled papers,VL,Ph. rodhaini,NA
+SUDAN,37.23277906,19.13920876,1,1951,Oiled papers,CL,Ph. bergeroti,NA
+SUDAN,36.36437538,15.63085788,1,1951,Oiled papers,CL,Ph. bergeroti,NA
+SUDAN,36.4164796,15.17928797,1,1951,Oiled papers,CL,Ph. bergeroti,NA
+SOUTH SUDAN,30.72822983,4.377525472,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SOUTH SUDAN,32.73424233,4.533838134,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SOUTH SUDAN,33.17712821,4.064900146,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SOUTH SUDAN,34.21921263,5.263297228,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SOUTH SUDAN,27.88854978,7.790351945,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SOUTH SUDAN,26.40357949,7.764299834,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SOUTH SUDAN,25.77832884,8.102977271,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SOUTH SUDAN,30.9105946,8.155081492,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SOUTH SUDAN,31.04085515,8.702175812,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SOUTH SUDAN,31.17111571,9.249270132,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SOUTH SUDAN,32.83845078,10.55187566,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SOUTH SUDAN,30.88454249,9.457687016,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SOUTH SUDAN,30.54586505,9.640051789,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SOUTH SUDAN,28.04486245,4.976724013,1,1951,Oiled papers,Non-vector (S.),Se. schwetzi,NA
+SOUTH SUDAN,34.51304728,5.411374791,1,1951,Oiled papers,CL,Ph. Sergenti,NA
+SOUTH SUDAN,33.80889189,5.028828234,1,1951,Oiled papers,CL,Ph. longipes,NA
+SOUTH SUDAN,34.07884544,5.202957907,1,1951,Oiled papers,VL,Ph .martini,NA
+SOUTH SUDAN,34.51304728,5.411374791,1,1951,Oiled papers,VL,Ph. martini,NA
+SOUTH SUDAN,31.87472834,9.413087512,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SOUTH SUDAN,31.07579695,9.222038701,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SOUTH SUDAN,31.87472834,9.100462186,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SOUTH SUDAN,32.46524284,9.534664027,1,1951,Oiled papers,CL,Ph. papatasi,NA
+SOUTH SUDAN,30.9822379,8.943157834,1,1951,Oiled papers,VL,Ph. rodhaini,NA
+SOUTH SUDAN,26.39706646,8.057386077,1,1951,Oiled papers,VL,Ph. rodhaini,NA
+SOUTH SUDAN,30.09646615,6.337946785,1,1951,Oiled papers,VL,Ph. rodhaini,NA
+SOUTH SUDAN,27.23073399,5.790852465,1,1951,Oiled papers,VL,Ph. rodhaini,NA
+SOUTH SUDAN,28.35097475,5.165601814,1,1951,Oiled papers,VL,Ph. rodhaini,NA
+SOUTH SUDAN,34.10849116,5.165601814,1,1951,Oiled papers,VL,Ph. rodhaini,NA
+SOUTH SUDAN,33.20175772,4.577707255,1,1951,Oiled papers,VL,Ph. alexandri,NA

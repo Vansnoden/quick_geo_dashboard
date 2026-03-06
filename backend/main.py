@@ -4,11 +4,13 @@ from datetime import timedelta, timezone, datetime
 import math
 import os, json, time
 from pathlib import Path
-from typing import Annotated, List, Optional
-from fastapi import Depends, FastAPI, HTTPException, status, File, UploadFile, Body
+import traceback
+from typing import Annotated, Any, List, Optional
+import uuid
+from fastapi import Depends, FastAPI, Form, HTTPException, status, File, UploadFile, Body
 from fastapi.security import OAuth2PasswordBearer
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-from pydantic import BaseModel
+from pydantic import BaseModel, BeforeValidator
 from database.utils import excel_to_csv, get_uuid
 from database.schemas import User, FileBase
 from passlib.context import CryptContext
@@ -30,6 +32,7 @@ import numpy as np
 from numpy.linalg import norm
 import ast
 from fastapi.responses import StreamingResponse
+from pydantic.json_schema import SkipJsonSchema
 
 
 logger = logging.getLogger('uvicorn.error')
@@ -234,3 +237,95 @@ def create_dashboard(
     if validate_user(user):
         return crud.create_user(db=db, user=user)
 
+
+def empty_str_to_none(v: Any) -> Any:
+    if v == "":
+        return None
+    return v
+
+
+@app.post(
+    "/dashboards/{dashboard_id}/add_data",
+    response_model=schemas.Dashboard,
+    status_code=status.HTTP_201_CREATED,
+    include_in_schema=True
+)
+async def add_dashboard_data(
+    dashboard_id: int,
+    files: List[UploadFile] = File(...),
+    column_type_overrides: Annotated[Optional[str], Form()] = None,
+    user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    if not user:
+        raise HTTPException(status_code=403, detail="Unauthorized access")
+
+    # 1. Validate at least one file
+    if not files:
+        raise HTTPException(status_code=400, detail="No files uploaded")
+
+    # 2. Parse JSON overrides if provided
+    overrides = None
+    if column_type_overrides:
+        try:
+            overrides = json.loads(column_type_overrides)
+            if not isinstance(overrides, dict):
+                raise ValueError("overrides must be a JSON object")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Invalid column_type_overrides JSON: {e}")
+
+    # 3. Process each file
+    uploaded_filenames = []
+    for file in files:
+        try:
+            # Safely get extension
+            orig_filename = file.filename or "upload"
+            ext = os.path.splitext(orig_filename)[1].lower().lstrip('.')
+            if not ext:
+                ext = "csv"
+
+            unique_id = uuid.uuid4().hex
+            temp_filename = os.path.join(ROOT_DIR, "uploads", f"{unique_id}.{ext}")
+
+            # Write file in chunks (binary)
+            with open(temp_filename, "wb") as buffer:
+                while chunk := await file.read(1024 * 1024):  # 1 MB chunks
+                    buffer.write(chunk)
+
+            csv_path = temp_filename
+            # Convert Excel to CSV if needed
+            if ext in ("xlsx", "xls"):
+                csv_path = os.path.join(ROOT_DIR, "temp", f"{unique_id}.csv")
+                excel_to_csv(temp_filename, target=csv_path)
+                # Optionally remove original Excel file after conversion
+                # os.remove(temp_filename)
+
+            # 4. Call the CRUD function
+            logger.info(f"Uploading {orig_filename} to dashboard {dashboard_id}")
+            success = crud.upload_data_from_file(
+                filepath=csv_path,
+                dashboard_id=dashboard_id,
+                db=db,
+                inference_method='full_scan',
+                column_type_overrides=overrides,
+            )
+
+            if not success:
+                raise Exception("upload_data_from_file returned False (check logs)")
+
+            uploaded_filenames.append(orig_filename)
+
+        except Exception as e:
+            logger.error(f"Error processing {file.filename}: {traceback.format_exc()}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"File {file.filename} failed: {str(e)}"
+            )
+        finally:
+            await file.close()
+
+    # 5. Retrieve and return the updated dashboard
+    dashboard = crud.get_dashboard(db, dashboard_id)
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+    return dashboard
