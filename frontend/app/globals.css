@@ -33,6 +33,10 @@ body {
   min-height: 90vh;
 }
 
+.admin-bg{
+  min-height: 90vh;
+}
+
 .b-text{
   padding: 1em;
   width: fit-content;
