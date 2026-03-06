@@ -17,7 +17,7 @@ import geopandas as gpd
 from shapely.geometry import Point
 import jsmin
 from sqlalchemy.orm import Session
-from backend.database import models
+from . import models
 
 
 DATE_FORMATS = [
