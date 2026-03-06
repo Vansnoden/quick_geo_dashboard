@@ -5,6 +5,8 @@
 **/.env
 **/__pycache__
 **/*.db
+/backend/uploads/
+!/backend/uploads/__init__.py
 
 
 # FRONTEND
