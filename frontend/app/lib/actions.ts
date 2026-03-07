@@ -205,14 +205,32 @@ export async function updateDashboard(id: number, formData: FormData) {
 export async function updateDashboardYaml(id: number, yamlContent: string) {
   const session = await auth();
   
-  await fetch(DASHBOARD_CONFIG_URL(id), {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${session?.user?.accessToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ ui_yaml_content: yamlContent }),
-  });
+  if (!session?.user?.accessToken) {
+    throw new Error("Unauthorized");
+  }
 
-  revalidatePath(`/admin/dashboards/${id}`);
+  try {
+    const response = await fetch(DASHBOARD_CONFIG_URL(id), {
+      method: 'PUT', // Your Python decorator is @app.put
+      headers: {
+        'Authorization': `Bearer ${session.user.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      // Ensure the key matches your Python "DashboardConfigUpdate" schema
+      body: JSON.stringify({ yaml_content: yamlContent }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to update configuration');
+    }
+
+    // Refresh the page data so the UI reflects the saved state
+    revalidatePath(`/admin/dashboards/${id}`);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('YAML Update Error:', error);
+    return { success: false, message: 'Failed to save configuration.' };
+  }
 }

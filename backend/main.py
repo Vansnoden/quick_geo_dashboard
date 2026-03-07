@@ -428,18 +428,6 @@ def update_dashboard_config(
     return dashboard
 
 
-@app.get("/dashboards/{dashboard_id}/dashboard.js")
-def get_dashboard_js(
-    dashboard_id: int,
-    db: Session = Depends(get_db)
-):
-    dashboard = crud.get_dashboard(db, dashboard_id)
-    if not dashboard or not dashboard.ui_js_script:
-        raise HTTPException(404, "Dashboard JS not found")
-    return Response(content=dashboard.ui_js_script, media_type="application/javascript")
-
-
-
 @app.get("/dashboards/{dashboard_id}/config", response_model=Dict)
 def get_dashboard_config(
     dashboard_id: int,
@@ -451,3 +439,14 @@ def get_dashboard_config(
     # Optionally parse YAML to JSON and return
     config = yaml.safe_load(dashboard.ui_yaml_script)
     return config.get('geo-dashboard', {})
+
+
+@app.get("/dashboards/{dashboard_id}/dashboard.js")
+def get_dashboard_js(
+    dashboard_id: int,
+    db: Session = Depends(get_db)
+):
+    dashboard = crud.get_dashboard(db, dashboard_id)
+    if not dashboard or not dashboard.ui_js_script:
+        raise HTTPException(404, "Dashboard JS not found")
+    return Response(content=dashboard.ui_js_script, media_type="application/javascript")

@@ -21,6 +21,9 @@ export default function DashboardHeader({ code }: { code: string }) {
           <button type="submit" form="yaml-form" className="px-4 py-2 bg-violet-600 text-white rounded-md text-sm font-medium hover:bg-violet-500">
             Save Config
           </button>
+          <button type="submit" form="yaml-form" className="px-4 py-2 bg-violet-600 text-white rounded-md text-sm font-medium hover:bg-violet-500">
+            Render Dashboard
+          </button>
         </div>
       </div>
     </div>
