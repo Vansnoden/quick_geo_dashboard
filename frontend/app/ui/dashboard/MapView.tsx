@@ -1,63 +1,82 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { fetchMapPoints } from '@/app/lib/client_actions';
 
-
-interface Props {
-  dashboardId: string;
-  latCol: string;
-  lonCol: string;
-}
-
-export default function MapView({ dashboardId, latCol, lonCol }: Props) {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<L.Map | null>(null);
+export default function MapView({ dashboardId }: { dashboardId: string }) {
+  const [map, setMap] = useState<L.Map | null>(null);
   const [points, setPoints] = useState<GeoJSON.FeatureCollection | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const mapInstanceRef = useRef<L.Map | null>(null);
 
-  useEffect(() => {
-    fetchMapPoints(dashboardId)
-      .then(setPoints)
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false));
-  }, [dashboardId]);
+  const mapRef = useCallback((node: HTMLDivElement | null) => {
+    if (node !== null) {
+      // Check if Leaflet has already attached itself to this DOM element
+      // Leaflet adds a '_leaflet_id' property to the container once initialized
+      if ((node as any)._leaflet_id) {
+        return; 
+      }
 
+      const instance = L.map(node).setView([0, 0], 2);
+      
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OSM',
+        zIndex: 1 
+      }).addTo(instance);
+
+      instance.invalidateSize();
+      mapInstanceRef.current = instance;
+      setMap(instance);
+    }
+  }, []); // Empty dependency array ensures this callback identity is stable
+
+  // Clean up the map instance when the component unmounts
   useEffect(() => {
-    if (!mapRef.current || mapInstanceRef.current) return;
-    const map = L.map(mapRef.current).setView([0, 0], 2);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
-    mapInstanceRef.current = map;
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
   }, []);
 
   useEffect(() => {
-    if (!mapInstanceRef.current || !points) return;
-    const map = mapInstanceRef.current;
+    fetchMapPoints(dashboardId).then(setPoints).catch(console.error);
+  }, [dashboardId]);
 
-    // Clear old layers
-    map.eachLayer(layer => {
-      if (layer instanceof L.Marker || layer instanceof L.GeoJSON) {
-        map.removeLayer(layer);
-      }
+  useEffect(() => {
+    if (!map || !points) return;
+
+    map.eachLayer((layer) => {
+      if (layer instanceof L.GeoJSON) map.removeLayer(layer);
     });
 
-    // Add points
-    L.geoJSON(points, {
-      pointToLayer: (feature, latlng) => L.marker(latlng)
+    const layer = L.geoJSON(points, {
+      pointToLayer: (feature, latlng) => L.circleMarker(latlng, {
+        radius: 4,
+        fillColor: "#7c3aed",
+        color: "#fff",
+        weight: 2,
+        fillOpacity: 0.8,
+      }),
     }).addTo(map);
 
-    // Fit bounds
-    const bounds = L.geoJSON(points).getBounds();
-    if (bounds.isValid()) map.fitBounds(bounds);
-  }, [points]);
+    if (points.features.length > 0) {
+      const bounds = layer.getBounds();
+      if (bounds.isValid()) {
+        map.fitBounds(bounds, { padding: [20, 20] });
+      }
+    }
+    
+    map.invalidateSize();
+  }, [map, points]);
 
-  if (loading) return <div className="h-96 bg-gray-200 animate-pulse" />;
-  if (error) return <div className="text-red-500">Error loading map: {error}</div>;
-
-  return <div ref={mapRef} className="h-full w-full" />;
+  return (
+    <div 
+      ref={mapRef} 
+      className="w-full h-full min-h-100 bg-gray-50 rounded-xl"
+      style={{ isolation: 'isolate' }} 
+    />
+  );
 }
