@@ -53,7 +53,7 @@ export default function BarChart({ chart, dashboardId }: Props) {
           <CartesianGrid strokeDasharray="3 3" />
           <XAxis 
             dataKey="name" 
-            angle={90} 
+            angle={45} 
             textAnchor="start" 
             height={80} 
             interval={0}
