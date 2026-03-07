@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 
 import {
   LineChart as ReLineChart,
-  Bar,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -46,7 +46,7 @@ export default function LineChart({ chart, dashboardId }: Props) {
           <XAxis dataKey="name" />
           <YAxis />
           <Tooltip />
-          <Bar dataKey="value" fill="#8884d8" />
+          <Line type="monotone" dataKey="value" stroke="#8884d8" />
         </ReLineChart>
       </ResponsiveContainer>
     </div>
