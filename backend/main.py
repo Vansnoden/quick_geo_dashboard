@@ -34,7 +34,7 @@ from numpy.linalg import norm
 import ast
 from fastapi.responses import StreamingResponse
 from pydantic.json_schema import SkipJsonSchema
-import datetime
+
 
 
 logger = logging.getLogger('uvicorn.error')
@@ -423,7 +423,7 @@ def update_dashboard_config(
     # Update dashboard
     dashboard.ui_yaml_script = config_update.yaml_content
     dashboard.ui_js_script = js_code
-    dashboard.last_update_date = datetime.datetime.now()
+    dashboard.last_update_date = datetime.now()
     db.add(dashboard)
     db.commit()
     db.refresh(dashboard)
