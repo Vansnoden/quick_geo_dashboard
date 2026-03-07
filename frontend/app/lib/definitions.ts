@@ -17,3 +17,42 @@ export interface DashboardResponse {
   total_count: number;
   total_pages: number;
 }
+
+
+export interface YAxisDef {
+  column?: string;
+  aggregation?: 'sum' | 'avg' | 'count' | 'min' | 'max';
+}
+
+export interface ChartDef {
+  type: 'bar' | 'line' | 'pie';
+  title: string;
+  x: string;
+  y: YAxisDef | string; // string for simple count
+}
+
+export interface MapDef {
+  lat: string;
+  lon: string;
+  layer?: string;
+}
+
+export interface MenusDef {
+  about: string;   // markdown content
+  stats: string;   // markdown content for stats menu
+  map: string;     // markdown content for map menu
+}
+
+export interface DashboardConfig {
+  name: string;
+  template: 'side_content' | 'top_content' | 'content_side' | 'content_bottom';
+  stats: ChartDef[];
+  map: MapDef;
+  menus: MenusDef;
+}
+
+// For chart data API response
+export interface ChartDataResponse {
+  labels: string[];
+  data: number[];
+}

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
-from typing import List
+from typing import List, Optional, Union
 from pydantic import BaseModel
 from uuid import UUID
 
@@ -58,3 +58,20 @@ class DashboardPagination(BaseModel):
     data: List[Dashboard]
     total_count: int
     total_pages: int
+
+
+
+# charts
+class YAxisDef(BaseModel):
+    column: Optional[str] = None
+    aggregation: Optional[str] = None  # 'sum', 'avg', 'count', etc.
+
+class ChartDataRequest(BaseModel):
+    type: str  # 'bar', 'line', 'pie'
+    title: str
+    x: str
+    y: Union[YAxisDef, str]  # string means count
+
+class ChartDataResponse(BaseModel):
+    labels: List[str]
+    data: List[float]

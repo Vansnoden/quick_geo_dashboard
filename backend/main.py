@@ -13,7 +13,7 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, BeforeValidator
 import yaml
 from database.utils import excel_to_csv, get_uuid, yaml_to_dashboard_js
-from database.schemas import DashboardConfigUpdate, User, FileBase
+from database.schemas import ChartDataRequest, ChartDataResponse, DashboardConfigUpdate, User, FileBase
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from fastapi.middleware.cors import CORSMiddleware
@@ -34,6 +34,7 @@ from numpy.linalg import norm
 import ast
 from fastapi.responses import StreamingResponse
 from pydantic.json_schema import SkipJsonSchema
+import datetime
 
 
 logger = logging.getLogger('uvicorn.error')
@@ -422,6 +423,7 @@ def update_dashboard_config(
     # Update dashboard
     dashboard.ui_yaml_script = config_update.yaml_content
     dashboard.ui_js_script = js_code
+    dashboard.last_update_date = datetime.datetime.now()
     db.add(dashboard)
     db.commit()
     db.refresh(dashboard)
@@ -441,6 +443,134 @@ def get_dashboard_config(
     return config.get('geo-dashboard', {})
 
 
+@app.get("/dashboards/{dashboard_id}/points")
+def get_map_points(
+    dashboard_id: int,
+    db: Session = Depends(get_db),
+    # user: User = Depends(get_current_active_user)  # optional auth
+):
+    dashboard = db.query(models.Dashboard).filter(models.Dashboard.id == dashboard_id).first()
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+
+    if not dashboard.data_table_name:
+        raise HTTPException(status_code=400, detail="Dashboard has no data table")
+
+    import yaml
+    try:
+        yaml_data = yaml.safe_load(dashboard.ui_yaml_script)
+        map_config = yaml_data.get('geo-dashboard', {}).get('map', {})
+        lat_col = map_config.get('lat')
+        lon_col = map_config.get('lon')
+        if not lat_col or not lon_col:
+            raise ValueError("Missing lat/lon in map config")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error parsing dashboard config: {e}")
+
+    table_name = dashboard.data_table_name
+    query = text(f'SELECT "{lat_col}" as lat, "{lon_col}" as lon FROM {table_name}')
+    try:
+        result = db.execute(query).fetchall()
+    except Exception as e:
+        logger.error(f"Error querying data table {table_name}: {e}")
+        raise HTTPException(status_code=500, detail="Error accessing data table")
+
+    features = []
+    for row in result:
+        lat = row.lat
+        lon = row.lon
+        if lat is None or lon is None:
+            continue
+        # Convert to float if they are strings
+        try:
+            lat = float(lat)
+            lon = float(lon)
+        except (ValueError, TypeError):
+            continue
+        features.append({
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [lon, lat]  # GeoJSON uses [lon, lat]
+            },
+            "properties": {}  # could add more columns if desired
+        })
+
+    geojson = {
+        "type": "FeatureCollection",
+        "features": features
+    }
+    return geojson
+
+
+@app.post("/dashboards/{dashboard_id}/chart-data", response_model=ChartDataResponse)
+def get_chart_data(
+    dashboard_id: int,
+    request: ChartDataRequest,
+    db: Session = Depends(get_db),
+):
+    # 1. Fetch dashboard
+    dashboard = db.query(models.Dashboard).filter(models.Dashboard.id == dashboard_id).first()
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+
+    if not dashboard.data_table_name:
+        raise HTTPException(status_code=400, detail="Dashboard has no data table")
+
+    table_name = dashboard.data_table_name
+
+    # 2. Parse the y definition
+    if isinstance(request.y, str):
+        # Simple count aggregation
+        agg_func = "COUNT(*)"
+        y_col = None
+    else:
+        y_def = request.y
+        agg = y_def.aggregation or "sum"
+        # Map aggregation to SQL function
+        agg_map = {
+            "sum": "SUM",
+            "avg": "AVG",
+            "count": "COUNT",
+            "min": "MIN",
+            "max": "MAX"
+        }
+        sql_agg = agg_map.get(agg, "SUM")
+        if not y_def.column:
+            raise HTTPException(status_code=400, detail="y.column required for aggregation")
+        # Quote column name
+        y_col = f'"{y_def.column}"'
+        agg_func = f"{sql_agg}({y_col})"
+
+    # 3. Build SQL query: SELECT x_col, agg_func ... GROUP BY x_col
+    x_col = f'"{request.x}"'
+    # Use appropriate quoting
+    query = text(f"""
+        SELECT {x_col} as label, {agg_func} as value
+        FROM {table_name}
+        GROUP BY {x_col}
+        ORDER BY label
+    """)
+
+    try:
+        result = db.execute(query).fetchall()
+    except Exception as e:
+        logger.error(f"Error executing chart query: {e}")
+        raise HTTPException(status_code=500, detail="Error processing chart data")
+
+    # 4. Build response
+    labels = [str(row.label) for row in result]
+    # Ensure values are numeric
+    values = []
+    for row in result:
+        try:
+            values.append(float(row.value))
+        except (TypeError, ValueError):
+            values.append(0.0)
+
+    return ChartDataResponse(labels=labels, data=values)
+
+
 @app.get("/dashboards/{dashboard_id}/dashboard.js")
 def get_dashboard_js(
     dashboard_id: int,
@@ -449,4 +579,9 @@ def get_dashboard_js(
     dashboard = crud.get_dashboard(db, dashboard_id)
     if not dashboard or not dashboard.ui_js_script:
         raise HTTPException(404, "Dashboard JS not found")
-    return Response(content=dashboard.ui_js_script, media_type="application/javascript")
+    if not dashboard.ui_js_script:
+        raise HTTPException(status_code=404, detail="Dashboard JS not generated yet")
+    return Response(
+        content=dashboard.ui_js_script, 
+        media_type="application/javascript"
+    )
