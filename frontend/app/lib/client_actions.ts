@@ -14,17 +14,25 @@ export async function fetchChartData(
   dashboardId: string,
   chartDef: ChartDef
 ): Promise<ChartDataResponse> {
-  const res = await fetch(DASHBOARD_CHART_DATA_URL(Number(dashboardId)), {
+  // Include chart-specific filters in the request
+  const response = await fetch(DASHBOARD_CHART_DATA_URL(Number(dashboardId)), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(chartDef)
+    body: JSON.stringify({
+      ...chartDef,
+      filters: chartDef.filters || []  // Pass filters
+    })
   });
-  if (!res.ok) throw new Error('Failed to fetch chart data');
-  return res.json();
+  
+  if (!response.ok) throw new Error('Failed to fetch chart data');
+  return response.json();
 }
 
+
 export async function fetchMapPoints(dashboardId: string): Promise<GeoJSON.FeatureCollection> {
-  const res = await fetch(DASHBOARD_MAP_POINTS_URL(Number(dashboardId)));
-  if (!res.ok) throw new Error('Failed to fetch map points');
-  return res.json();
+  // Map filters are applied on backend based on YAML config
+  // No need to pass them here
+  const response = await fetch(DASHBOARD_MAP_POINTS_URL(Number(dashboardId)));
+  if (!response.ok) throw new Error('Failed to fetch map points');
+  return response.json();
 }

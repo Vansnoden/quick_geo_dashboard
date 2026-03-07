@@ -4,7 +4,7 @@ from enum import Enum
 from pprint import pprint
 import re, os
 import shutil
-from typing import Dict, Set
+from typing import Any, Dict, List, Optional, Set
 import pandas as pd
 import openpyxl , csv
 import yaml
@@ -242,6 +242,50 @@ def validate_columns_against_data(config: Dict, db: Session, dashboard_id: int) 
         raise ValueError("Column validation failed:\n" + "\n".join(errors))
 
 
+def validate_filters(filters: List[Dict], context: str = ""):
+    """Validate filter conditions"""
+    valid_operators = ['=', '!=', '>', '>=', '<', '<=', 'like', 'in', 'between']
+    
+    for idx, f in enumerate(filters):
+        if not isinstance(f, dict):
+            raise ValueError(f"Filter at {context} index {idx} must be an object")
+        
+        if 'column' not in f:
+            raise ValueError(f"Filter at {context} index {idx} missing 'column'")
+        
+        if 'operator' not in f:
+            raise ValueError(f"Filter at {context} index {idx} missing 'operator'")
+        
+        if f['operator'] not in valid_operators:
+            raise ValueError(f"Filter at {context} index {idx} has invalid operator '{f['operator']}'")
+        
+        if 'value' not in f and f['operator'] != 'between':
+            raise ValueError(f"Filter at {context} index {idx} missing 'value'")
+        
+        # Additional validation for specific operators
+        if f['operator'] == 'in' and not isinstance(f['value'], list):
+            raise ValueError(f"Filter at {context} index {idx} 'in' operator requires array value")
+        
+        if f['operator'] == 'between' and (not isinstance(f['value'], list) or len(f['value']) != 2):
+            raise ValueError(f"Filter at {context} index {idx} 'between' operator requires array of two values")
+
+
+def validate_filters_section(config: dict) -> None:
+    """Validate all filter sections in the config"""
+    # Global filters
+    if 'filters' in config:
+        validate_filters(config['filters'], "global filters")
+    
+    # Chart filters
+    for idx, chart in enumerate(config.get('stats', [])):
+        if 'filters' in chart:
+            validate_filters(chart['filters'], f"chart '{chart.get('title', idx)}'")
+    
+    # Map filters
+    if 'map' in config and 'filters' in config['map']:
+        validate_filters(config['map']['filters'], "map filters")
+
+
 def yaml_to_dashboard_js(yaml_text: str) -> str:
     """
     Convert YAML dashboard configuration to a minified JavaScript module.
@@ -271,6 +315,8 @@ def yaml_to_dashboard_js(yaml_text: str) -> str:
     for key in required_keys:
         if key not in config:
             raise ValueError(f"Missing required key '{key}' in geo-dashboard")
+        
+    validate_filters_section(config)
 
     # stats must be a list
     if not isinstance(config['stats'], list):
@@ -299,3 +345,91 @@ def yaml_to_dashboard_js(yaml_text: str) -> str:
     json_str = json.dumps(config, separators=(',', ':'), ensure_ascii=False)
     js_code = f"export default {json_str};"
     return js_code
+
+
+
+def build_where_clause(
+    filters: Optional[List],  # Can be List[Dict] or List[FilterCondition]
+    table_name: str,
+    param_prefix: str = "f"
+) -> tuple[str, Dict[str, Any]]:
+    """
+    Convert filter conditions to SQL WHERE clause and parameters.
+    Returns (where_clause, params_dict)
+    """
+    if not filters:
+        return "", {}
+    
+    conditions = []
+    params = {}
+    
+    for idx, f in enumerate(filters):
+        # Handle both dict and object access
+        if isinstance(f, dict):
+            col = f['column']
+            op = f['operator']
+            value = f['value']
+        else:
+            # Assume it's a FilterCondition object
+            col = f.column
+            op = f.operator
+            value = f.value
+        
+        col_quoted = f'"{col}"'
+        param_name = f"{param_prefix}_{idx}"
+        
+        if op == '=':
+            conditions.append(f"{col_quoted} = :{param_name}")
+            params[param_name] = value
+        elif op == '!=':
+            conditions.append(f"{col_quoted} != :{param_name}")
+            params[param_name] = value
+        elif op == '>':
+            conditions.append(f"{col_quoted} > :{param_name}")
+            params[param_name] = value
+        elif op == '>=':
+            conditions.append(f"{col_quoted} >= :{param_name}")
+            params[param_name] = value
+        elif op == '<':
+            conditions.append(f"{col_quoted} < :{param_name}")
+            params[param_name] = value
+        elif op == '<=':
+            conditions.append(f"{col_quoted} <= :{param_name}")
+            params[param_name] = value
+        elif op == 'like':
+            conditions.append(f"{col_quoted} LIKE :{param_name}")
+            params[param_name] = value
+        elif op == 'in':
+            if not isinstance(value, list):
+                value = [value]
+            placeholders = [f":{param_name}_{i}" for i in range(len(value))]
+            conditions.append(f"{col_quoted} IN ({', '.join(placeholders)})")
+            for i, v in enumerate(value):
+                params[f"{param_name}_{i}"] = v
+        elif op == 'between':
+            if len(value) != 2:
+                raise ValueError("BETWEEN operator requires two values")
+            conditions.append(f"{col_quoted} BETWEEN :{param_name}_1 AND :{param_name}_2")
+            params[f"{param_name}_1"] = value[0]
+            params[f"{param_name}_2"] = value[1]
+    
+    where_clause = " AND ".join(conditions)
+    return where_clause, params
+
+
+def merge_filters(global_filters: Optional[List], specific_filters: Optional[List]) -> List[Dict]:
+    """Merge global and specific filters (AND combination) and return as dicts"""
+    result = []
+    
+    # Helper to convert to dict if needed
+    def to_dict(f):
+        if hasattr(f, 'dict'):
+            return f.dict()
+        return f
+    
+    if global_filters:
+        result.extend([to_dict(f) for f in global_filters])
+    if specific_filters:
+        result.extend([to_dict(f) for f in specific_filters])
+    
+    return result

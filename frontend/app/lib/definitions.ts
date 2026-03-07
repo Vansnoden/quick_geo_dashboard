@@ -24,17 +24,30 @@ export interface YAxisDef {
   aggregation?: 'sum' | 'avg' | 'count' | 'min' | 'max';
 }
 
+
+export type FilterOperator = '=' | '!=' | '>' | '>=' | '<' | '<=' | 'like' | 'in' | 'between';
+
+export interface FilterCondition {
+  column: string;
+  operator: FilterOperator;
+  value: string | number | (string | number)[];  // Array for 'in' operator, two values for 'between'
+  value2?: string | number;  // For 'between' operator
+}
+
+
 export interface ChartDef {
   type: 'bar' | 'line' | 'pie';
   title: string;
   x: string;
   y: YAxisDef | string; // string for simple count
+  filters?: FilterCondition[]; 
 }
 
 export interface MapDef {
   lat: string;
   lon: string;
   layer?: string;
+  filters?: FilterCondition[];
 }
 
 export interface MenusDef {
@@ -47,6 +60,7 @@ export interface DashboardConfig {
   name: string;
   template: 'side_content' | 'top_content' | 'content_side' | 'content_bottom';
   stats: ChartDef[];
+  filters?: FilterCondition[]; // Global filters apply to all charts/map
   map: MapDef;
   menus: MenusDef;
 }

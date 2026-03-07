@@ -11,13 +11,21 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  Cell
 } from 'recharts';
 
 interface Props {
   chart: ChartDef;
   dashboardId: string;
 }
+
+// Color palette for bars (you can customize these colors)
+const COLORS = [
+  '#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088fe',
+  '#00c49f', '#ffbb28', '#ff6b6b', '#a05e8a', '#d0bb57',
+  '#8dd1e1', '#b0e57c', '#fe938c', '#7b6c8c', '#6b5b7c'
+];
 
 export default function BarChart({ chart, dashboardId }: Props) {
   const [data, setData] = useState<ChartDataResponse | null>(null);
@@ -40,13 +48,24 @@ export default function BarChart({ chart, dashboardId }: Props) {
   return (
     <div className="bg-white p-4 rounded shadow">
       <h3 className="text-lg font-semibold mb-2">{chart.title}</h3>
-      <ResponsiveContainer width="100%" height={300}>
-        <ReBarChart data={chartData}>
+      <ResponsiveContainer width="100%" height={350}> {/* Increased height for rotated labels */}
+        <ReBarChart data={chartData} margin={{ bottom: 60 }}> {/* Added bottom margin */}
           <CartesianGrid strokeDasharray="3 3" />
-          <XAxis dataKey="name" />
+          <XAxis 
+            dataKey="name" 
+            angle={90} 
+            textAnchor="start" 
+            height={80} 
+            interval={0}
+            tick={{ fontSize: 11 }}
+          />
           <YAxis />
           <Tooltip />
-          <Bar dataKey="value" fill="#8884d8" />
+          <Bar dataKey="value">
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Bar>
         </ReBarChart>
       </ResponsiveContainer>
     </div>

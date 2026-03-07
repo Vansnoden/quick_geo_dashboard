@@ -20,9 +20,14 @@ export default function MapView({ dashboardId }: { dashboardId: string }) {
 
       const instance = L.map(node).setView([0, 0], 2);
       
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OSM',
-        zIndex: 1 
+      // L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      //   attribution: '&copy; OSM',
+      //   zIndex: 1 
+      // }).addTo(instance);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
       }).addTo(instance);
 
       instance.invalidateSize();

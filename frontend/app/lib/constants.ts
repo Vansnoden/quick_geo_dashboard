@@ -1,7 +1,7 @@
 export const BASE_API_URL = process.env.NEXT_PUBLIC_BASE_API_URL;
 export const BASE_PUBLIC_API_URL = process.env.NEXT_PUBLIC_BASE_PUBLIC_API_URL;
 console.log("BASE_PUBLIC_API_URL ===> "+  BASE_PUBLIC_API_URL);
-console.log("BASE_PUBLIC_API_URL ===> "+  BASE_API_URL);
+console.log("BASE_API_URL ===> "+  BASE_API_URL);
 // internal endpoints
 export const AUTH_URL = BASE_API_URL + "/token";
 export const USERINFO_URL = BASE_API_URL + "/users/details/me";

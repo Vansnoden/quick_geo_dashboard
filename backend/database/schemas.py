@@ -62,15 +62,26 @@ class DashboardPagination(BaseModel):
 
 
 # charts
+class FilterCondition(BaseModel):
+    column: str
+    operator: str
+    value: Union[str, int, float, List[Union[str, int, float]]]
+    # 'value2' is only needed for 'between' operator
+    value2: Optional[Union[str, int, float]] = None
+
+
 class YAxisDef(BaseModel):
     column: Optional[str] = None
     aggregation: Optional[str] = None  # 'sum', 'avg', 'count', etc.
+
 
 class ChartDataRequest(BaseModel):
     type: str  # 'bar', 'line', 'pie'
     title: str
     x: str
     y: Union[YAxisDef, str]  # string means count
+    filters: Optional[List[FilterCondition]] = [] 
+
 
 class ChartDataResponse(BaseModel):
     labels: List[str]
