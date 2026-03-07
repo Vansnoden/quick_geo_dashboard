@@ -48,7 +48,7 @@ def get_sqlite_url():
     )
 
 
-config.set_main_option("sqlalchemy.url", get_sqlite_url())
+config.set_main_option("sqlalchemy.url", get_postgres_url())
 
 
 def run_migrations_offline() -> None:
