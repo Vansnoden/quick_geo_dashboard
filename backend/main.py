@@ -67,8 +67,8 @@ origins = [
     # "http://9.141.176.168",
     # "http://9.141.176.168:3000",
     # "http://9.141.176.168:8000",
-    # "https://beehealth.icipe.org",
-    # "https://beehealth.icipe.org/api",
+    "https://quick-dashboard.voidmonad.com/",
+    "https://quick-dashboard.voidmonad.com/api",
 ]
 
 app.add_middleware(
