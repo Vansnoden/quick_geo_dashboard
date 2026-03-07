@@ -257,6 +257,54 @@ def create_dashboard(
         return crud.create_user(db=db, user=user)
 
 
+@app.get("/dashboards/{dashboard_id}", response_model=schemas.Dashboard, include_in_schema=True)
+def get_dashboard(
+    dashboard_id: int,
+    user: Annotated[User, Depends(get_current_active_user)],
+    db: Session = Depends(get_db)):
+    if user:
+        dashboard = crud.get_user_dashboard(db, dashboard_id, user.id)
+        if not dashboard:
+            raise HTTPException(status_code=404, detail="Dashboard not found")
+        else:
+            return dashboard
+    else:
+        raise HTTPException(status_code=403, detail="Unauthorized access")
+    
+
+@app.post("/dashboards/{dashboard_id}/edit", response_model=schemas.Dashboard, include_in_schema=True)
+def edit_dashboard(
+    dashboard_id: int,
+    dashboard_update: schemas.DashboardCreate,
+    user: Annotated[User, Depends(get_current_active_user)],
+    dashboard: schemas.Dashboard, 
+    db: Session = Depends(get_db)):
+    updated = crud.edit_dashboard(db, dashboard_id, dashboard_update)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+    return updated
+
+
+@app.post("/dashboards/{dashboard_id}/delete")
+def delete_dashboard(
+    dashboard_id: int, 
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_active_user)
+):
+    success = crud.delete_dashboard(db, dashboard_id, user.id)
+    
+    if not success:
+        raise HTTPException(
+            status_code=404, 
+            detail="Dashboard not found or you do not have permission to delete it"
+        )
+        
+    return {
+            "success": True,
+            "message": "Successfully deleted dashboard"
+        }
+
+
 def empty_str_to_none(v: Any) -> Any:
     if v == "":
         return None

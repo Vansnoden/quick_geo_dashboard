@@ -251,36 +251,51 @@ def yaml_to_dashboard_js(yaml_text: str) -> str:
     try:
         data = yaml.safe_load(yaml_text)
     except yaml.YAMLError as e:
-        raise ValueError(f"Invalid YAML: {e}")
+        raise ValueError(f"YAML parsing error: {e}")
 
-    if not isinstance(data, dict) or 'geo-dashboard' not in data:
-        raise ValueError("YAML must contain a top-level 'geo-dashboard' key")
+    if data is None:
+        raise ValueError("YAML content is empty (maybe only whitespace)")
+
+    if not isinstance(data, dict):
+        raise ValueError("YAML root must be a mapping (dictionary)")
+
+    if 'geo-dashboard' not in data:
+        raise ValueError("Missing top-level key 'geo-dashboard'")
 
     config = data['geo-dashboard']
-    # Basic required fields
+    if not isinstance(config, dict):
+        raise ValueError("'geo-dashboard' must be a mapping")
+
+    # Required keys
     required_keys = ['name', 'template', 'stats', 'map', 'menus']
     for key in required_keys:
         if key not in config:
             raise ValueError(f"Missing required key '{key}' in geo-dashboard")
 
-    # Optional: validate chart structure
+    # stats must be a list
     if not isinstance(config['stats'], list):
         raise ValueError("'stats' must be a list of chart definitions")
+
+    # Validate each chart (simplified)
     for idx, chart in enumerate(config['stats']):
         if not isinstance(chart, dict):
             raise ValueError(f"Chart at index {idx} is not an object")
-        if 'type' not in chart or 'title' not in chart or 'x' not in chart:
-            raise ValueError(f"Chart at index {idx} missing one of 'type', 'title', 'x'")
-        if 'y' not in chart:
-            raise ValueError(f"Chart at index {idx} missing 'y' definition")
-        # 'y' can be a dict with 'column' and 'aggregation', or just an aggregation count
-        if not isinstance(chart['y'], dict):
-            # assume simple aggregation count
-            pass
-        # further checks...
+        for field in ['type', 'title', 'x', 'y']:
+            if field not in chart:
+                raise ValueError(f"Chart {idx} missing '{field}'")
+        # y can be dict or string; we accept both
+        if not (isinstance(chart['y'], dict) or isinstance(chart['y'], str)):
+            raise ValueError(f"Chart {idx} 'y' must be a mapping or string")
 
-    # Convert to compact JSON (no extra whitespace)
+    # Map must have lat and lon
+    if 'lat' not in config['map'] or 'lon' not in config['map']:
+        raise ValueError("'map' section must contain 'lat' and 'lon' keys")
+
+    # Menus must be a mapping
+    if not isinstance(config['menus'], dict):
+        raise ValueError("'menus' must be a mapping")
+
+    # Convert to compact JSON and export as ES module
     json_str = json.dumps(config, separators=(',', ':'), ensure_ascii=False)
-    # Wrap as an ES module export
-    js_code = jsmin.jsmin(f"export default {json_str};")
+    js_code = f"export default {json_str};"
     return js_code

@@ -116,6 +116,17 @@ def get_dashboard(db: Session, dashboard_id: int):
     return db.query(models.Dashboard).filter(models.Dashboard.id == dashboard_id).first()
 
 
+def get_user_dashboard(db: Session, dashboard_id: int, user_id: int):
+    """
+    Retrieve a dashboard by its primary key ID.
+    Returns the Dashboard ORM object or None if not found.
+    """
+    return db.query(models.Dashboard).filter(
+        models.Dashboard.id == dashboard_id,
+        models.Dashboard.user_id == user_id
+    ).first()
+
+
 def create_dashboard(db: Session, user: schemas.User, 
                      dashboard: schemas.DashboardCreate) -> schemas.Dashboard:
     db_dashboard =  models.Dashboard(
@@ -132,6 +143,27 @@ def create_dashboard(db: Session, user: schemas.User,
     db.commit()
     db.refresh(db_dashboard)
     return db_dashboard
+
+
+def edit_dashboard(db: Session, dashboard_id: int, dashboard_update: schemas.DashboardCreate) -> models.Dashboard:
+    
+    db_dashboard = db.query(models.Dashboard).filter(models.Dashboard.id == dashboard_id).first()
+    if not db_dashboard:
+        return None 
+    db_dashboard.name = dashboard_update.name
+    db_dashboard.last_update_date = datetime.datetime.now()
+    db.commit()
+    db.refresh(db_dashboard)
+    return db_dashboard
+
+
+def delete_dashboard(db: Session, dashboard_id: int) -> bool:
+    db_dashboard = db.query(models.Dashboard).filter(models.Dashboard.id == dashboard_id).first()
+    if not db_dashboard:
+        return False
+    db.delete(db_dashboard)
+    db.commit()
+    return True
 
 
 def upload_data_from_file(

@@ -3,7 +3,7 @@ import { getUserDashboardData } from '@/app/lib/actions';
 import { Dashboard, DashboardResponse } from '@/app/lib/definitions';
 import Pagination from './pagination';
 import { lusitana } from '../fonts';
-
+import { CreateDashboard, UpdateDashboard, DeleteDashboard, ViewDashboard } from '../buttons';
 
 // DataTable.use(DT);
 
@@ -35,6 +35,10 @@ export default async function DataTable({
                 <th scope="col" className="px-3 py-5 font-medium">
                   LAST UPDATE
                 </th>
+                {/* 2. Actions Column Header */}
+                <th scope="col" className="relative py-3 pl-6 pr-3">
+                  <span className="sr-only">Actions</span>
+                </th>
                 {/* <th scope="col" className="px-3 py-5 font-medium">
                   Scientific Name
                 </th> */}
@@ -64,15 +68,14 @@ export default async function DataTable({
                     <td className="whitespace-nowrap px-3 py-3 break-all">
                         {item_data.last_update_date}
                     </td>
-                    {/* <td className="px-3 py-3 break-all">
-                        {plant_data.scientific_name}
-                    </td> */}
-                    {/* <td className=" px-3 py-3 break-all">
-                        {plant_data.taxon}
-                    </td> */}
-                    {/* <td className="whitespace-nowrap px-3 py-3 break-all">
-                        {plant_data.kingdom}
-                    </td> */}
+                    {/* 3. Actions Column Body */}
+                    <td className="whitespace-nowrap py-3 pl-6 pr-3">
+                      <div className="flex justify-end gap-3">
+                        <ViewDashboard id={item_data.id} />
+                        <UpdateDashboard id={item_data.id} />
+                        <DeleteDashboard id={item_data.id} />
+                      </div>
+                    </td>
                 </tr>
               ))}
             </tbody>

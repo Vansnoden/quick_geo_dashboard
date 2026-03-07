@@ -1,10 +1,19 @@
 'use server'
 
 import AuthError from "next-auth";
-import { USER_DASH_DATA_ALL } from './constants';
+import { DASHBOARD_ADD_URL, DASHBOARD_DELETE_URL, DASHBOARD_EDIT_URL, DASHBOARD_GET_URL, USER_DASH_DATA_ALL } from './constants';
 import { cookies } from 'next/headers'
 import { signIn, signOut, auth } from "@/auth";
 import { Dashboard, DashboardResponse } from "./definitions";
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { z } from 'zod';
+
+
+const DashboardSchema = z.object({
+  name: z.string().min(3, "Name must be at least 3 characters"),
+  code: z.string().min(1, "Code is required"),
+});
 
 
 export type State = {
@@ -90,4 +99,112 @@ export async function getUserDashboardData(query: string, currentPage: number) {
     console.error("Dashboard Fetch Error:", error);
     return []; // Return empty array to prevent UI crash
   }
+}
+
+
+export async function fetchDashboardById(id: number) {
+  const session = await auth();
+
+  if (!session?.user?.accessToken) return null;
+
+  try {
+    const response = await fetch(DASHBOARD_GET_URL(id), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${session.user.accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      // CRITICAL: Always get fresh data for the editor
+      cache: 'no-store', 
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    return data as Dashboard;
+  } catch (error) {
+    console.error('Database Error:', error);
+    return null;
+  }
+}
+
+
+export async function deleteDashboard(id: number) {
+  const session = await auth();
+  
+  try {
+    const response = await fetch(DASHBOARD_DELETE_URL(id), {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${session?.user?.accessToken}`,
+      },
+    });
+
+    if (!response.ok) throw new Error('Failed to delete dashboard');
+
+    // Clear the cache for the dashboard list so the deleted item disappears
+    revalidatePath('/admin/dashboards');
+    return { message: 'Deleted Dashboard.' };
+  } catch (error) {
+    return { message: 'Database Error: Failed to Delete Dashboard.' };
+  }
+}
+
+
+export async function createDashboard(formData: FormData) {
+  const session = await auth();
+  const validatedFields = DashboardSchema.safeParse(Object.fromEntries(formData.entries()));
+
+  if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
+
+  const response = await fetch(DASHBOARD_ADD_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session?.user?.accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(validatedFields.data),
+  });
+
+  if (!response.ok) throw new Error('Failed to create dashboard');
+
+  revalidatePath('/admin/dashboards');
+  redirect('/admin/dashboards');
+}
+
+export async function updateDashboard(id: number, formData: FormData) {
+  const session = await auth();
+  const validatedFields = DashboardSchema.safeParse(Object.fromEntries(formData.entries()));
+
+  if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
+
+  const response = await fetch(DASHBOARD_EDIT_URL(id), {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${session?.user?.accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(validatedFields.data),
+  });
+
+  if (!response.ok) throw new Error('Failed to update dashboard');
+
+  revalidatePath('/admin/dashboards');
+  redirect('/admin/dashboards');
+}
+
+
+export async function updateDashboardYaml(id: number, yamlContent: string) {
+  const session = await auth();
+  
+  await fetch(`${process.env.BACKEND_URL}/dashboards/${id}/config`, {
+    method: 'PATCH', // Or PUT depending on your backend
+    headers: {
+      'Authorization': `Bearer ${session?.user?.accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ ui_yaml_content: yamlContent }),
+  });
+
+  revalidatePath(`/admin/dashboards/${id}`);
 }

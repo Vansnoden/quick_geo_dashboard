@@ -1,10 +1,8 @@
-import Search from "../ui/admin/search";
-import DataTable from "../ui/admin/table";
-
-
+import Search from "@/app/ui/admin/search";
+import DataTable from "@/app/ui/admin/table";
 
  
-export default async function AdminPage(props: {
+export default async function DashboardsPage(props: {
     searchParams?: Promise<{
       query?: string;
       page?: string;
