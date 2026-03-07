@@ -20,7 +20,7 @@ POSTGRES_URL = "postgresql://%s:%s@%s:%s/%s" % (
     os.getenv("DB_NAME"),
 )
 
-DATABASE_URL = os.getenv("DATABASE_URL", SQLITE_URL)
+DATABASE_URL = os.getenv("DATABASE_URL", POSTGRES_URL)
 
 # Special handling for SQLite (needs connect_args for foreign keys)
 connect_args = {}

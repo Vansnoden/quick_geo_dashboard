@@ -1,12 +1,11 @@
-
 services:
 
-  postgres_db:
+  qgd_postgres_db:
     image: postgis/postgis:latest
-    container_name: postgres_db
+    container_name: qgd_db
     restart: always
     ports:
-      - "3001:5432"
+      - "3022:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=admin
@@ -15,18 +14,18 @@ services:
       - postgres-data:/var/lib/postgresql/data
 
 
-  backend:
+  qgd_backend:
     build: ./backend
     depends_on:
-      - postgres_db
-    container_name: backend
+      - qgd_postgres_db
+    container_name: qgd_backend
     restart: always
     volumes:
       - ./backend:/code
     ports:
-      - 8000:8000
+      - 8021:8000
     environment:
-      - POSTGRES_URL=jdbc:postgresql://postgres_db:5432/qgd_db
+      - POSTGRES_URL=jdbc:postgresql://qgd_postgres_db:5432/qgd_db
       - POSTGRES_USERNAME=postgres
       - POSTGRES_PASSWORD=admin
     deploy:
@@ -38,16 +37,16 @@ services:
           cpus: '0.5'
           memory: 1000M
 
-  frontend:
+  qgd_frontend:
     build: 
       context: ./frontend
       dockerfile: ./Dockerfile
     depends_on:
-      - backend
-    container_name: frontend
+      - qgd_backend
+    container_name: qgd_frontend
     restart: always
     ports:
-      - 3000:3000
+      - 3021:3000
     deploy:
       resources:
         limits:
