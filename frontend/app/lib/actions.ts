@@ -8,8 +8,6 @@ import { Dashboard, DashboardResponse } from "./definitions";
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
-import { isRedirectError } from 'next/navigation';
-
 
 
 const DashboardSchema = z.object({
@@ -85,6 +83,7 @@ export async function getUserDashboardData(query: string, currentPage: number) {
   const url = new URL(USER_DASH_DATA_ALL);
   url.searchParams.append("skip", skip.toString());
   url.searchParams.append("limit", limit.toString());
+  url.searchParams.append("query", query.toString());
   
   // if (query) url.searchParams.append("query", query);
 
@@ -95,7 +94,7 @@ export async function getUserDashboardData(query: string, currentPage: number) {
         "Authorization": `Bearer ${session.user.accessToken}`,
         "Content-Type": "application/json",
       },
-      // cache: 'no-store' // Use this if data changes frequently
+      cache: 'no-store' // Use this if data changes frequently
     });
 
     if (!response.ok) {

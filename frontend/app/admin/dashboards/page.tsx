@@ -1,5 +1,6 @@
 import Search from "@/app/ui/admin/search";
 import DataTable from "@/app/ui/admin/table";
+import { Suspense } from "react";
 
  
 export default async function DashboardsPage(props: {
@@ -19,7 +20,9 @@ export default async function DashboardsPage(props: {
       <div>
           <div className="sm:col-span-4 md:col-span-3">
               <Search placeholder="Search ..." />
-              <DataTable query={query} currentPage={currentPage}/>
+              <Suspense key={query + currentPage} fallback={<p>Loading...</p>}>
+                <DataTable query={query} currentPage={currentPage} />
+              </Suspense>
           </div>
         </div> 
     </div>
