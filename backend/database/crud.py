@@ -2,7 +2,7 @@ import json
 import os
 import shutil
 from typing import Dict, List, Optional
-from sqlalchemy import and_, text
+from sqlalchemy import String, and_, cast, desc, or_, text
 from sqlalchemy.orm import Session, joinedload
 
 from database.utils import choose_best_type, get_bool_val, get_float_val, get_int_val, get_uuid, possible_types, sanitize_column_name, sql_type_from_python_type
@@ -76,12 +76,37 @@ def delete_user(db: Session, user_id: int):
 
 # dashboards
 
-def get_dashboards(db: Session, skip: int = 0, limit: int = 0):
-    if skip and limit:
-        return db.query(models.Dashboard).offset(skip).limit(limit).all()
-    else:
-        return db.query(models.Dashboard).all()
+def get_dashboards(db: Session, user_id: int, skip: int = 0, limit: int = 10, query: str = None):
+    db_query = db.query(models.Dashboard).filter(models.Dashboard.user_id == user_id)
+    if query:
+        search = f"%{query}%"
+        db_query = db_query.filter(
+            or_(
+                models.Dashboard.name.ilike(search),
+                cast(models.Dashboard.code, String).ilike(search)
+            )
+        )
+    db_query = db_query.order_by(desc(models.Dashboard.create_date))
     
+    if skip and limit:
+        return db_query.offset(skip).limit(limit).all()
+    else:
+        return db_query
+    
+
+def get_dashboard_count(db: Session, user_id: int, query: str = None):
+    db_query = db.query(models.Dashboard).filter(models.Dashboard.user_id == user_id)
+    if query:
+        search = f"%{query}%"
+        db_query = db_query.filter(
+            or_(
+                models.Dashboard.name.ilike(search),
+                cast(models.Dashboard.code, String).ilike(search)
+            )
+        )    
+    return db_query.count()
+    
+
 
 def get_dashboard(db: Session, dashboard_id: int):
     """

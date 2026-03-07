@@ -1,9 +1,10 @@
 'use server'
 
 import AuthError from "next-auth";
-import { } from './constants';
+import { USER_DASH_DATA_ALL } from './constants';
 import { cookies } from 'next/headers'
-import { signIn, signOut } from "@/auth";
+import { signIn, signOut, auth } from "@/auth";
+import { Dashboard, DashboardResponse } from "./definitions";
 
 
 export type State = {
@@ -49,4 +50,44 @@ export async function handleSignOut() {
   // 2. Trigger the NextAuth signout
   // This will throw a redirect error which Next.js handles automatically
   await signOut({ redirectTo: '/login' });
+}
+
+
+
+export async function getUserDashboardData(query: string, currentPage: number) {
+  const session = await auth();
+  
+  if (!session?.user?.accessToken) {
+    throw new Error("Unauthorized: No access token found");
+  }
+
+  const limit = 10;
+  const skip = (currentPage - 1) * limit;
+
+  const url = new URL(USER_DASH_DATA_ALL);
+  url.searchParams.append("skip", skip.toString());
+  url.searchParams.append("limit", limit.toString());
+  
+  // if (query) url.searchParams.append("query", query);
+
+  try {
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${session.user.accessToken}`,
+        "Content-Type": "application/json",
+      },
+      // cache: 'no-store' // Use this if data changes frequently
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch dashboards: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data as DashboardResponse;
+  } catch (error) {
+    console.error("Dashboard Fetch Error:", error);
+    return []; // Return empty array to prevent UI crash
+  }
 }

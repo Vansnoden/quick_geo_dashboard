@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  MapIcon, ChartBarIcon, CircleStackIcon
+  MapIcon, ChartBarIcon, CircleStackIcon, DocumentIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -10,9 +10,8 @@ import clsx from 'clsx';
 // Map of links to display in the side navigation.
 // Depending on the size of the application, this would be stored in a database.
 const links = [
-  { name: 'Data', href: '/dashboard', icon: CircleStackIcon },
-  { name: 'Stats', href: '/dashboard/stats', icon: ChartBarIcon },
-  { name: 'Map', href: '/dashboard/map', icon: MapIcon },
+  { name: 'Dashboards', href: '/admin', icon: CircleStackIcon },
+  { name: 'Documentation', href: '/admin/doc', icon: DocumentIcon }
 ];
 
 export default function NavLinks() {

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from datetime import datetime
+from typing import List
 from pydantic import BaseModel
 from uuid import UUID
 
@@ -51,3 +52,9 @@ class DashboardCreate(BaseModel):
 
 class DashboardConfigUpdate(BaseModel):
     yaml_content: str
+
+
+class DashboardPagination(BaseModel):
+    data: List[Dashboard]
+    total_count: int
+    total_pages: int

@@ -218,10 +218,28 @@ async def delete_user(user: Annotated[User, Depends(get_current_active_user)], d
 
 # dashboards
 
-@app.get("/dashboards/", response_model=list[schemas.Dashboard], include_in_schema=True)
-def read_dashboards(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    users = crud.get_dashboards(db, skip=skip, limit=limit)
-    return users
+@app.get("/dashboards/", response_model=schemas.DashboardPagination)
+def read_dashboards(
+    user: User = Depends(get_current_active_user),
+    query: Optional[str] = None,
+    skip: int = 0, 
+    limit: int = 10, 
+    db: Session = Depends(get_db)
+):
+    # 1. Get the paginated slice
+    dashboards = crud.get_dashboards(db, user.id, skip=skip, limit=limit, query=query)
+    
+    # 2. Get the total count (Use a count query for better performance)
+    total_count = crud.get_dashboard_count(db, user.id, query=query) 
+    
+    # 3. Calculate total pages
+    total_pages = math.ceil(total_count / limit) if limit > 0 else 1
+
+    return {
+        "data": dashboards,
+        "total_count": total_count,
+        "total_pages": total_pages
+    }
 
 
 @app.post("/dashboards/add", response_model=schemas.Dashboard, include_in_schema=True)
