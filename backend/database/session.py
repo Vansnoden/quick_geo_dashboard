@@ -11,6 +11,8 @@ load_dotenv()
 project_root = Path(__file__).parent.parent
 default_db_path = project_root / os.getenv("SQL_LITE_DB_NAME")
 
+DEPLOYMENT_MODE = os.getenv("DEPLOYMENT_MODE")
+
 SQLITE_URL = "sqlite:///%s" % (default_db_path)
 POSTGRES_URL = "postgresql://%s:%s@%s:%s/%s" % (
     os.getenv("DB_USER"),
@@ -20,7 +22,10 @@ POSTGRES_URL = "postgresql://%s:%s@%s:%s/%s" % (
     os.getenv("DB_NAME"),
 )
 
-DATABASE_URL = os.getenv("DATABASE_URL", SQLITE_URL)
+if DEPLOYMENT_MODE == 'production':
+    DATABASE_URL = os.getenv("DATABASE_URL", POSTGRES_URL)
+elif DEPLOYMENT_MODE == 'development':
+    DATABASE_URL = os.getenv("DATABASE_URL", SQLITE_URL)
 
 # Special handling for SQLite (needs connect_args for foreign keys)
 connect_args = {}
