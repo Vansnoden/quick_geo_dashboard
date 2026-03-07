@@ -3,6 +3,7 @@
 
 /backend/venv/
 **/.env
+**/.env.dev
 **/__pycache__
 **/*.db
 /backend/uploads/
@@ -44,7 +45,8 @@
 /frontend/.pnpm-debug.log*
 
 # env files (can opt-in for committing if needed)
-/frontend/.env*
+/frontend/.env
+/frontend/.env.dev
 
 # vercel
 /frontend/.vercel

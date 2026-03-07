@@ -6,10 +6,8 @@ services:
     restart: always
     ports:
       - "3022:5432"
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=admin
-      - POSTGRES_DB=qgd_db
+    env_file:
+      - ./backend/.env
     volumes:
       - postgres-data:/var/lib/postgresql/data
 
@@ -24,10 +22,8 @@ services:
       - ./backend:/code
     ports:
       - 8021:8000
-    environment:
-      - POSTGRES_URL=jdbc:postgresql://qgd_postgres_db:5432/qgd_db
-      - POSTGRES_USERNAME=postgres
-      - POSTGRES_PASSWORD=admin
+    env_file:
+      - ./backend/.env
     deploy:
       resources:
         limits:
@@ -47,6 +43,8 @@ services:
     restart: always
     ports:
       - 3021:3000
+    env_file:
+      - ./frontend/.env
     deploy:
       resources:
         limits:

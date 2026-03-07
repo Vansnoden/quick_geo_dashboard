@@ -10,6 +10,8 @@ from alembic import context
 
 load_dotenv()
 
+DEPLOYMENT_MODE = os.getenv("DEPLOYMENT_MODE")
+
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
@@ -48,7 +50,11 @@ def get_sqlite_url():
     )
 
 
-config.set_main_option("sqlalchemy.url", get_postgres_url())
+if DEPLOYMENT_MODE == 'production':
+    config.set_main_option("sqlalchemy.url", get_postgres_url())
+elif DEPLOYMENT_MODE == 'development':
+    config.set_main_option("sqlalchemy.url", get_sqlite_url())
+
 
 
 def run_migrations_offline() -> None:
