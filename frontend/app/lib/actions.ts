@@ -1,13 +1,15 @@
 'use server'
 
-import AuthError from "next-auth";
-import { DASHBOARD_ADD_URL, DASHBOARD_DELETE_URL, DASHBOARD_EDIT_URL, DASHBOARD_GET_URL, USER_DASH_DATA_ALL } from './constants';
+import { AuthError } from 'next-auth';
+import { DASHBOARD_ADD_URL, DASHBOARD_CONFIG_URL, DASHBOARD_DELETE_URL, DASHBOARD_EDIT_URL, DASHBOARD_GET_URL, USER_DASH_DATA_ALL } from './constants';
 import { cookies } from 'next/headers'
 import { signIn, signOut, auth } from "@/auth";
 import { Dashboard, DashboardResponse } from "./definitions";
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
+import { isRedirectError } from 'next/navigation';
+
 
 
 const DashboardSchema = z.object({
@@ -23,17 +25,23 @@ export type State = {
     message?: string | null;
 };
 
+
 export async function authenticate(
   prevState: string | undefined,
   formData: FormData,
 ) {
   try {
-    await signIn('credentials', formData);
+    // We add redirectTo here to be explicit
+    await signIn('credentials', {
+      ...Object.fromEntries(formData),
+      redirectTo: '/admin/dashboards',
+    });
   } catch (error) {
     if (error instanceof AuthError) {
+      // Handle actual login failures
       switch (error.type) {
         case 'CredentialsSignin':
-          return 'Invalid credentials.';
+          return 'Invalid username or password.';
         default:
           return 'Something went wrong.';
       }
@@ -41,6 +49,7 @@ export async function authenticate(
     throw error;
   }
 }
+
 
 export async function getToken(){
   const cookieStore = await cookies()
@@ -197,8 +206,8 @@ export async function updateDashboard(id: number, formData: FormData) {
 export async function updateDashboardYaml(id: number, yamlContent: string) {
   const session = await auth();
   
-  await fetch(`${process.env.BACKEND_URL}/dashboards/${id}/config`, {
-    method: 'PATCH', // Or PUT depending on your backend
+  await fetch(DASHBOARD_CONFIG_URL(id), {
+    method: 'POST',
     headers: {
       'Authorization': `Bearer ${session?.user?.accessToken}`,
       'Content-Type': 'application/json',

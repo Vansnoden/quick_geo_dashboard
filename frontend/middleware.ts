@@ -1,9 +1,9 @@
 import NextAuth from 'next-auth';
 import { authConfig } from './auth.config';
 
-// In v5, we export the 'auth' function directly
 export default NextAuth(authConfig).auth;
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|.*\\.png$).*)'],
+  // Add 'base_api' to the exclusion list if that is where your auth routes live
+  matcher: ['/((?!api|base_api|_next/static|_next/image|.*\\.png$).*)'],
 };

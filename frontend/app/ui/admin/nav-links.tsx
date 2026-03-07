@@ -10,7 +10,7 @@ import clsx from 'clsx';
 // Map of links to display in the side navigation.
 // Depending on the size of the application, this would be stored in a database.
 const links = [
-  { name: 'Dashboards', href: '/admin', icon: CircleStackIcon },
+  { name: 'Dashboards', href: '/admin/dashboards', icon: CircleStackIcon },
   { name: 'Documentation', href: '/admin/doc', icon: DocumentIcon }
 ];
 

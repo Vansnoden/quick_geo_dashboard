@@ -3,7 +3,8 @@ import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
 import { AUTH_URL, USERINFO_URL } from './app/lib/constants';
 import { cookies } from 'next/headers';
-import { authConfig } from './auth.config'; // Import your edge config
+import { authConfig } from './auth.config'; 
+
 
 async function getUser(token: string) {
     const response = await fetch(USERINFO_URL, {
@@ -52,10 +53,14 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
                     });
 
                     // 3. Get user data
-                    const userData = await getUser(fullToken);
-                    
-                    // 4. Return user object + token for the JWT callback
-                    return { ...userData, accessToken: data.access_token };
+                    try {
+                        const userData = await getUser(fullToken);
+                        if (!userData) return null;
+                        return { ...userData, accessToken: data.access_token };
+                    } catch (e) {
+                        console.error("User profile fetch failed", e);
+                        return null; // Triggers CredentialsSignin
+                    }
                 }
                 
                 return null;
@@ -66,12 +71,14 @@ export const { auth, handlers, signIn, signOut } = NextAuth({
         async jwt({ token, user }) {
             // Persist the user data to the token right after sign in
             if (user) {
+                token.accessToken = (user as any).accessToken;
                 token.user = user;
             }
             return token;
         },
         async session({ session, token }) {
             // Pass the user data from the token to the session
+            session.user.accessToken = token.accessToken as string;
             session.user = token.user as any;
             return session;
         },

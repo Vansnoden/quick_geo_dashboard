@@ -8,7 +8,7 @@ import {
 import { ArrowRightIcon } from '@heroicons/react/20/solid';
 import { useActionState } from 'react';
 import { authenticate } from '@/app/lib/actions';
-import { Button } from './button';
+import { Button } from './buttons';
 
 export default function LoginForm() {
   const [errorMessage, formAction, isPending] = useActionState(
