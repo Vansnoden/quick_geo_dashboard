@@ -115,6 +115,19 @@ export default function SideContentLayout({ config, dashboardId }: Props) {
             </button>
           </div>
         </nav>
+
+        {/* Menu sections */}
+        {/* <div className="space-y-8">
+          <div id="about-section">
+            <MenuSection title="About" content={config.menus.about} />
+          </div>
+          <div id="statistics-section">
+            <MenuSection title="Statistics" content={config.menus.stats} />
+          </div>
+          <div id="map-section">
+            <MenuSection title="Map Layers" content={config.menus.map} />
+          </div>
+        </div> */}
       </aside>
 
       {/* Main content */}

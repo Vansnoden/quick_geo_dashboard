@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import crud, models, schemas
 from database.session import SessionLocal, engine
 from sqlalchemy.orm import Session
+from sqlalchemy import inspect
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.encoders import jsonable_encoder
 from slugify import slugify
@@ -28,7 +29,6 @@ import sys
 import random
 from random import randrange
 from sqlalchemy.sql import text
-from queries import *
 import numpy as np
 from numpy.linalg import norm
 import ast
@@ -64,7 +64,7 @@ origins = [
     "http://localhost",
     "http://localhost:3000",
     "http://localhost:8000",
-    "https://quick-dashboard.voidmonad.com/",
+    "https://quick-dashboard.voidmonad.com",
     "https://quick-dashboard.voidmonad.com/api",
 ]
 
@@ -449,47 +449,67 @@ def get_map_points(
     if not dashboard:
         raise HTTPException(status_code=404, detail="Dashboard not found")
     
-    # Parse YAML for map config and filters
+    # Parse YAML for map config
     import yaml
     config = yaml.safe_load(dashboard.ui_yaml_script)
     geo_config = config.get('geo-dashboard', {})
     global_filters = geo_config.get('filters', [])
-    map_filters = geo_config.get('map', {}).get('filters', [])
+    map_config = geo_config.get('map', {})
+    map_filters = map_config.get('filters', [])
     
     # Merge all filters
     all_filters = merge_filters(global_filters, map_filters)
     
-    # Get lat/lon columns from map config
-    map_config = geo_config.get('map', {})
+    # Get lat/lon columns
     lat_col = map_config.get('lat')
     lon_col = map_config.get('lon')
     
     if not lat_col or not lon_col:
         raise HTTPException(status_code=400, detail="Missing lat/lon in map config")
     
-    # Build query with filters
+    # Get all columns for richer popup data
+    # First, get all column names from the table
+    inspector = inspect(db.bind)
+    columns = [col['name'] for col in inspector.get_columns(dashboard.data_table_name)]
+    
+    # Build query to select all columns
+    quoted_columns = [f'"{col}"' for col in columns]
+    select_clause = ", ".join(quoted_columns)
+    
     table = dashboard.data_table_name
     where_clause, params = build_where_clause(all_filters, table)
     
-    
-    query = f'SELECT "{lat_col}" as lat, "{lon_col}" as lon FROM {table}'
+    query = f"SELECT {select_clause} FROM {table}"
     if where_clause:
         query += f" WHERE {where_clause}"
     
     result = db.execute(text(query), params).fetchall()
     
-    # Build GeoJSON
+    # Build GeoJSON with all properties
     features = []
     for row in result:
+        # Convert row to dict
+        row_dict = dict(row._mapping)
+        
         try:
-            lat = float(row.lat)
-            lon = float(row.lon)
+            lat = float(row_dict[lat_col])
+            lon = float(row_dict[lon_col])
+            
+            # Include all columns as properties (except lat/lon to avoid duplication)
+            properties = {
+                k: v for k, v in row_dict.items() 
+                if k not in [lat_col, lon_col]
+            }
+            
             features.append({
                 "type": "Feature",
-                "geometry": {"type": "Point", "coordinates": [lon, lat]},
-                "properties": {}
+                "geometry": {
+                    "type": "Point", 
+                    "coordinates": [lon, lat]
+                },
+                "properties": properties
             })
-        except (ValueError, TypeError):
+        except (ValueError, TypeError, KeyError):
             continue
     
     return {
@@ -501,8 +521,9 @@ def get_map_points(
 @app.post("/dashboards/{dashboard_id}/chart-data", response_model=ChartDataResponse)
 def get_chart_data(
     dashboard_id: int,
-    request: ChartDataRequest,  # Updated to include filters
+    request: ChartDataRequest,
     db: Session = Depends(get_db),
+    top_n: Optional[int] = 10,
 ):
     # 1. Fetch dashboard and config
     dashboard = db.query(models.Dashboard).filter(models.Dashboard.id == dashboard_id).first()
@@ -512,11 +533,11 @@ def get_chart_data(
     # Parse YAML to get global filters
     import yaml
     config = yaml.safe_load(dashboard.ui_yaml_script)
-    global_filters = config.get('geo-dashboard', {}).get('filters', [])
+    geo_config = config.get('geo-dashboard', {})
+    global_filters = geo_config.get('filters', [])
     
     # Merge filters: global + chart-specific
     all_filters = merge_filters(global_filters, request.filters)
-    
     
     # Build WHERE clause
     filter_dicts = [f.dict() if hasattr(f, 'dict') else f for f in all_filters]
@@ -550,9 +571,36 @@ def get_chart_data(
     # Execute with parameters
     result = db.execute(text(query), params).fetchall()
     
-    # Format response
+    # Extract labels and values
     labels = [str(row.label) for row in result]
     values = [float(row.value) if row.value is not None else 0.0 for row in result]
+
+    # Apply top N for pie charts if requested
+    if request.type == 'pie' and top_n and len(labels) > top_n:
+        # Pair labels and values
+        paired = list(zip(labels, values))
+        # Sort by value descending
+        paired.sort(key=lambda x: x[1], reverse=True)
+        
+        # Take top N
+        top_labels = []
+        top_values = []
+        others_sum = 0
+        
+        for i, (label, value) in enumerate(paired):
+            if i < top_n:
+                top_labels.append(label)
+                top_values.append(value)
+            else:
+                others_sum += value
+        
+        # Add "Others" category if there are remaining items
+        if others_sum > 0:
+            top_labels.append("Others")
+            top_values.append(others_sum)
+        
+        labels = top_labels
+        values = top_values
     
     return ChartDataResponse(labels=labels, data=values)
 

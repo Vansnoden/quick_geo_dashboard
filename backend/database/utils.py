@@ -270,6 +270,55 @@ def validate_filters(filters: List[Dict], context: str = ""):
             raise ValueError(f"Filter at {context} index {idx} 'between' operator requires array of two values")
 
 
+def validate_map_style(style: dict, context: str = "map style"):
+    """Validate map style configuration"""
+    if not isinstance(style, dict):
+        raise ValueError(f"{context} must be an object")
+    
+    # Validate rules if present
+    if 'rules' in style:
+        if not isinstance(style['rules'], list):
+            raise ValueError(f"{context}.rules must be a list")
+        
+        for idx, rule in enumerate(style['rules']):
+            if not isinstance(rule, dict):
+                raise ValueError(f"{context}.rules[{idx}] must be an object")
+            
+            # Required fields
+            if 'field' not in rule:
+                raise ValueError(f"{context}.rules[{idx}] missing 'field'")
+            if 'value' not in rule:
+                raise ValueError(f"{context}.rules[{idx}] missing 'value'")
+            if 'color' not in rule:
+                raise ValueError(f"{context}.rules[{idx}] missing 'color'")
+            
+            # Validate operator if present
+            valid_operators = ['=', '!=', 'like', 'in']
+            if 'operator' in rule and rule['operator'] not in valid_operators:
+                raise ValueError(
+                    f"{context}.rules[{idx}] invalid operator '{rule['operator']}'. "
+                    f"Valid: {', '.join(valid_operators)}"
+                )
+            
+            # Validate color format (basic hex check)
+            if not re.match(r'^#[0-9A-Fa-f]{6}$', rule['color']):
+                raise ValueError(f"{context}.rules[{idx}] color '{rule['color']}' must be hex format (e.g., #ff0000)")
+    
+    # Validate size bounds
+    if 'minSize' in style and 'maxSize' in style:
+        if style['minSize'] >= style['maxSize']:
+            raise ValueError(f"{context}.minSize must be less than maxSize")
+    
+    # Validate legend position
+    valid_positions = ['topleft', 'topright', 'bottomleft', 'bottomright']
+    if 'legend' in style and 'position' in style['legend']:
+        if style['legend']['position'] not in valid_positions:
+            raise ValueError(
+                f"{context}.legend.position invalid. "
+                f"Valid: {', '.join(valid_positions)}"
+            )
+
+
 def validate_filters_section(config: dict) -> None:
     """Validate all filter sections in the config"""
     # Global filters
@@ -281,9 +330,12 @@ def validate_filters_section(config: dict) -> None:
         if 'filters' in chart:
             validate_filters(chart['filters'], f"chart '{chart.get('title', idx)}'")
     
-    # Map filters
-    if 'map' in config and 'filters' in config['map']:
-        validate_filters(config['map']['filters'], "map filters")
+    # Map filters and style
+    if 'map' in config:
+        if 'filters' in config['map']:
+            validate_filters(config['map']['filters'], "map filters")
+        if 'style' in config['map']:
+            validate_map_style(config['map']['style'], "map style")
 
 
 def yaml_to_dashboard_js(yaml_text: str) -> str:

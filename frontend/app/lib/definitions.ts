@@ -70,3 +70,34 @@ export interface ChartDataResponse {
   labels: string[];
   data: number[];
 }
+
+export interface MapStyleRule {
+  field: string;
+  operator?: '=' | '!=' | 'like' | 'in';
+  value: string | number | string[];
+  color: string;
+  label?: string;
+}
+
+export interface MapStyle {
+  colorBy?: string;
+  sizeBy?: string;
+  defaultColor: string;
+  defaultSize: number;
+  minSize?: number;
+  maxSize?: number;
+  rules: MapStyleRule[];
+  legend?: {
+    title?: string;
+    position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
+    grouped?: boolean;
+  };
+}
+
+export interface MapDef {
+  lat: string;
+  lon: string;
+  layer?: string;
+  style?: MapStyle;
+  filters?: FilterCondition[];
+}
