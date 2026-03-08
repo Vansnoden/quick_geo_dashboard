@@ -605,6 +605,50 @@ def get_chart_data(
     return ChartDataResponse(labels=labels, data=values)
 
 
+
+@app.post("/dashboards/{dashboard_id}/distinct-values")
+def get_distinct_values(
+    dashboard_id: int,
+    request: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """Get distinct values for a column (used for stack categories)"""
+    dashboard = db.query(models.Dashboard).filter(models.Dashboard.id == dashboard_id).first()
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+    
+    column = request.get('column')
+    if not column:
+        raise HTTPException(status_code=400, detail="Column name required")
+    
+    # Parse YAML to get global filters
+    import yaml
+    config = yaml.safe_load(dashboard.ui_yaml_script)
+    global_filters = config.get('geo-dashboard', {}).get('filters', [])
+    
+    # Merge filters: global + request-specific
+    request_filters = request.get('filters', [])
+    all_filters = merge_filters(global_filters, request_filters)
+    
+    # Build WHERE clause
+    filter_dicts = [f.dict() if hasattr(f, 'dict') else f for f in all_filters]
+    where_clause, params = build_where_clause(filter_dicts, dashboard.data_table_name)
+    
+    table = dashboard.data_table_name
+    col_quoted = f'"{column}"'
+    
+    query = f"SELECT DISTINCT {col_quoted} as value FROM {table}"
+    if where_clause:
+        query += f" WHERE {where_clause}"
+    query += f" ORDER BY value"
+    
+    result = db.execute(text(query), params).fetchall()
+    
+    # Return list of distinct values (filtering out None)
+    return [row.value for row in result if row.value is not None]
+
+
+
 @app.get("/dashboards/{dashboard_id}/dashboard.js")
 def get_dashboard_js(
     dashboard_id: int,

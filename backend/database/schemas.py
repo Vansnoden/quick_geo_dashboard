@@ -78,10 +78,11 @@ class YAxisDef(BaseModel):
 
 class ChartDef(BaseModel):
     """Definition of a chart in the dashboard"""
-    type: Literal['bar', 'line', 'pie']
+    type: Literal['bar', 'line', 'pie', 'stackedbar']
     title: str
     x: str
     y: Union[YAxisDef, str]  # string means count
+    stackBy: Optional[str] = None
     filters: Optional[List[FilterCondition]] = []
 
 

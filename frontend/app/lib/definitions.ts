@@ -36,11 +36,12 @@ export interface FilterCondition {
 
 
 export interface ChartDef {
-  type: 'bar' | 'line' | 'pie';
+  type: 'bar' | 'line' | 'pie' | 'stackedbar';
   title: string;
   x: string;
   y: YAxisDef | string; // string for simple count
   filters?: FilterCondition[]; 
+  stackBy?: string;
 }
 
 export interface MapDef {
@@ -101,3 +102,4 @@ export interface MapDef {
   style?: MapStyle;
   filters?: FilterCondition[];
 }
+

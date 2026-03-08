@@ -4,6 +4,7 @@ import { ChartDef } from "@/app/lib/definitions";
 import BarChart from "./BarChart";
 import LineChart from "./LineChart";
 import PieChart from "./PieChart";
+import StackedBarChart from './StackedBarChart';
 
 
 
@@ -20,6 +21,7 @@ export default function ChartList({ charts, dashboardId }: Props) {
           case 'bar': return <BarChart key={idx} chart={chart} dashboardId={dashboardId} />;
           case 'line': return <LineChart key={idx} chart={chart} dashboardId={dashboardId} />;
           case 'pie': return <PieChart key={idx} chart={chart} dashboardId={dashboardId} />;
+          case 'stackedbar': return <StackedBarChart key={idx} chart={chart} dashboardId={dashboardId} />;;
           default: return null;
         }
       })}

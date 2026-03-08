@@ -319,6 +319,49 @@ def validate_map_style(style: dict, context: str = "map style"):
             )
 
 
+
+def validate_chart(chart: Dict, idx: int) -> None:
+    """Validate a single chart configuration"""
+    if not isinstance(chart, dict):
+        raise ValueError(f"Chart at index {idx} is not an object")
+    
+    # Required fields
+    required_fields = ['type', 'title', 'x', 'y']
+    for field in required_fields:
+        if field not in chart:
+            raise ValueError(f"Chart {idx} missing '{field}'")
+    
+    # Validate chart type
+    valid_types = ['bar', 'line', 'pie', 'stackedbar']
+    if chart['type'] not in valid_types:
+        raise ValueError(
+            f"Chart {idx} type '{chart['type']}' invalid. "
+            f"Valid types: {', '.join(valid_types)}"
+        )
+    
+    # Special validation for stacked bar charts
+    if chart['type'] == 'stackedbar':
+        if 'stackBy' not in chart:
+            raise ValueError(f"Stacked bar chart {idx} missing required field 'stackBy'")
+        if not isinstance(chart['stackBy'], str):
+            raise ValueError(f"Stacked bar chart {idx} 'stackBy' must be a string")
+    
+    # Validate y field
+    if not (isinstance(chart['y'], dict) or isinstance(chart['y'], str)):
+        raise ValueError(f"Chart {idx} 'y' must be a mapping or string")
+    
+    # If y is a dict, validate its structure
+    if isinstance(chart['y'], dict):
+        y_def = chart['y']
+        valid_aggs = ['sum', 'avg', 'count', 'min', 'max']
+        
+        if 'aggregation' in y_def and y_def['aggregation'] not in valid_aggs:
+            raise ValueError(
+                f"Chart {idx} aggregation '{y_def['aggregation']}' invalid. "
+                f"Valid: {', '.join(valid_aggs)}"
+            )
+
+
 def validate_filters_section(config: dict) -> None:
     """Validate all filter sections in the config"""
     # Global filters
@@ -341,8 +384,6 @@ def validate_filters_section(config: dict) -> None:
 def yaml_to_dashboard_js(yaml_text: str) -> str:
     """
     Convert YAML dashboard configuration to a minified JavaScript module.
-    Returns a string like 'export default {...};'
-    Raises ValueError on parsing/validation errors.
     """
     try:
         data = yaml.safe_load(yaml_text)
@@ -367,23 +408,17 @@ def yaml_to_dashboard_js(yaml_text: str) -> str:
     for key in required_keys:
         if key not in config:
             raise ValueError(f"Missing required key '{key}' in geo-dashboard")
-        
-    validate_filters_section(config)
-
+    
     # stats must be a list
     if not isinstance(config['stats'], list):
         raise ValueError("'stats' must be a list of chart definitions")
 
-    # Validate each chart (simplified)
+    # Validate each chart with the enhanced validation
     for idx, chart in enumerate(config['stats']):
-        if not isinstance(chart, dict):
-            raise ValueError(f"Chart at index {idx} is not an object")
-        for field in ['type', 'title', 'x', 'y']:
-            if field not in chart:
-                raise ValueError(f"Chart {idx} missing '{field}'")
-        # y can be dict or string; we accept both
-        if not (isinstance(chart['y'], dict) or isinstance(chart['y'], str)):
-            raise ValueError(f"Chart {idx} 'y' must be a mapping or string")
+        validate_chart(chart, idx)  # This now validates stackedbar type
+
+    # Validate filters sections
+    validate_filters_section(config)
 
     # Map must have lat and lon
     if 'lat' not in config['map'] or 'lon' not in config['map']:
@@ -397,7 +432,6 @@ def yaml_to_dashboard_js(yaml_text: str) -> str:
     json_str = json.dumps(config, separators=(',', ':'), ensure_ascii=False)
     js_code = f"export default {json_str};"
     return js_code
-
 
 
 def build_where_clause(
