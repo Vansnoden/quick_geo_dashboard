@@ -1,13 +1,16 @@
 import Link from 'next/link';
 import NavLinks from '@/app/ui/admin/nav-links';
-// import AcmeLogo from '@/app/ui/acme-logo';
-// import { PowerIcon, } from '@heroicons/react/24/outline';
-// import { signOut } from '@/auth';
 import { HomeIcon } from '@heroicons/react/20/solid';
 import { handleSignOut } from '@/app/lib/actions';
+import { auth } from '@/auth';
 
 
-export default function SideNav() {
+export default async function SideNav() {
+  const session = await auth();
+  const user = session?.user as any;
+
+  const userName = user?.username;
+
   return (
     <div className="flex h-full flex-col px-3 py-4 md:px-2">
       <Link
@@ -17,6 +20,10 @@ export default function SideNav() {
         <div className="w-32 text-white md:w-40 font-bold">
           {/* <AcmeLogo /> */}
           Administration
+          <hr/>
+          <p className='mt-4 font-normal'>
+            Welcome, <b>{userName}</b>
+          </p>
         </div>
       </Link>
       <div className="flex grow flex-row justify-between space-x-2 md:flex-col md:space-x-0 md:space-y-2">

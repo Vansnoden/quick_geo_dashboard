@@ -121,15 +121,29 @@ export async function signup(
       return 'Something went wrong. Please try again.';
     }
 
-    // Automatically log in after successful registration
-    await signIn('credentials', {
-      username: username.toString(),
-      password: password.toString(),
-      redirectTo: '/admin/dashboards',
-    });
+    //  Log in after successful registration
+    try {
+      await signIn('credentials', {
+        username: username.toString(),
+        password: password.toString(),
+        redirect: false, // Important: set redirect to false
+      });
+      
+      // Manually redirect after successful sign in
+      redirect('/admin/dashboards');
+      
+    } catch (loginError) {
+      console.error('Auto-login failed:', loginError);
+      // If auto-login fails, redirect to login page
+      redirect('/login?registered=true');
+    }
 
     return undefined; // No error, success
   } catch (error) {
+    if ((error as any)?.digest?.startsWith('NEXT_REDIRECT')) {
+      throw error; // Re-throw redirects so Next.js can handle them
+    }
+    
     console.error('Signup error:', error);
     return 'An unexpected error occurred. Please try again.';
   }

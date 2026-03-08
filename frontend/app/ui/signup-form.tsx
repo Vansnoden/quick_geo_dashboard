@@ -11,7 +11,7 @@ import { ArrowRightIcon } from '@heroicons/react/20/solid';
 import { useActionState, useEffect, useState, useRef } from 'react';
 import { signup } from '@/app/lib/actions';
 import { Button } from './buttons';
-import Link from 'next/link';
+
 
 export default function SignupForm() {
   const [errorMessage, formAction, isPending] = useActionState(
@@ -169,12 +169,6 @@ export default function SignupForm() {
                 <div className="flex w-full items-center space-x-2 rounded-md bg-red-50 p-3 text-sm">
                   <ExclamationCircleIcon className="h-5 w-5 shrink-0 text-red-500" />
                   <p className="text-red-600">{errorMessage}</p>
-                </div>
-              )}
-              {!errorMessage && isPending && (
-                <div className="flex w-full items-center space-x-2 rounded-md bg-blue-50 p-3 text-sm">
-                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
-                  <p className="text-blue-600">Creating your account...</p>
                 </div>
               )}
             </div>
