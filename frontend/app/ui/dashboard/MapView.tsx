@@ -28,7 +28,7 @@ const getColorFromRules = (properties: any, rules: MapStyleRule[], defaultColor:
       case 'like':
         if (typeof fieldValue === 'string' && typeof rule.value === 'string') {
           const pattern = rule.value.replace('%', '.*');
-          if (new RegExp(pattern).test(fieldValue)) return rule.color;
+          if (new RegExp(pattern, 'i').test(fieldValue)) return rule.color;
         }
         break;
       case 'in':
@@ -71,7 +71,7 @@ const Legend = ({ style, position }: { style: any; position: string }) => {
     }));
   
   return (
-    <div className={`absolute ${positionClasses[position as keyof typeof positionClasses] || 'bottom-4 right-4'} z-[1000]`}>
+    <div className={`absolute ${positionClasses[position as keyof typeof positionClasses] || 'bottom-4 right-4'} z-1000`}>
       <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
         <h4 className="font-bold text-sm mb-2">{style.legend?.title || 'Legend'}</h4>
         <div className="space-y-1.5">
@@ -96,25 +96,27 @@ export default function MapView({ dashboardId }: Props) {
   const [map, setMap] = useState<L.Map | null>(null);
   const [points, setPoints] = useState<GeoJSON.FeatureCollection | null>(null);
   const [config, setConfig] = useState<DashboardConfig | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const mapInstanceRef = useRef<L.Map | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   // Fetch both points and config
   useEffect(() => {
+    setIsLoading(true);
     Promise.all([
       fetchMapPoints(dashboardId),
       fetchDashboardConfig(dashboardId)
     ]).then(([pointsData, configData]) => {
       setPoints(pointsData);
       setConfig(configData);
-    }).catch(console.error);
+    }).catch(console.error)
+      .finally(() => setIsLoading(false));
   }, [dashboardId]);
 
+  // Initialize map once
   const mapRef = useCallback((node: HTMLDivElement | null) => {
-    if (node !== null) {
-      if ((node as any)._leaflet_id) {
-        return; 
-      }
-
+    if (node !== null && !mapInstanceRef.current) {
       const instance = L.map(node).setView([0, 0], 2);
       
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -123,28 +125,63 @@ export default function MapView({ dashboardId }: Props) {
         maxZoom: 20
       }).addTo(instance);
 
-      instance.invalidateSize();
       mapInstanceRef.current = instance;
       setMap(instance);
+      
+      // Force a size check after initialization
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+        }
+      }, 100);
     }
   }, []);
 
-  // Clean up the map instance
+  // Clean up map instance
   useEffect(() => {
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+      }
     };
   }, []);
 
-  // Add points with styling from config
+  // Set up ResizeObserver to watch container size changes
   useEffect(() => {
-    if (!map || !points || !config) return;
+    if (!containerRef.current || !mapInstanceRef.current) return;
+    
+    resizeObserverRef.current = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    });
+    
+    resizeObserverRef.current.observe(containerRef.current);
+    
+    return () => {
+      if (resizeObserverRef.current) {
+        resizeObserverRef.current.disconnect();
+      }
+    };
+  }, [map]);
 
+  // Update points when data arrives or config changes
+  useEffect(() => {
+    if (!mapInstanceRef.current || !points || !config) {
+      return;
+    }
+    
+    const map = mapInstanceRef.current;
+    
+    // Clear existing GeoJSON layers
     map.eachLayer((layer) => {
-      if (layer instanceof L.GeoJSON) map.removeLayer(layer);
+      if (layer instanceof L.GeoJSON) {
+        map.removeLayer(layer);
+      }
     });
 
     const mapStyle = config.map.style || {
@@ -155,18 +192,17 @@ export default function MapView({ dashboardId }: Props) {
       rules: []
     };
 
+    // Add new points
     const layer = L.geoJSON(points, {
       pointToLayer: (feature, latlng) => {
         const props = feature.properties || {};
         
-        // Get color based on rules
         const color = getColorFromRules(
           props, 
           mapStyle.rules || [], 
           mapStyle.defaultColor
         );
         
-        // Get size based on field
         const size = getSizeFromField(
           props,
           mapStyle.sizeBy,
@@ -185,7 +221,7 @@ export default function MapView({ dashboardId }: Props) {
         
         // Create popup content
         const popupContent = `
-          <div class="p-2 min-w-[200px]">
+          <div class="p-2 min-w-50">
             <h3 class="font-bold text-lg border-b pb-1 mb-2">${props.species || 'Unknown'}</h3>
             <table class="text-sm w-full">
               ${Object.entries(props)
@@ -205,6 +241,7 @@ export default function MapView({ dashboardId }: Props) {
       },
     }).addTo(map);
 
+    // Fit bounds to points if any exist
     if (points.features.length > 0) {
       const bounds = layer.getBounds();
       if (bounds.isValid()) {
@@ -212,19 +249,30 @@ export default function MapView({ dashboardId }: Props) {
       }
     }
     
-    map.invalidateSize();
-  }, [map, points, config]);
+    // Ensure map renders correctly
+    setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 100);
+    
+  }, [points, config]);
 
-  if (!config) return <div className="h-full w-full bg-gray-100 animate-pulse" />;
+  if (isLoading) {
+    return <div className="w-full h-full min-h-100 bg-gray-100 animate-pulse rounded-xl" />;
+  }
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full min-h-100">
       <div 
-        ref={mapRef} 
-        className="w-full h-full min-h-100 bg-gray-50 rounded-xl"
+        ref={(node) => {
+          containerRef.current = node;
+          mapRef(node);
+        }}
+        className="w-full h-full bg-gray-50 rounded-xl"
         style={{ isolation: 'isolate' }} 
       />
-      {config.map.style && (
+      {config?.map?.style && map && (
         <Legend 
           style={config.map.style} 
           position={config.map.style.legend?.position || 'bottomright'} 
