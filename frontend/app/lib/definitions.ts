@@ -44,18 +44,13 @@ export interface ChartDef {
   stackBy?: string;
 }
 
-export interface MapDef {
-  lat: string;
-  lon: string;
-  layer?: string;
-  filters?: FilterCondition[];
-}
 
 export interface MenusDef {
   about: string;   // markdown content
   stats: string;   // markdown content for stats menu
   map: string;     // markdown content for map menu
 }
+
 
 export interface DashboardConfig {
   name: string;
@@ -95,11 +90,25 @@ export interface MapStyle {
   };
 }
 
+export interface MapClustering {
+  enabled: boolean;
+  maxClusterRadius?: number;
+  disableClusteringAtZoom?: number;
+  spiderfyOnMaxZoom?: boolean;
+  showCoverageOnHover?: boolean;
+  zoomToBoundsOnClick?: boolean;
+  chunkedLoading?: boolean;
+  chunkInterval?: number;
+  chunkDelay?: number;
+  limit?: number;
+}
+
 export interface MapDef {
   lat: string;
   lon: string;
   layer?: string;
   style?: MapStyle;
+  clustering?: MapClustering;
   filters?: FilterCondition[];
 }
 
