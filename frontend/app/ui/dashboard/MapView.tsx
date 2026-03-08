@@ -5,13 +5,16 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { fetchMapPoints, fetchDashboardConfig } from '@/app/lib/client_actions';
 import { DashboardConfig, MapStyleRule } from '@/app/lib/definitions';
+import { Feature, Point, GeoJsonProperties } from 'geojson';
 
 interface Props {
   dashboardId: string;
 }
 
 // Helper function to apply style rules
-const getColorFromRules = (properties: any, rules: MapStyleRule[], defaultColor: string): string => {
+const getColorFromRules = (properties: GeoJsonProperties, rules: MapStyleRule[], defaultColor: string): string => {
+  if (!properties) return defaultColor;
+  
   for (const rule of rules) {
     const fieldValue = properties[rule.field];
     if (fieldValue === undefined || fieldValue === null) continue;
@@ -43,8 +46,8 @@ const getColorFromRules = (properties: any, rules: MapStyleRule[], defaultColor:
 };
 
 // Helper to get size based on field
-const getSizeFromField = (properties: any, sizeBy: string | undefined, defaultSize: number, minSize: number, maxSize: number): number => {
-  if (!sizeBy) return defaultSize;
+const getSizeFromField = (properties: GeoJsonProperties, sizeBy: string | undefined, defaultSize: number, minSize: number, maxSize: number): number => {
+  if (!sizeBy || !properties) return defaultSize;
   
   const value = properties[sizeBy];
   if (!value || isNaN(Number(value))) return defaultSize;
@@ -52,6 +55,11 @@ const getSizeFromField = (properties: any, sizeBy: string | undefined, defaultSi
   // Scale logarithmically to handle outliers
   const scaled = Math.log(Number(value) + 1) * 3;
   return Math.min(maxSize, Math.max(minSize, scaled));
+};
+
+// Type guard to check if feature is a Point
+const isPointFeature = (feature: Feature): feature is Feature<Point> => {
+  return feature.geometry?.type === 'Point';
 };
 
 // Legend component
@@ -78,7 +86,7 @@ const Legend = ({ style, position }: { style: any; position: string }) => {
       <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
         <h4 className="font-bold text-sm mb-2">{style.legend?.title || 'Legend'}</h4>
         <div className="space-y-1.5">
-          {legendItems.map((item, idx) => (
+          {legendItems.map((item:any, idx:any) => (
             <div key={idx} className="flex items-center gap-2">
               <span className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }}></span>
               <span className="text-xs">{item.label}</span>
@@ -191,17 +199,22 @@ export default function MapView({ dashboardId }: Props) {
     let bounds = L.latLngBounds([]);
     let pointCount = 0;
 
-    points.features?.forEach((feature) => {
-      const props = feature.properties || {};
-      const coords = feature.geometry?.coordinates;
+    // Type-safe iteration over features
+    points.features?.forEach((feature: Feature) => {
+      // Use type guard to ensure we have a Point geometry
+      if (!isPointFeature(feature)) return;
       
-      if (!coords || coords.length < 2) return;
+      const props = feature.properties;
+      const coordinates = feature.geometry.coordinates;
       
-      // GeoJSON uses [lon, lat] order
-      const lat = coords[1];
-      const lon = coords[0];
+      // GeoJSON Point coordinates are [longitude, latitude]
+      if (coordinates.length < 2) return;
       
-      if (lat === undefined || lon === undefined) return;
+      const [lon, lat] = coordinates;
+      
+      // Ensure coordinates are valid numbers
+      if (typeof lat !== 'number' || typeof lon !== 'number') return;
+      if (isNaN(lat) || isNaN(lon)) return;
       
       const latlng = L.latLng(lat, lon);
       
@@ -227,12 +240,12 @@ export default function MapView({ dashboardId }: Props) {
         fillOpacity: 0.8,
       });
       
-      // Create popup content
+      // Create popup content with safe property access
       const popupContent = `
         <div class="p-2 min-w-50">
-          <h3 class="font-bold text-lg border-b pb-1 mb-2">${props.species || 'Unknown'}</h3>
+          <h3 class="font-bold text-lg border-b pb-1 mb-2">${props?.species || 'Unknown'}</h3>
           <table class="text-sm w-full">
-            ${Object.entries(props)
+            ${Object.entries(props || {})
               .filter(([key]) => !['lat', 'lon'].includes(key.toLowerCase()))
               .map(([key, value]) => `
                 <tr>
