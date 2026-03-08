@@ -109,7 +109,7 @@ export default function PieChart({ chart, dashboardId }: Props) {
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                outerRadius={140}  // Increased from 80 to 140
+                outerRadius={120}  // Increased from 80 to 140
                 innerRadius={60}    // Added inner radius for donut effect (optional - remove if you want solid pie)
                 fill="#8884d8"
                 label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
