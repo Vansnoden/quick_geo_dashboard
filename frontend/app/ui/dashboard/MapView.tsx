@@ -20,19 +20,22 @@ const getColorFromRules = (properties: any, rules: MapStyleRule[], defaultColor:
     
     switch (operator) {
       case '=':
-        if (fieldValue === rule.value) return rule.color;
+        if (String(fieldValue) === String(rule.value)) return rule.color;
         break;
       case '!=':
-        if (fieldValue !== rule.value) return rule.color;
+        if (String(fieldValue) !== String(rule.value)) return rule.color;
         break;
       case 'like':
         if (typeof fieldValue === 'string' && typeof rule.value === 'string') {
-          const pattern = rule.value.replace('%', '.*');
+          const pattern = rule.value.replace(/%/g, '.*');
           if (new RegExp(pattern, 'i').test(fieldValue)) return rule.color;
         }
         break;
       case 'in':
-        if (Array.isArray(rule.value) && rule.value.includes(fieldValue)) return rule.color;
+        if (Array.isArray(rule.value)) {
+          const stringValues = rule.value.map(v => String(v));
+          if (stringValues.includes(String(fieldValue))) return rule.color;
+        }
         break;
     }
   }
@@ -99,24 +102,29 @@ export default function MapView({ dashboardId }: Props) {
   const [isLoading, setIsLoading] = useState(true);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const resizeObserverRef = useRef<ResizeObserver | null>(null);
+  const markersRef = useRef<L.LayerGroup | null>(null);
 
   // Fetch both points and config
   useEffect(() => {
+    console.log('Fetching map data for dashboard:', dashboardId);
     setIsLoading(true);
     Promise.all([
       fetchMapPoints(dashboardId),
       fetchDashboardConfig(dashboardId)
     ]).then(([pointsData, configData]) => {
+      console.log('Points received:', pointsData.features?.length || 0, 'features');
+      console.log('Config received:', configData);
       setPoints(pointsData);
       setConfig(configData);
-    }).catch(console.error)
-      .finally(() => setIsLoading(false));
+    }).catch(err => {
+      console.error('Error fetching map data:', err);
+    }).finally(() => setIsLoading(false));
   }, [dashboardId]);
 
-  // Initialize map once
+  // Initialize map
   const mapRef = useCallback((node: HTMLDivElement | null) => {
     if (node !== null && !mapInstanceRef.current) {
+      console.log('Initializing map');
       const instance = L.map(node).setView([0, 0], 2);
       
       L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
@@ -125,64 +133,50 @@ export default function MapView({ dashboardId }: Props) {
         maxZoom: 20
       }).addTo(instance);
 
+      // Create a layer group for markers
+      markersRef.current = L.layerGroup().addTo(instance);
+
       mapInstanceRef.current = instance;
       setMap(instance);
       
-      // Force a size check after initialization
+      // Force size check
       setTimeout(() => {
         if (mapInstanceRef.current) {
           mapInstanceRef.current.invalidateSize();
+          console.log('Map invalidated after init');
         }
       }, 100);
     }
   }, []);
 
-  // Clean up map instance
+  // Clean up
   useEffect(() => {
     return () => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
       }
-      if (resizeObserverRef.current) {
-        resizeObserverRef.current.disconnect();
-      }
     };
   }, []);
 
-  // Set up ResizeObserver to watch container size changes
+  // Update points when data changes
   useEffect(() => {
-    if (!containerRef.current || !mapInstanceRef.current) return;
-    
-    resizeObserverRef.current = new ResizeObserver(() => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
-      }
-    });
-    
-    resizeObserverRef.current.observe(containerRef.current);
-    
-    return () => {
-      if (resizeObserverRef.current) {
-        resizeObserverRef.current.disconnect();
-      }
-    };
-  }, [map]);
-
-  // Update points when data arrives or config changes
-  useEffect(() => {
-    if (!mapInstanceRef.current || !points || !config) {
+    if (!mapInstanceRef.current || !points || !config || !markersRef.current) {
+      console.log('Waiting for map, points, and config:', {
+        map: !!mapInstanceRef.current,
+        points: !!points,
+        config: !!config,
+        markers: !!markersRef.current
+      });
       return;
     }
-    
+
+    console.log('Updating map with', points.features?.length, 'points');
     const map = mapInstanceRef.current;
-    
-    // Clear existing GeoJSON layers
-    map.eachLayer((layer) => {
-      if (layer instanceof L.GeoJSON) {
-        map.removeLayer(layer);
-      }
-    });
+    const markers = markersRef.current;
+
+    // Clear existing markers
+    markers.clearLayers();
 
     const mapStyle = config.map.style || {
       defaultColor: '#6b7280',
@@ -192,70 +186,85 @@ export default function MapView({ dashboardId }: Props) {
       rules: []
     };
 
-    // Add new points
-    const layer = L.geoJSON(points, {
-      pointToLayer: (feature, latlng) => {
-        const props = feature.properties || {};
-        
-        const color = getColorFromRules(
-          props, 
-          mapStyle.rules || [], 
-          mapStyle.defaultColor
-        );
-        
-        const size = getSizeFromField(
-          props,
-          mapStyle.sizeBy,
-          mapStyle.defaultSize,
-          mapStyle.minSize || 4,
-          mapStyle.maxSize || 12
-        );
-        
-        const marker = L.circleMarker(latlng, {
-          radius: size,
-          fillColor: color,
-          color: '#fff',
-          weight: 2,
-          fillOpacity: 0.8,
-        });
-        
-        // Create popup content
-        const popupContent = `
-          <div class="p-2 min-w-50">
-            <h3 class="font-bold text-lg border-b pb-1 mb-2">${props.species || 'Unknown'}</h3>
-            <table class="text-sm w-full">
-              ${Object.entries(props)
-                .filter(([key]) => !['lat', 'lon'].includes(key.toLowerCase()))
-                .map(([key, value]) => `
-                  <tr>
-                    <td class="font-semibold pr-3">${key}:</td>
-                    <td>${value}</td>
-                  </tr>
-                `).join('')}
-            </table>
-          </div>
-        `;
-        
-        marker.bindPopup(popupContent);
-        return marker;
-      },
-    }).addTo(map);
+    console.log('Using map style:', mapStyle);
 
-    // Fit bounds to points if any exist
-    if (points.features.length > 0) {
-      const bounds = layer.getBounds();
-      if (bounds.isValid()) {
-        map.fitBounds(bounds, { padding: [20, 20] });
-      }
+    let bounds = L.latLngBounds([]);
+    let pointCount = 0;
+
+    points.features?.forEach((feature) => {
+      const props = feature.properties || {};
+      const coords = feature.geometry?.coordinates;
+      
+      if (!coords || coords.length < 2) return;
+      
+      // GeoJSON uses [lon, lat] order
+      const lat = coords[1];
+      const lon = coords[0];
+      
+      if (lat === undefined || lon === undefined) return;
+      
+      const latlng = L.latLng(lat, lon);
+      
+      const color = getColorFromRules(
+        props, 
+        mapStyle.rules || [], 
+        mapStyle.defaultColor
+      );
+      
+      const size = getSizeFromField(
+        props,
+        mapStyle.sizeBy,
+        mapStyle.defaultSize,
+        mapStyle.minSize || 4,
+        mapStyle.maxSize || 12
+      );
+      
+      const marker = L.circleMarker(latlng, {
+        radius: size,
+        fillColor: color,
+        color: '#fff',
+        weight: 2,
+        fillOpacity: 0.8,
+      });
+      
+      // Create popup content
+      const popupContent = `
+        <div class="p-2 min-w-50">
+          <h3 class="font-bold text-lg border-b pb-1 mb-2">${props.species || 'Unknown'}</h3>
+          <table class="text-sm w-full">
+            ${Object.entries(props)
+              .filter(([key]) => !['lat', 'lon'].includes(key.toLowerCase()))
+              .map(([key, value]) => `
+                <tr>
+                  <td class="font-semibold pr-3">${key}:</td>
+                  <td>${value}</td>
+                </tr>
+              `).join('')}
+          </table>
+        </div>
+      `;
+      
+      marker.bindPopup(popupContent);
+      marker.addTo(markers);
+      bounds.extend(latlng);
+      pointCount++;
+    });
+
+    console.log(`Added ${pointCount} points to map`);
+
+    if (pointCount > 0 && bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [20, 20] });
+      console.log('Map bounds fitted');
     }
-    
-    // Ensure map renders correctly
+
+    // Force map to recalculate size
     setTimeout(() => {
       if (mapInstanceRef.current) {
         mapInstanceRef.current.invalidateSize();
+        console.log('Map invalidated after adding points');
       }
     }, 100);
-    
+
   }, [points, config]);
 
   if (isLoading) {
