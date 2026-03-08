@@ -308,6 +308,24 @@ def validate_map_style(style: dict, context: str = "map style"):
     if 'minSize' in style and 'maxSize' in style:
         if style['minSize'] >= style['maxSize']:
             raise ValueError(f"{context}.minSize must be less than maxSize")
+
+    # Validate clustering if present    
+    if 'clustering' in style:
+        clustering = style['clustering']
+        if not isinstance(clustering, dict):
+            raise ValueError(f"{context}.clustering must be an object")
+        
+        if 'enabled' in clustering and not isinstance(clustering['enabled'], bool):
+            raise ValueError(f"{context}.clustering.enabled must be a boolean")
+        
+        if 'maxClusterRadius' in clustering and not isinstance(clustering['maxClusterRadius'], (int, float)):
+            raise ValueError(f"{context}.clustering.maxClusterRadius must be a number")
+        
+        if 'disableClusteringAtZoom' in clustering and not isinstance(clustering['disableClusteringAtZoom'], (int, float)):
+            raise ValueError(f"{context}.clustering.disableClusteringAtZoom must be a number")
+        
+        if 'limit' in clustering and not isinstance(clustering['limit'], int):
+            raise ValueError(f"{context}.clustering.limit must be an integer")
     
     # Validate legend position
     valid_positions = ['topleft', 'topright', 'bottomleft', 'bottomright']
@@ -317,6 +335,7 @@ def validate_map_style(style: dict, context: str = "map style"):
                 f"{context}.legend.position invalid. "
                 f"Valid: {', '.join(valid_positions)}"
             )
+        
 
 
 
@@ -353,7 +372,7 @@ def validate_chart(chart: Dict, idx: int) -> None:
     # If y is a dict, validate its structure
     if isinstance(chart['y'], dict):
         y_def = chart['y']
-        valid_aggs = ['sum', 'avg', 'count', 'min', 'max']
+        valid_aggs = ['sum', 'avg', 'count', 'min', 'max', 'count distinct']
         
         if 'aggregation' in y_def and y_def['aggregation'] not in valid_aggs:
             raise ValueError(
