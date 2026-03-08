@@ -65,7 +65,7 @@ export async function handleSignOut() {
   
   // 2. Trigger the NextAuth signout
   // This will throw a redirect error which Next.js handles automatically
-  await signOut({ redirectTo: '/login' });
+  await signOut({ redirectTo: '/' });
 }
 
 
