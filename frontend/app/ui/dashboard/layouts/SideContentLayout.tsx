@@ -150,14 +150,24 @@ export default function SideContentLayout({ config, dashboardId }: Props) {
           </h1>
         </header>
 
+
         <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-8">
+          {/* About section */}
+          <div className="space-y-8">
+            <div id="about-section">
+              <MenuSection title="About" content={config.menus.about} />
+            </div>
+          </div>
+
           {/* Stats Section */}
           <section id="statistics-section" className="scroll-mt-4">
+            <MenuSection title="Statistics" content={config.menus.stats} />
             <ChartList charts={config.stats} dashboardId={dashboardId} />
           </section>
 
           {/* Map Section */}
           <section id="map-section" className="space-y-3 scroll-mt-4">
+            <MenuSection title="Map Layers" content={config.menus.map} />
             <h2 className="text-lg font-semibold text-gray-700">Geospatial Distribution</h2>
             <div className="w-full h-100 md:h-125 border border-gray-200 rounded-xl overflow-hidden shadow-sm relative">
               <MapView dashboardId={dashboardId} />
