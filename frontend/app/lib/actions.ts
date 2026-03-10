@@ -1,7 +1,7 @@
 'use server'
 
 import { AuthError } from 'next-auth';
-import { DASHBOARD_ADD_URL, DASHBOARD_CONFIG_URL, DASHBOARD_DELETE_URL, DASHBOARD_EDIT_URL, DASHBOARD_GET_URL, USER_DASH_DATA_ALL } from './constants';
+import { DASHBOARD_ADD_URL, DASHBOARD_CONFIG_URL, DASHBOARD_DELETE_URL, DASHBOARD_EDIT_URL, DASHBOARD_GET_URL, SIGNUP_URL, USER_DASH_DATA_ALL } from './constants';
 import { cookies } from 'next/headers'
 import { signIn, signOut, auth } from "@/auth";
 import { Dashboard, DashboardResponse, DashboardConfig } from "./definitions";
@@ -66,6 +66,87 @@ export async function handleSignOut() {
   // 2. Trigger the NextAuth signout
   // This will throw a redirect error which Next.js handles automatically
   await signOut({ redirectTo: '/' });
+}
+
+
+// Add to lib/actions.ts
+
+export async function signup(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    const fullname = formData.get('fullname');
+    const username = formData.get('username');
+    const email = formData.get('email');
+    const password = formData.get('password');
+
+    // Basic validation
+    if (!fullname || !username || !email || !password) {
+      return 'All fields are required.';
+    }
+
+    if (password.toString().length < 4) {
+      return 'Password must be at least 4 characters.';
+    }
+
+    // Prepare user data
+    const userData = {
+      fullname: fullname.toString(),
+      username: username.toString(),
+      email: email.toString(),
+      password: password.toString(),
+    };
+
+    // Call your Python backend
+    const response = await fetch(SIGNUP_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      
+      // Handle specific error cases
+      if (response.status === 400) {
+        if (errorData.detail === "Username already registered") {
+          return 'Username already exists. Please choose another.';
+        }
+        return errorData.detail || 'Registration failed. Please check your information.';
+      }
+      
+      return 'Something went wrong. Please try again.';
+    }
+
+    //  Log in after successful registration
+    try {
+      await signIn('credentials', {
+        username: username.toString(),
+        password: password.toString(),
+        redirect: false, // Important: set redirect to false
+      });
+      
+      // Manually redirect after successful sign in
+      redirect('/admin/dashboards');
+      
+    } catch (loginError) {
+      console.error('Auto-login failed:', loginError);
+      // If auto-login fails, redirect to login page
+      redirect('/login?registered=true');
+    }
+
+    return undefined; // No error, success
+  } catch (error) {
+    if ((error as any)?.digest?.startsWith('NEXT_REDIRECT')) {
+      throw error; // Re-throw redirects so Next.js can handle them
+    }
+    
+    console.error('Signup error:', error);
+    return 'An unexpected error occurred. Please try again.';
+  }
 }
 
 

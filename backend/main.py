@@ -518,6 +518,110 @@ def get_map_points(
     }
 
 
+
+@app.post("/dashboards/{dashboard_id}/points-in-view")
+def get_points_in_view(
+    dashboard_id: int,
+    request: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """Get points within a bounding box with limit"""
+    dashboard = db.query(models.Dashboard).filter(models.Dashboard.id == dashboard_id).first()
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+    
+    bbox = request.get('bbox')  # [minLon, minLat, maxLon, maxLat]
+    limit = request.get('limit', 10000)
+    filters = request.get('filters', [])
+    
+    if not bbox or len(bbox) != 4:
+        raise HTTPException(status_code=400, detail="Invalid bbox")
+    
+    min_lon, min_lat, max_lon, max_lat = bbox
+    
+    # Parse YAML for map config
+    import yaml
+    config = yaml.safe_load(dashboard.ui_yaml_script)
+    geo_config = config.get('geo-dashboard', {})
+    global_filters = geo_config.get('filters', [])
+    map_config = geo_config.get('map', {})
+    map_filters = map_config.get('filters', [])
+    
+    # Merge all filters
+    all_filters = merge_filters(global_filters, filters)
+    all_filters = merge_filters(all_filters, map_filters)
+    
+    # Get lat/lon columns
+    lat_col = map_config.get('lat')
+    lon_col = map_config.get('lon')
+    
+    if not lat_col or not lon_col:
+        raise HTTPException(status_code=400, detail="Missing lat/lon in map config")
+    
+    # Build query with bbox filter
+    table = dashboard.data_table_name
+    where_clause, params = build_where_clause(all_filters, table)
+    
+    bbox_filter = f'"{lon_col}" BETWEEN :min_lon AND :max_lon AND "{lat_col}" BETWEEN :min_lat AND :max_lat'
+    
+    if where_clause:
+        where_clause = f"({where_clause}) AND {bbox_filter}"
+    else:
+        where_clause = bbox_filter
+    
+    params.update({
+        'min_lon': min_lon,
+        'max_lon': max_lon,
+        'min_lat': min_lat,
+        'max_lat': max_lat
+    })
+    
+    # Get all columns
+    inspector = inspect(db.bind)
+    columns = [col['name'] for col in inspector.get_columns(dashboard.data_table_name)]
+    quoted_columns = [f'"{col}"' for col in columns]
+    select_clause = ", ".join(quoted_columns)
+    
+    query = f"""
+        SELECT {select_clause} 
+        FROM {table} 
+        WHERE {where_clause}
+        LIMIT {limit}
+    """
+    
+    result = db.execute(text(query), params).fetchall()
+    
+    # Build GeoJSON
+    features = []
+    for row in result:
+        row_dict = dict(row._mapping)
+        
+        try:
+            lat = float(row_dict[lat_col])
+            lon = float(row_dict[lon_col])
+            
+            properties = {
+                k: v for k, v in row_dict.items() 
+                if k not in [lat_col, lon_col]
+            }
+            
+            features.append({
+                "type": "Feature",
+                "geometry": {
+                    "type": "Point", 
+                    "coordinates": [lon, lat]
+                },
+                "properties": properties
+            })
+        except (ValueError, TypeError, KeyError):
+            continue
+    
+    return {
+        "type": "FeatureCollection",
+        "features": features
+    }
+
+
 @app.post("/dashboards/{dashboard_id}/chart-data", response_model=ChartDataResponse)
 def get_chart_data(
     dashboard_id: int,
@@ -549,10 +653,14 @@ def get_chart_data(
     else:
         y_def = request.y
         agg = y_def.aggregation or "sum"
-        agg_map = {"sum": "SUM", "avg": "AVG", "count": "COUNT", "min": "MIN", "max": "MAX"}
-        sql_agg = agg_map.get(agg, "SUM")
         y_col = f'"{y_def.column}"'
-        agg_func = f"{sql_agg}({y_col})"
+
+        if agg == "count distinct":
+            agg_func = f"COUNT(DISTINCT {y_col})"
+        else:
+            agg_map = {"sum": "SUM", "avg": "AVG", "count": "COUNT", "min": "MIN", "max": "MAX"}
+            sql_agg = agg_map.get(agg, "SUM")
+            agg_func = f"{sql_agg}({y_col})"
     
     # 3. Build query with WHERE clause if present
     x_col = f'"{request.x}"'
@@ -576,7 +684,7 @@ def get_chart_data(
     values = [float(row.value) if row.value is not None else 0.0 for row in result]
 
     # Apply top N for pie charts if requested
-    if request.type == 'pie' and top_n and len(labels) > top_n:
+    if  top_n and len(labels) > top_n:
         # Pair labels and values
         paired = list(zip(labels, values))
         # Sort by value descending
