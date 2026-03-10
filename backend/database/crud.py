@@ -170,8 +170,8 @@ def upload_data_from_file(
     filepath: str,
     dashboard_id: int,
     db: Session,
-    sample_size: int = 1000,
-    batch_size: int = 1000,
+    sample_size: int = 2000,
+    batch_size: int = 2000,
     inference_method: str = 'sample',  # 'sample' or 'full_scan'
     column_type_overrides: Optional[Dict[str, str]] = None,
 ) -> bool:
