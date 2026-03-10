@@ -1,7 +1,7 @@
 import json
 import os
 import shutil
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from sqlalchemy import String, and_, cast, desc, or_, text
 from sqlalchemy.orm import Session, joinedload
 
@@ -170,13 +170,12 @@ def upload_data_from_file(
     filepath: str,
     dashboard_id: int,
     db: Session,
-    sample_size: int = 2000,
-    batch_size: int = 2000,
-    inference_method: str = 'sample',  # 'sample' or 'full_scan'
+    sample_size: int = 1000,
+    batch_size: int = 1000,
+    inference_method: str = 'sample',
     column_type_overrides: Optional[Dict[str, str]] = None,
 ) -> bool:
     try:
-        # 1. Get dashboard and build table name
         dashboard = db.query(models.Dashboard).filter(models.Dashboard.id == dashboard_id).first()
         if not dashboard:
             logger.error(f"Dashboard with id {dashboard_id} not found")
@@ -185,35 +184,22 @@ def upload_data_from_file(
         code_str = str(dashboard.code).replace('-', '_')
         table_name = f"dash_{code_str}_data"
         dialect = db.bind.dialect.name
-
-        # 2. Prepare column type overrides
         overrides = column_type_overrides or {}
 
-        # ------------------------------------------------------------------
-        # Step A: Determine column names and their SQL types
-        # ------------------------------------------------------------------
+        # ---- Step A: Determine column types ----
         with open(filepath, 'r', encoding='utf-8') as f:
             reader = csv.DictReader(f)
             if not reader.fieldnames:
                 logger.error("CSV file has no columns")
                 return False
             original_fieldnames = reader.fieldnames
-
-            # Sanitize column names for parameter keys
-            # Create a mapping: original_name -> sanitized_key
             sanitized_map = {orig: sanitize_column_name(orig) for orig in original_fieldnames}
-            # Also create reverse mapping (not strictly needed but useful)
-            reverse_map = {v: k for k, v in sanitized_map.items()}
-
-            # Columns that need inference (those not in overrides)
             cols_to_infer = [col for col in original_fieldnames if col not in overrides]
 
-            # Determine SQL types
             if not cols_to_infer:
                 col_sql_types = {col: overrides[col] for col in original_fieldnames}
             else:
                 if inference_method == 'sample':
-                    # ---------- Sample-based inference ----------
                     sample_rows = []
                     for i, row in enumerate(reader):
                         sample_rows.append(row)
@@ -235,7 +221,6 @@ def upload_data_from_file(
                         inferred[col] = sql_type_from_python_type(best, dialect)
 
                     col_sql_types = {**inferred, **overrides}
-
                 else:  # full_scan
                     col_possible = {col: set(['int', 'float', 'date', 'datetime', 'text']) for col in cols_to_infer}
                     for row in reader:
@@ -253,9 +238,7 @@ def upload_data_from_file(
 
                     col_sql_types = {**inferred, **overrides}
 
-        # ------------------------------------------------------------------
-        # Step B: Create the table
-        # ------------------------------------------------------------------
+        # ---- Step B: Create table ----
         if dialect == 'postgresql':
             pk_def = "id SERIAL PRIMARY KEY"
         else:
@@ -264,43 +247,83 @@ def upload_data_from_file(
         columns = [pk_def]
         for col in original_fieldnames:
             sql_type = col_sql_types[col]
-            # Quote the original column name (may contain spaces)
             columns.append(f'"{col}" {sql_type}')
 
         create_sql = f"CREATE TABLE {table_name} ({', '.join(columns)})"
         db.execute(text(f"DROP TABLE IF EXISTS {table_name}"))
         db.execute(text(create_sql))
+        logger.info(f"Table {table_name} created")
 
-        # ------------------------------------------------------------------
-        # Step C: Insert data in batches
-        # ------------------------------------------------------------------
-        # Build INSERT statement using sanitized placeholder names
+        # ---- Step C: Insert data ----
         cols = original_fieldnames
-        # Placeholder names are the sanitized keys
         placeholders = {orig: f':{sanitized_map[orig]}' for orig in cols}
         insert_sql = f"INSERT INTO {table_name} ({', '.join(f'"{c}"' for c in cols)}) VALUES ({', '.join(placeholders.values())})"
 
+        total_inserted = 0
+
+        def clean_value(val: Any, col_name: str, sql_type: str) -> Any:
+            """Clean and convert values based on SQL type"""
+            # Handle empty strings or None
+            if val is None or val == '':
+                # For numeric columns, return None (which becomes NULL in SQL)
+                if sql_type in ['INTEGER', 'FLOAT', 'DOUBLE PRECISION']:
+                    return None
+                # For text columns, return empty string or None? Let's use None for consistency
+                return None
+            
+            # For numeric columns, try to convert to appropriate type
+            if sql_type in ['INTEGER', 'FLOAT', 'DOUBLE PRECISION']:
+                try:
+                    if sql_type == 'INTEGER':
+                        return int(float(val))  # Handle both int and float strings
+                    else:
+                        return float(val)
+                except (ValueError, TypeError):
+                    logger.warning(f"Could not convert '{val}' to {sql_type} for column {col_name}, using None")
+                    return None
+            
+            # For text columns, ensure string
+            return str(val)
+
         def insert_batch(batch: List[Dict]):
-            if batch:
-                # Convert batch to use sanitized keys
-                sanitized_batch = []
-                for row in batch:
-                    sanitized_row = {sanitized_map[orig]: row.get(orig, '') for orig in cols}
-                    sanitized_batch.append(sanitized_row)
+            nonlocal total_inserted
+            if not batch:
+                return
+            
+            # Convert to sanitized keys and clean values
+            sanitized_batch = []
+            for row in batch:
+                sanitized_row = {}
+                for orig in cols:
+                    sanitized_key = sanitized_map[orig]
+                    raw_value = row.get(orig, '')
+                    sql_type = col_sql_types[orig]
+                    sanitized_row[sanitized_key] = clean_value(raw_value, orig, sql_type)
+                sanitized_batch.append(sanitized_row)
+            
+            try:
                 db.execute(text(insert_sql), sanitized_batch)
+                total_inserted += len(batch)
+                logger.debug(f"Inserted batch of {len(batch)} rows (total so far: {total_inserted})")
+            except Exception as e:
+                logger.error(f"Error inserting batch: {e}")
+                # Log the first row for debugging
+                if sanitized_batch:
+                    logger.error(f"First row in failed batch: {sanitized_batch[0]}")
+                raise
 
         # Reopen file for insertion
         with open(filepath, 'r', encoding='utf-8') as f:
             insert_reader = csv.DictReader(f)
-            # If we used sample method and have sample rows, we need to skip them
+
+            # If sample method and we have sample rows, insert them first and skip in reader
             if inference_method == 'sample' and 'sample_rows' in locals() and sample_rows:
-                # Insert the sample rows first
-                sample_batch = sample_rows
-                insert_batch(sample_batch)
+                insert_batch(sample_rows)
                 # Skip the sample rows in the reader
                 for _ in range(len(sample_rows)):
                     next(insert_reader, None)
 
+            # Process remaining rows in batches
             batch = []
             for row in insert_reader:
                 batch.append(row)
@@ -310,16 +333,24 @@ def upload_data_from_file(
             if batch:
                 insert_batch(batch)
 
-        # ------------------------------------------------------------------
-        # Step D: Update dashboard record
-        # ------------------------------------------------------------------
+        # ---- Verify row count ----
+        result = db.execute(text(f"SELECT COUNT(*) FROM {table_name}"))
+        row_count = result.scalar()
+        logger.info(f"Inserted {total_inserted} rows, table {table_name} now has {row_count} rows")
+
+        if row_count == 0:
+            logger.error("No rows were inserted into the table!")
+            return False
+
+        # ---- Step D: Update dashboard ----
         dashboard.data_table_name = table_name
         db.add(dashboard)
-        db.commit()
+        db.commit()  # Make sure to commit
 
         logger.info(f"Successfully uploaded data to table {table_name} for dashboard {dashboard_id}")
         return True
 
     except Exception as e:
         logger.error(f"Error uploading data for dashboard {dashboard_id}: {traceback.format_exc()}")
+        db.rollback()  # Rollback on error
         return False
