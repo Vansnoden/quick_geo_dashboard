@@ -1,7 +1,6 @@
 
-import { DASHBOARD_ADD_DATA_URL, DASHBOARD_CHART_DATA_URL, DASHBOARD_CONFIG_URL, DASHBOARD_FILTERED_MAP_POINTS_URL, DASHBOARD_GET_URL, DASHBOARD_MAP_POINTS_URL } from './constants';
+import { DASHBOARD_CHART_DATA_URL, DASHBOARD_CONFIG_URL, DASHBOARD_FILTERED_MAP_POINTS_URL, DASHBOARD_MAP_POINTS_URL } from './constants';
 import { ChartDef, ChartDataResponse, DashboardConfig, FilterCondition } from './definitions';
-import GeoJSON from 'ol/format/GeoJSON';
 
 
 export async function fetchDashboardConfig(dashboardId: string): Promise<DashboardConfig> {

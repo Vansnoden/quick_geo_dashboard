@@ -1,3 +1,4 @@
+import { BASE_PUBLIC_API_URL } from "@/app/lib/constants";
 import Search from "@/app/ui/admin/search";
 import DataTable from "@/app/ui/admin/table";
 import { Suspense } from "react";
@@ -12,6 +13,7 @@ export default async function DashboardsPage(props: {
   const searchParams = await props.searchParams;
   const query = searchParams?.query || '';
   const currentPage = Number(searchParams?.page) || 1;
+  
   return (
     <div className="admin-bg">
       <div className="bg-violet-600 text-white py-3 px-2 rounded-md mb-2 font-bold">
