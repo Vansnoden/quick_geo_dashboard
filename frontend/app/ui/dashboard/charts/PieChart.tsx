@@ -1,7 +1,7 @@
 'use client';
 
 import { fetchChartData } from '@/app/lib/client_actions';
-import { ChartDataResponse, ChartDef } from '@/app/lib/definitions';
+import { ChartDataResponse, ChartDef, FilterCondition } from '@/app/lib/definitions';
 import { useEffect, useState } from 'react';
 import {
   PieChart as RePieChart,
@@ -15,6 +15,7 @@ import {
 interface Props {
   chart: ChartDef;
   dashboardId: string;
+  interactiveFilters?: Record<string, any>; 
 }
 
 // Extended color palette for better variety
@@ -68,17 +69,33 @@ const renderLegend = (props: any) => {
   );
 };
 
-export default function PieChart({ chart, dashboardId }: Props) {
+export default function PieChart({ chart, dashboardId, interactiveFilters}: Props) {
   const [data, setData] = useState<ChartDataResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchChartData(dashboardId, chart)
+    // Convert interactive filter values to FilterCondition array
+    const extraFilters: FilterCondition[] = [];
+    if (interactiveFilters) {
+      Object.entries(interactiveFilters).forEach(([col, val]) => {
+        if (val === '' || val === undefined || (Array.isArray(val) && val.length === 0)) return;
+        if (Array.isArray(val)) {
+          extraFilters.push({ column: col, operator: 'in', value: val });
+        } else if (typeof val === 'object' && val.min !== undefined && val.max !== undefined) {
+          extraFilters.push({ column: col, operator: '>=', value: val.min });
+          extraFilters.push({ column: col, operator: '<=', value: val.max });
+        } else {
+          extraFilters.push({ column: col, operator: '=', value: val });
+        }
+      });
+    }
+
+    fetchChartData(dashboardId, chart, extraFilters)
       .then(setData)
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
-  }, [dashboardId, chart]);
+  }, [dashboardId, chart, interactiveFilters]);
 
   if (loading) return <div className="h-80 bg-gray-200 animate-pulse rounded" />;
   if (error) return <div className="text-red-500">Error: {error}</div>;

@@ -337,6 +337,57 @@ def validate_map_style(style: dict, context: str = "map style"):
             )
         
 
+def validate_interactive_filter(filter_def: Dict, idx: int) -> None:
+    """
+    Validate an interactive filter definition.
+    
+    Args:
+        filter_def: Dictionary containing the filter definition
+        idx: Index of the filter in the list (for error messages)
+    
+    Raises:
+        ValueError: If the filter definition is invalid
+    """
+    if not isinstance(filter_def, dict):
+        raise ValueError(f"Interactive filter at index {idx} must be an object")
+    
+    # Check required fields
+    required_fields = ['column', 'label', 'type']
+    for field in required_fields:
+        if field not in filter_def:
+            raise ValueError(f"Interactive filter {idx} missing required field '{field}'")
+    
+    # Validate field types
+    if not isinstance(filter_def['column'], str):
+        raise ValueError(f"Interactive filter {idx} 'column' must be a string")
+    
+    if not isinstance(filter_def['label'], str):
+        raise ValueError(f"Interactive filter {idx} 'label' must be a string")
+    
+    # Validate filter type
+    valid_types = ['dropdown', 'multiselect', 'range']
+    if filter_def['type'] not in valid_types:
+        raise ValueError(
+            f"Interactive filter {idx} type '{filter_def['type']}' invalid. "
+            f"Valid types: {', '.join(valid_types)}"
+        )
+    
+    # Validate min/max for range filters (if provided)
+    if filter_def['type'] == 'range':
+        if 'min' in filter_def and not isinstance(filter_def['min'], (int, float)):
+            raise ValueError(f"Interactive filter {idx} 'min' must be a number")
+        if 'max' in filter_def and not isinstance(filter_def['max'], (int, float)):
+            raise ValueError(f"Interactive filter {idx} 'max' must be a number")
+        if 'min' in filter_def and 'max' in filter_def:
+            if filter_def['min'] >= filter_def['max']:
+                raise ValueError(f"Interactive filter {idx} 'min' must be less than 'max'")
+    
+    # Optional: Validate column name format (no special characters?)
+    # You can add additional validation rules here
+    if not re.match(r'^[a-zA-Z0-9_]+$', filter_def['column']):
+        # This is a warning, not an error - column names with spaces are handled by quoting
+        logger.warning(f"Interactive filter {idx} column '{filter_def['column']}' contains special characters")
+
 
 
 def validate_chart(chart: Dict, idx: int) -> None:
@@ -434,7 +485,15 @@ def yaml_to_dashboard_js(yaml_text: str) -> str:
 
     # Validate each chart with the enhanced validation
     for idx, chart in enumerate(config['stats']):
-        validate_chart(chart, idx)  # This now validates stackedbar type
+        validate_chart(chart, idx)
+
+    # Validate interactive filters if present
+    if 'interactiveFilters' in config:
+        if not isinstance(config['interactiveFilters'], list):
+            raise ValueError("'interactiveFilters' must be a list")
+        
+        for idx, filter_def in enumerate(config['interactiveFilters']):
+            validate_interactive_filter(filter_def, idx)
 
     # Validate filters sections
     validate_filters_section(config)
