@@ -1,15 +1,15 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.markercluster/dist/MarkerCluster.css';
 import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 import 'leaflet.markercluster';
 import { fetchDashboardConfig } from '@/app/lib/client_actions';
-import { DashboardConfig, MapStyleRule } from '@/app/lib/definitions';
+import { DashboardConfig, FilterCondition, MapStyleRule } from '@/app/lib/definitions';
 import { Feature, Point, GeoJsonProperties } from 'geojson';
-import { DASHBOARD_MAP_POINTS_IN_VIEW_URL, DASHBOARD_MAP_POINTS_URL } from '@/app/lib/constants';
+import { DASHBOARD_MAP_POINTS_IN_VIEW_URL, DASHBOARD_MAP_POINTS_URL, DASHBOARD_FILTERED_MAP_POINTS_URL } from '@/app/lib/constants';
 
 // Extend Leaflet types
 declare module 'leaflet' {
@@ -18,6 +18,7 @@ declare module 'leaflet' {
 
 interface Props {
   dashboardId: string;
+  interactiveFilters?: Record<string, any>;
 }
 
 // Helper function to apply style rules
@@ -71,6 +72,61 @@ const isPointFeature = (feature: Feature): feature is Feature<Point> => {
   return feature.geometry?.type === 'Point';
 };
 
+// Helper to convert interactive filters to FilterCondition array
+const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
+  return useMemo(() => {
+    const conditions: FilterCondition[] = [];
+    if (!interactiveFilters) return conditions;
+
+    Object.entries(interactiveFilters).forEach(([key, val]) => {
+      if (val === '' || val === undefined || val === null) return;
+      
+      // Handle range filters (they come as column_min and column_max)
+      if (key.endsWith('_min')) {
+        const column = key.replace('_min', '');
+        const maxVal = interactiveFilters[`${column}_max`];
+        if (maxVal !== undefined && maxVal !== '' && maxVal !== null) {
+          conditions.push({ 
+            column, 
+            operator: 'between', 
+            value: [Number(val), Number(maxVal)] 
+          });
+        } else {
+          conditions.push({ column, operator: '>=', value: Number(val) });
+        }
+      } 
+      else if (key.endsWith('_max')) {
+        // Skip - handled by _min
+        return;
+      }
+      else if (Array.isArray(val) && val.length > 0) {
+        conditions.push({ column: key, operator: 'in', value: val });
+      } 
+      else if (typeof val === 'object' && val !== null) {
+        // Handle case where range might still be an object (backward compatibility)
+        if ('min' in val && val.min !== undefined) {
+          conditions.push({ column: key, operator: '>=', value: Number(val.min) });
+        }
+        if ('max' in val && val.max !== undefined) {
+          conditions.push({ column: key, operator: '<=', value: Number(val.max) });
+        }
+      }
+      else if (val !== '') {
+        conditions.push({ column: key, operator: '=', value: String(val) });
+      }
+    });
+    
+    // Remove duplicates (for between operator, we want just one condition)
+    return conditions.filter((f, index, self) => 
+      index === self.findIndex(t => 
+        t.column === f.column && 
+        t.operator === f.operator && 
+        JSON.stringify(t.value) === JSON.stringify(f.value)
+      )
+    );
+  }, [interactiveFilters]);
+};
+
 // Legend component
 const Legend = ({ style, position }: { style: any; position: string }) => {
   const positionClasses = {
@@ -111,7 +167,7 @@ const Legend = ({ style, position }: { style: any; position: string }) => {
   );
 };
 
-export default function MapView({ dashboardId }: Props) {
+export default function MapView({ dashboardId, interactiveFilters }: Props) {
   const [map, setMap] = useState<L.Map | null>(null);
   const [points, setPoints] = useState<GeoJSON.FeatureCollection | null>(null);
   const [config, setConfig] = useState<DashboardConfig | null>(null);
@@ -121,6 +177,9 @@ export default function MapView({ dashboardId }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const markersRef = useRef<L.LayerGroup | null>(null);
   const clusterRef = useRef<any>(null);
+  
+  // Convert interactive filters to FilterCondition array
+  const filterConditions = useFilterConditions(interactiveFilters);
 
   // Fetch config and decide on clustering strategy
   useEffect(() => {
@@ -169,20 +228,34 @@ export default function MapView({ dashboardId }: Props) {
     }
   }, []);
 
-  // Fetch all points (for small datasets without clustering)
+  // Fetch all points with filters (for small datasets without clustering)
   const fetchAllPoints = useCallback(async () => {
     try {
-      const response = await fetch(DASHBOARD_MAP_POINTS_URL(Number(dashboardId)));
-      if (!response.ok) throw new Error('Failed to fetch points');
-      const data = await response.json();
-      return data;
+      // Use filtered endpoint if we have filters, otherwise use regular points endpoint
+      if (filterConditions.length > 0) {
+        const response = await fetch(DASHBOARD_FILTERED_MAP_POINTS_URL(Number(dashboardId)), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filters: filterConditions })
+        });
+        if (!response.ok) throw new Error('Failed to fetch filtered points');
+        const data = await response.json();
+        console.log(`Fetched ${data.features?.length || 0} filtered points`);
+        return data;
+      } else {
+        const response = await fetch(DASHBOARD_MAP_POINTS_URL(Number(dashboardId)));
+        if (!response.ok) throw new Error('Failed to fetch points');
+        const data = await response.json();
+        console.log(`Fetched ${data.features?.length || 0} points`);
+        return data;
+      }
     } catch (err) {
-      console.error('Error fetching all points:', err);
+      console.error('Error fetching points:', err);
       return null;
     }
-  }, [dashboardId]);
+  }, [dashboardId, filterConditions]);
 
-  // Fetch points in viewport (for clustered datasets)
+  // Fetch points in viewport with filters (for clustered datasets)
   const fetchPointsInView = useCallback(async (bounds: L.LatLngBounds) => {
     if (!config?.map?.clustering) return null;
 
@@ -197,17 +270,19 @@ export default function MapView({ dashboardId }: Props) {
         body: JSON.stringify({
           bbox: [sw.lng, sw.lat, ne.lng, ne.lat],
           limit: limit,
-          filters: config.filters || []
+          filters: filterConditions  // Pass the filter conditions
         })
       });
       
       if (!response.ok) throw new Error('Failed to fetch points in view');
-      return await response.json();
+      const data = await response.json();
+      console.log(`Fetched ${data.features?.length || 0} points in view with filters`);
+      return data;
     } catch (err) {
       console.error('Error loading points in view:', err);
       return null;
     }
-  }, [dashboardId, config]);
+  }, [dashboardId, config, filterConditions]);
 
   // Render points based on clustering setting
   useEffect(() => {
@@ -294,7 +369,7 @@ export default function MapView({ dashboardId }: Props) {
           
           const popupContent = `
             <div class="p-2 min-w-50">
-              <h3 class="font-bold text-lg border-b pb-1 mb-2">${props?.plant_specie_name || 'Unknown'}</h3>
+              <h3 class="font-bold text-lg border-b pb-1 mb-2">${props?.plant_specie_name || props?.species || 'Unknown'}</h3>
               <table class="text-sm w-full">
                 ${Object.entries(props || {})
                   .filter(([key]) => !['lat', 'lon'].includes(key.toLowerCase()))
@@ -383,7 +458,7 @@ export default function MapView({ dashboardId }: Props) {
           
           const popupContent = `
             <div class="p-2 min-w-50">
-              <h3 class="font-bold text-lg border-b pb-1 mb-2">${props?.plant_specie_name || 'Unknown'}</h3>
+              <h3 class="font-bold text-lg border-b pb-1 mb-2">${props?.plant_specie_name || props?.species || 'Unknown'}</h3>
               <table class="text-sm w-full">
                 ${Object.entries(props || {})
                   .filter(([key]) => !['lat', 'lon'].includes(key.toLowerCase()))
@@ -422,7 +497,7 @@ export default function MapView({ dashboardId }: Props) {
         }
       };
     }
-  }, [config, useClustering, fetchAllPoints, fetchPointsInView]);
+  }, [config, useClustering, fetchAllPoints, fetchPointsInView, filterConditions]);
 
   // Clean up
   useEffect(() => {

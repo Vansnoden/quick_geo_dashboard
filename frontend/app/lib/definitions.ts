@@ -51,12 +51,21 @@ export interface MenusDef {
   map: string;     // markdown content for map menu
 }
 
+export interface InteractiveFilterDef {
+  column: string;
+  label: string;
+  type: 'dropdown' | 'multiselect' | 'range';
+  // For range, you may optionally provide min/max (otherwise derived from data)
+  min?: number;
+  max?: number;
+}
 
 export interface DashboardConfig {
   name: string;
   template: 'side_content' | 'top_content' | 'content_side' | 'content_bottom';
   stats: ChartDef[];
   filters?: FilterCondition[]; // Global filters apply to all charts/map
+  interactiveFilters?: InteractiveFilterDef[]; 
   map: MapDef;
   menus: MenusDef;
 }

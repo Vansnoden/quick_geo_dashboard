@@ -683,7 +683,7 @@ def get_chart_data(
     labels = [str(row.label) for row in result]
     values = [float(row.value) if row.value is not None else 0.0 for row in result]
 
-    # Apply top N for pie charts if requested
+    # Apply top N charts if requested
     if  top_n and len(labels) > top_n:
         # Pair labels and values
         paired = list(zip(labels, values))
@@ -771,3 +771,67 @@ def get_dashboard_js(
         content=dashboard.ui_js_script, 
         media_type="application/javascript"
     )
+
+
+@app.post("/dashboards/{dashboard_id}/filtered-points")
+def get_filtered_map_points(
+    dashboard_id: int,
+    request: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """Get map points filtered by provided filters (combines with static map filters)."""
+    dashboard = db.query(models.Dashboard).filter(models.Dashboard.id == dashboard_id).first()
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+    
+    # Parse YAML for map config
+    import yaml
+    config = yaml.safe_load(dashboard.ui_yaml_script)
+    geo_config = config.get('geo-dashboard', {})
+    global_filters = geo_config.get('filters', [])
+    map_config = geo_config.get('map', {})
+    map_filters = map_config.get('filters', [])
+    
+    # Request filters
+    request_filters = request.get('filters', [])
+    
+    # Merge all
+    all_filters = merge_filters(global_filters, map_filters)
+    all_filters = merge_filters(all_filters, request_filters)
+    
+    lat_col = map_config.get('lat')
+    lon_col = map_config.get('lon')
+    if not lat_col or not lon_col:
+        raise HTTPException(status_code=400, detail="Missing lat/lon in map config")
+    
+    table = dashboard.data_table_name
+    where_clause, params = build_where_clause(all_filters, table)
+    
+    # Get all columns for popups
+    inspector = inspect(db.bind)
+    columns = [col['name'] for col in inspector.get_columns(table)]
+    quoted_columns = [f'"{col}"' for col in columns]
+    select_clause = ", ".join(quoted_columns)
+    
+    query = f"SELECT {select_clause} FROM {table}"
+    if where_clause:
+        query += f" WHERE {where_clause}"
+    
+    result = db.execute(text(query), params).fetchall()
+    
+    features = []
+    for row in result:
+        row_dict = dict(row._mapping)
+        try:
+            lat = float(row_dict[lat_col])
+            lon = float(row_dict[lon_col])
+            properties = {k: v for k, v in row_dict.items() if k not in [lat_col, lon_col]}
+            features.append({
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [lon, lat]},
+                "properties": properties
+            })
+        except (ValueError, TypeError, KeyError):
+            continue
+    
+    return {"type": "FeatureCollection", "features": features}

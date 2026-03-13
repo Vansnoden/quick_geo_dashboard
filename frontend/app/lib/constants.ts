@@ -16,6 +16,7 @@ export const DASHBOARD_ADD_DATA_URL = (id: number) => BASE_API_URL + `/dashboard
 export const DASHBOARD_CONFIG_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/config`;
 export const DASHBOARD_MAP_POINTS_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/points`;
 export const DASHBOARD_MAP_POINTS_IN_VIEW_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/points-in-view`;
+export const DASHBOARD_FILTERED_MAP_POINTS_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/filtered-points`;
 export const DASHBOARD_CHART_DATA_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/chart-data`;
 export const DASHBOARD_CHART_DISTINCT_VALS = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/distinct-values`
 export const DASHBOARD_JS_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/dashboard.js`;

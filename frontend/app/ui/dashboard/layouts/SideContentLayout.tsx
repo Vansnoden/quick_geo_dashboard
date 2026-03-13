@@ -5,6 +5,7 @@ import { DashboardConfig } from "@/app/lib/definitions";
 import MenuSection from "../MenuSection";
 import ChartList from "../charts/ChartList";
 import dynamic from 'next/dynamic';
+import InteractiveFilters from '../InteractiveFilters';
 
 // Dynamic import with a consistent height loader to prevent layout shift
 const MapView = dynamic(() => import('../MapView'), { 
@@ -25,6 +26,11 @@ export default function SideContentLayout({ config, dashboardId }: Props) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [interactiveFilterValues, setInteractiveFilterValues] = useState<Record<string, any>>({});
+
+  const handleInteractiveFilterChange = (values: Record<string, any>) => {
+    setInteractiveFilterValues(values);
+  };
 
   // Check if mobile on mount and when window resizes
   useEffect(() => {
@@ -116,18 +122,13 @@ export default function SideContentLayout({ config, dashboardId }: Props) {
           </div>
         </nav>
 
-        {/* Menu sections */}
-        {/* <div className="space-y-8">
-          <div id="about-section">
-            <MenuSection title="About" content={config.menus.about} />
-          </div>
-          <div id="statistics-section">
-            <MenuSection title="Statistics" content={config.menus.stats} />
-          </div>
-          <div id="map-section">
-            <MenuSection title="Map Layers" content={config.menus.map} />
-          </div>
-        </div> */}
+        {config.interactiveFilters && config.interactiveFilters.length > 0 && (
+          <InteractiveFilters
+            dashboardId={dashboardId}
+            filters={config.interactiveFilters}
+            onFilterChange={handleInteractiveFilterChange}
+          />
+        )}
       </aside>
 
       {/* Main content */}
@@ -162,7 +163,7 @@ export default function SideContentLayout({ config, dashboardId }: Props) {
           {/* Stats Section */}
           <section id="statistics-section" className="scroll-mt-4">
             <MenuSection title="Statistics" content={config.menus.stats} />
-            <ChartList charts={config.stats} dashboardId={dashboardId} />
+            <ChartList charts={config.stats} dashboardId={dashboardId} interactiveFilters={interactiveFilterValues}/>
           </section>
 
           {/* Map Section */}
@@ -170,7 +171,7 @@ export default function SideContentLayout({ config, dashboardId }: Props) {
             <MenuSection title="Map Layers" content={config.menus.map} />
             <h2 className="text-lg font-semibold text-gray-700">Geospatial Distribution</h2>
             <div className="w-full h-100 md:h-125 border border-gray-200 rounded-xl overflow-hidden shadow-sm relative">
-              <MapView dashboardId={dashboardId} />
+              <MapView dashboardId={dashboardId} interactiveFilters={interactiveFilterValues}/>
             </div>
           </section>
         </div>
