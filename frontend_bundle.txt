@@ -335,8 +335,10 @@ FILE: ./frontend/package.json
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "autoprefixer": "^10.4.27",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
+    "postcss": "^8.5.8",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
@@ -4568,8 +4570,6 @@ FILE: ./frontend/app/lib/client_actions.ts
 import { auth } from '@/auth';
 import { DASHBOARD_ADD_URL, DASHBOARD_CHART_DATA_URL, DASHBOARD_CONFIG_URL, DASHBOARD_FILTERED_MAP_POINTS_URL, DASHBOARD_MAP_POINTS_URL } from './constants';
 import { ChartDef, ChartDataResponse, DashboardConfig, FilterCondition } from './definitions';
-import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 
 
 export async function fetchDashboardConfig(dashboardId: string): Promise<DashboardConfig> {

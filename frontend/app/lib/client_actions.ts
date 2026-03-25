@@ -2,8 +2,6 @@
 import { auth } from '@/auth';
 import { DASHBOARD_ADD_URL, DASHBOARD_CHART_DATA_URL, DASHBOARD_CONFIG_URL, DASHBOARD_FILTERED_MAP_POINTS_URL, DASHBOARD_MAP_POINTS_URL } from './constants';
 import { ChartDef, ChartDataResponse, DashboardConfig, FilterCondition } from './definitions';
-import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 
 
 export async function fetchDashboardConfig(dashboardId: string): Promise<DashboardConfig> {
