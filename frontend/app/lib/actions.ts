@@ -241,6 +241,7 @@ export async function deleteDashboard(id: number) {
 
 
 export async function createDashboard(formData: FormData) {
+  console.log("WE ARE IN ...");
   const session = await auth();
   const validatedFields = DashboardSchema.safeParse(Object.fromEntries(formData.entries()));
 
