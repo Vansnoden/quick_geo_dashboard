@@ -2,46 +2,50 @@ import { Dashboard } from "@/app/lib/definitions";
 import DashboardHeader from "./dashboard-breadcrumb";
 import YamlEditor from "./yaml_editor";
 import yaml from 'js-yaml';
-import { Box, Paper, Typography } from '@mui/material';
 
-export default function DashBoardDetails(props: { dashboard: Dashboard }) {
-        const dashboard = props.dashboard;
+export default function DashBoardDetails(props:{dashboard: Dashboard}){
 
-        let beautifiedYaml = "";
-        try {
-                const jsonObject = yaml.load(dashboard.ui_yaml_script);
-                beautifiedYaml = yaml.dump(jsonObject, { indent: 2 });
-        } catch (e) {
-                beautifiedYaml = dashboard.ui_yaml_script;
-        }
+    const dashboard = props.dashboard;
 
-        return (
-                <Box>
-                        <DashboardHeader code={dashboard.name} />
-                        <Box sx={{ display: 'flex', gap: 3, flexWrap: 'wrap', mt: 3 }}>
-                                <Paper sx={{ flex: 1, p: 2 }}>
-                                        <Typography variant="h6" gutterBottom>
-                                                Data Preview
-                                        </Typography>
-                                        {dashboard.data_table_name ? (
-                                                <Box sx={{ p: 2, bgcolor: 'grey.100', borderRadius: 1 }}>
-                                                        <Typography variant="body2" fontFamily="monospace">
-                                                                Table: {dashboard.data_table_name}
-                                                        </Typography>
-                                                </Box>
-                                        ) : (
-                                                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 160, border: '1px dashed grey', borderRadius: 1 }}>
-                                                        <Typography color="textSecondary">No data table defined.</Typography>
-                                                </Box>
-                                        )}
-                                </Paper>
-                                <Paper sx={{ flex: 1, p: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                                        <Box sx={{ bgcolor: 'grey.800', p: 1, color: 'white', fontFamily: 'monospace' }}>
-                                                dashboard_config.yaml
-                                        </Box>
-                                        <YamlEditor id={dashboard.id} initialValue={beautifiedYaml || ''} />
-                                </Paper>
-                        </Box>
-                </Box>
-        );
+    let beautifiedYaml = "";
+    try {
+    // Parse the string and dump it back out with 2-space indentation
+    const jsonObject = yaml.load(dashboard.ui_yaml_script);
+    beautifiedYaml = yaml.dump(jsonObject, { indent: 2 });
+    } catch (e) {
+        // If parsing fails, fall back to the raw content
+        beautifiedYaml = dashboard.ui_yaml_script;
+    }
+
+    return (
+        <div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-200px)]">
+                {/* Left Column: Data Table Info */}
+                <div className="rounded-xl border bg-gray-50 p-4 overflow-auto">
+                <h2 className="text-lg font-semibold mb-4 text-gray-700">Data Preview</h2>
+                {dashboard.data_table_name ? (
+                    <div className="p-4 bg-white rounded border shadow-sm">
+                    <p className="text-sm font-mono text-violet-600">Table: {dashboard.data_table_name}</p>
+                    {/* Future: Add a mini table preview here */}
+                    </div>
+                ) : (
+                    <div className="flex items-center justify-center h-40 border-2 border-dashed rounded-lg border-gray-300">
+                    <p className="text-gray-400 italic">No data table defined.</p>
+                    </div>
+                )}
+                </div>
+
+                {/* Right Column: YAML Editor */}
+                <div className="flex flex-col rounded-xl border bg-gray-900 overflow-hidden">
+                <div className="px-4 py-2 bg-gray-800 text-gray-300 text-xs font-mono flex justify-between">
+                    <span>dashboard_config.yaml</span>
+                </div>
+                <YamlEditor 
+                    id={dashboard.id} 
+                    initialValue={beautifiedYaml || ''} 
+                />
+                </div>
+            </div>
+        </div>
+    )
 }

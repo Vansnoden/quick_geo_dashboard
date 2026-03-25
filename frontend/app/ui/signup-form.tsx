@@ -1,151 +1,197 @@
 "use client";
 
-import { useActionState, useEffect, useState } from 'react';
-import { signup } from '@/app/lib/actions';
 import {
-        Box,
-        TextField,
-        Button,
-        Typography,
-        Paper,
-        Alert,
-        InputAdornment,
-        IconButton,
-        LinearProgress,
-} from '@mui/material';
-import {
-        AtSymbolIcon,
-        KeyIcon,
-        UserIcon,
-        EnvelopeIcon,
-        ExclamationCircleIcon,
+  AtSymbolIcon,
+  KeyIcon,
+  UserIcon,
+  EnvelopeIcon,
+  ExclamationCircleIcon,
 } from '@heroicons/react/24/outline';
 import { ArrowRightIcon } from '@heroicons/react/20/solid';
-import zxcvbn from 'zxcvbn';
+import { useActionState, useEffect, useState, useRef } from 'react';
+import { signup } from '@/app/lib/actions';
+import { Button } from './buttons';
+
 
 export default function SignupForm() {
-        const [errorMessage, formAction, isPending] = useActionState(signup, undefined);
-        const [password, setPassword] = useState('');
-        const [passwordStrength, setPasswordStrength] = useState(0);
+  const [errorMessage, formAction, isPending] = useActionState(
+    signup,
+    undefined,
+  );
+  const [passwordStrength, setPasswordStrength] = useState(0);
+  const [password, setPassword] = useState('');
+  const formRef = useRef<HTMLFormElement>(null);
 
-        useEffect(() => {
-                if (password) {
-                        const result = zxcvbn(password);
-                        setPasswordStrength(result.score);
-                } else {
-                        setPasswordStrength(0);
-                }
-        }, [password]);
+  // Password strength monitoring
+  useEffect(() => {
+    if (typeof window !== 'undefined' && password) {
+      // Dynamic import for zxcvbn to avoid server-side rendering issues
+      import('zxcvbn').then((zxcvbnModule) => {
+        const zxcvbn = zxcvbnModule.default;
+        const result = zxcvbn(password);
+        setPasswordStrength(result.score);
+      });
+    } else {
+      setPasswordStrength(0);
+    }
+  }, [password]);
 
-        const strengthColor = () => {
-                switch (passwordStrength) {
-                        case 1: return 'error';
-                        case 2: return 'warning';
-                        case 3: return 'info';
-                        case 4: return 'success';
-                        default: return 'secondary';
-                }
-        };
+  return (
+    <div>
+        <form 
+          ref={formRef}
+          action={formAction} 
+          className="mt-8 space-y-6"
+        >
+          <div className="space-y-4 rounded-lg bg-white px-6 py-8 shadow-md">
+            {/* Full Name Field */}
+            <div>
+              <label
+                className="mb-2 block text-sm font-medium text-gray-700"
+                htmlFor="fullname"
+              >
+                Full Name
+              </label>
+              <div className="relative">
+                <input
+                  className="peer block w-full rounded-md border border-gray-300 py-2.5 pl-10 text-sm text-gray-900 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                  id="fullname"
+                  type="text"
+                  name="fullname"
+                  placeholder="John Doe"
+                  required
+                  disabled={isPending}
+                />
+                <UserIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 peer-focus:text-purple-500" />
+              </div>
+            </div>
 
-        return (
-                <Paper elevation={3} sx={{ p: 4, maxWidth: 500, mx: 'auto', mt: 4 }}>
-                        <Typography variant="h5" component="h1" gutterBottom align="center">
-                                Create your account
-                        </Typography>
-                        <form action={formAction}>
-                                <TextField
-                                        fullWidth
-                                        margin="normal"
-                                        label="Full Name"
-                                        name="fullname"
-                                        required
-                                        InputProps={{
-                                                startAdornment: (
-                                                        <InputAdornment position="start">
-                                                                <UserIcon className="h-5 w-5" />
-                                                        </InputAdornment>
-                                                ),
-                                        }}
-                                />
-                                <TextField
-                                        fullWidth
-                                        margin="normal"
-                                        label="Username"
-                                        name="username"
-                                        required
-                                        helperText="Must be unique, at least 3 characters"
-                                        InputProps={{
-                                                startAdornment: (
-                                                        <InputAdornment position="start">
-                                                                <AtSymbolIcon className="h-5 w-5" />
-                                                        </InputAdornment>
-                                                ),
-                                        }}
-                                />
-                                <TextField
-                                        fullWidth
-                                        margin="normal"
-                                        label="Email Address"
-                                        name="email"
-                                        type="email"
-                                        required
-                                        InputProps={{
-                                                startAdornment: (
-                                                        <InputAdornment position="start">
-                                                                <EnvelopeIcon className="h-5 w-5" />
-                                                        </InputAdornment>
-                                                ),
-                                        }}
-                                />
-                                <TextField
-                                        fullWidth
-                                        margin="normal"
-                                        label="Password"
-                                        name="password"
-                                        type="password"
-                                        required
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        helperText="Must be at least 4 characters"
-                                        InputProps={{
-                                                startAdornment: (
-                                                        <InputAdornment position="start">
-                                                                <KeyIcon className="h-5 w-5" />
-                                                        </InputAdornment>
-                                                ),
-                                        }}
-                                />
-                                {password.length >= 4 && (
-                                        <Box sx={{ mt: 1 }}>
-                                                <LinearProgress
-                                                        variant="determinate"
-                                                        value={(passwordStrength / 4) * 100}
-                                                        color={strengthColor()}
-                                                />
-                                                <Typography variant="caption" color="textSecondary">
-                                                        {passwordStrength === 1 && 'Weak'}
-                                                        {passwordStrength === 2 && 'Fair'}
-                                                        {passwordStrength === 3 && 'Good'}
-                                                        {passwordStrength === 4 && 'Strong'}
-                                                </Typography>
-                                        </Box>
-                                )}
-                                <Button
-                                        type="submit"
-                                        variant="contained"
-                                        fullWidth
-                                        sx={{ mt: 3 }}
-                                        disabled={isPending}
-                                        endIcon={<ArrowRightIcon className="h-5 w-5" />}
-                                >
-                                        {isPending ? 'Creating Account...' : 'Sign up'}
-                                </Button>
-                                {errorMessage && (
-                                        <Alert severity="error" sx={{ mt: 2 }} icon={<ExclamationCircleIcon className="h-5 w-5" />}>
-                                                {errorMessage}
-                                        </Alert>
-                                )}
-                        </form>
-                </Paper>
-        );
+            {/* Username Field */}
+            <div>
+              <label
+                className="mb-2 block text-sm font-medium text-gray-700"
+                htmlFor="username"
+              >
+                Username
+              </label>
+              <div className="relative">
+                <input
+                  className="peer block w-full rounded-md border border-gray-300 py-2.5 pl-10 text-sm text-gray-900 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                  id="username"
+                  type="text"
+                  name="username"
+                  placeholder="johndoe"
+                  required
+                  disabled={isPending}
+                />
+                <AtSymbolIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 peer-focus:text-purple-500" />
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Must be unique, at least 3 characters
+              </p>
+            </div>
+
+            {/* Email Field */}
+            <div>
+              <label
+                className="mb-2 block text-sm font-medium text-gray-700"
+                htmlFor="email"
+              >
+                Email Address
+              </label>
+              <div className="relative">
+                <input
+                  className="peer block w-full rounded-md border border-gray-300 py-2.5 pl-10 text-sm text-gray-900 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                  id="email"
+                  type="email"
+                  name="email"
+                  placeholder="john@example.com"
+                  required
+                  disabled={isPending}
+                />
+                <EnvelopeIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 peer-focus:text-purple-500" />
+              </div>
+            </div>
+
+            {/* Password Field */}
+            <div>
+              <label
+                className="mb-2 block text-sm font-medium text-gray-700"
+                htmlFor="password"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  className="peer block w-full rounded-md border border-gray-300 py-2.5 pl-10 text-sm text-gray-900 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                  id="password"
+                  type="password"
+                  name="password"
+                  placeholder="••••••••"
+                  required
+                  minLength={4}
+                  disabled={isPending}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <KeyIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 peer-focus:text-purple-500" />
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Must be at least 4 characters
+              </p>
+            </div>
+
+            {/* Password Strength Indicator */}
+            {password.length >= 4 && (
+              <div className="mt-2">
+                <div className="flex h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                  <div 
+                    className={`h-full transition-all duration-300 ${
+                      passwordStrength === 1 ? 'w-1/4 bg-red-500' :
+                      passwordStrength === 2 ? 'w-2/4 bg-yellow-500' :
+                      passwordStrength === 3 ? 'w-3/4 bg-blue-500' :
+                      passwordStrength === 4 ? 'w-full bg-green-500' : ''
+                    }`}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  {passwordStrength === 1 && 'Weak password'}
+                  {passwordStrength === 2 && 'Fair password'}
+                  {passwordStrength === 3 && 'Good password'}
+                  {passwordStrength === 4 && 'Strong password'}
+                </p>
+              </div>
+            )}
+
+            {/* Error/Success Message */}
+            <div className="flex min-h-10 items-end space-x-2">
+              {errorMessage && (
+                <div className="flex w-full items-center space-x-2 rounded-md bg-red-50 p-3 text-sm">
+                  <ExclamationCircleIcon className="h-5 w-5 shrink-0 text-red-500" />
+                  <p className="text-red-600">{errorMessage}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Submit Button */}
+            <Button 
+              className="w-full" 
+              aria-disabled={isPending}
+              disabled={isPending}
+            >
+              {isPending ? (
+                <span className="flex items-center justify-center">
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Creating Account...
+                </span>
+              ) : (
+                <span className="flex items-center justify-center">
+                  Sign up <ArrowRightIcon className="ml-2 h-5 w-5" />
+                </span>
+              )}
+            </Button>
+          </div>
+        </form>
+    </div>
+  );
 }
