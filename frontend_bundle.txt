@@ -1,0 +1,5154 @@
+=========================================
+FILE: ./frontend/.env.dev.template
+=========================================
+AUTH_SECRET=<auth_secret>
+NEXTAUTH_SECRET=<auth_secret>
+NEXTAUTH_URL=<domain_name>
+NODE_ENV=development
+AUTH_TRUST_HOST=true
+BASE_API_URL=http://<backend_hostname>:<port>/<backend_api_root>
+BASE_PUBLIC_API_URL=<domain_name>/<backend_api_root>
+
+
+=========================================
+FILE: ./frontend/postcss.config.mjs
+=========================================
+const config = {
+  plugins: {
+    "@tailwindcss/postcss": {},
+  },
+};
+
+export default config;
+
+
+
+=========================================
+FILE: ./frontend/auth.ts
+=========================================
+import NextAuth from "next-auth";
+import Credentials from 'next-auth/providers/credentials';
+import { z } from 'zod';
+import { AUTH_URL, USERINFO_URL } from './app/lib/constants';
+import { cookies } from 'next/headers';
+import { authConfig } from './auth.config'; 
+
+
+async function getUser(token: string) {
+    const response = await fetch(USERINFO_URL, {
+        method: 'GET',
+        headers: { "Authorization": token }
+    });
+    return response.json();
+}
+
+export const { auth, handlers, signIn, signOut } = NextAuth({
+    ...authConfig, // Spread the base config (matcher, etc.)
+    providers: [
+        Credentials({
+            async authorize(credentials) {
+                const parsed = z
+                    .object({ username: z.string(), password: z.string().min(4) })
+                    .safeParse(credentials);
+
+                if (!parsed.success) return null;
+
+                const searchParams = new URLSearchParams();
+                searchParams.append("username", parsed.data.username);
+                searchParams.append("password", parsed.data.password);
+
+                const response = await fetch(AUTH_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: searchParams.toString()
+                });
+
+                if (!response.ok) return null;
+
+                // 1. Consume the JSON only ONCE
+                const data = await response.json();
+
+                if (data.access_token) {
+                    const fullToken = `${data.token_type} ${data.access_token}`;
+                    
+                    // 2. Set the external cookie
+                    const cookieStore = await cookies();
+                    cookieStore.set("auth-token", fullToken.replace(" ", "__"), {
+                        maxAge: 60 * 60 * 24 * 7,
+                        path: "/"
+                    });
+
+                    // 3. Get user data
+                    try {
+                        const userData = await getUser(fullToken);
+                        if (!userData) return null;
+                        return { ...userData, accessToken: data.access_token };
+                    } catch (e) {
+                        console.error("User profile fetch failed", e);
+                        return null; // Triggers CredentialsSignin
+                    }
+                }
+                
+                return null;
+            },
+        })
+    ],
+    callbacks: {
+        async jwt({ token, user }) {
+            // Persist the user data to the token right after sign in
+            if (user) {
+                token.accessToken = (user as any).accessToken;
+                token.user = user;
+            }
+            return token;
+        },
+        async session({ session, token }) {
+            // Pass the user data from the token to the session
+            session.user.accessToken = token.accessToken as string;
+            session.user = token.user as any;
+            return session;
+        },
+    },
+});
+
+
+=========================================
+FILE: ./frontend/.env.prod.template
+=========================================
+AUTH_SECRET=<auth_secret>
+NEXTAUTH_SECRET=<auth_secret>
+NEXTAUTH_URL=<domain_name>
+NODE_ENV=production
+AUTH_TRUST_HOST=true
+BASE_API_URL=http://<backend_hostname>:<port>/<backend_api_root>
+BASE_PUBLIC_API_URL=<domain_name>/<backend_api_root>
+
+
+=========================================
+FILE: ./frontend/middleware.ts
+=========================================
+import NextAuth from 'next-auth';
+import { authConfig } from './auth.config';
+
+export default NextAuth(authConfig).auth;
+
+export const config = {
+  // Add 'base_api' to the exclusion list if that is where your auth routes live
+  matcher: ['/((?!api|base_api|_next/static|_next/image|.*\\.png$).*)'],
+};
+
+
+=========================================
+FILE: ./frontend/README.md
+=========================================
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Getting Started
+
+First, run the development server:
+
+```bash
+npm run dev
+# or
+yarn dev
+# or
+pnpm dev
+# or
+bun dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+
+## Learn More
+
+To learn more about Next.js, take a look at the following resources:
+
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+
+## Deploy on Vercel
+
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+
+=========================================
+FILE: ./frontend/.env
+=========================================
+AUTH_SECRET=S215oD9prXukD3WRIcIRHhjMg5R75/FoF5Us5jWKnY8=
+NEXTAUTH_SECRET=S215oD9prXukD3WRIcIRHhjMg5R75/FoF5Us5jWKnY8=
+NEXTAUTH_URL=http://localhost:3000 
+NODE_ENV=development
+AUTH_TRUST_HOST=True 
+BASE_API_URL=http://localhost:8000/qgd_api
+NEXT_PUBLIC_BASE_PUBLIC_API_URL=http://localhost:8000/qgd_api
+
+
+=========================================
+FILE: ./frontend/eslint.config.mjs
+=========================================
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
+
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  // Override default ignores of eslint-config-next.
+  globalIgnores([
+    // Default ignores of eslint-config-next:
+    ".next/**",
+    "out/**",
+    "build/**",
+    "next-env.d.ts",
+  ]),
+]);
+
+export default eslintConfig;
+
+
+
+=========================================
+FILE: ./frontend/next.config.ts
+=========================================
+// next.config.js
+
+import type { NextConfig } from "next";
+
+const nextConfig: NextConfig = {
+  typescript: {
+    // Also ignore TS errors to fix the "not a module" issue
+    ignoreBuildErrors: true, 
+  },
+};
+
+export default nextConfig;
+
+
+
+=========================================
+FILE: ./frontend/tsconfig.json
+=========================================
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts",
+    ".next/dev/types/**/*.ts",
+    "**/*.mts"
+  ],
+  "exclude": ["node_modules"]
+}
+
+
+
+=========================================
+FILE: ./frontend/next-env.d.ts
+=========================================
+/// <reference types="next" />
+/// <reference types="next/image-types/global" />
+import "./.next/dev/types/routes.d.ts";
+
+// NOTE: This file should not be edited
+// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.
+
+
+
+=========================================
+FILE: ./frontend/package.json
+=========================================
+{
+  "name": "frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@heroicons/react": "^2.2.0",
+    "@mui/material": "^7.3.9",
+    "@mui/material-nextjs": "^7.3.9",
+    "@recharts/devtools": "^0.0.9",
+    "@types/geojson": "^7946.0.16",
+    "@types/leaflet": "^1.9.21",
+    "@types/leaflet.markercluster": "^1.5.6",
+    "clsx": "^2.1.1",
+    "heroicons": "^2.2.0",
+    "js-yaml": "^4.1.1",
+    "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3",
+    "next": "16.1.6",
+    "next-auth": "5.0.0-beta.30",
+    "ol": "^10.8.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-leaflet": "^5.0.0",
+    "react-markdown": "^10.1.0",
+    "recharts": "^3.8.0",
+    "use-debounce": "^10.1.0",
+    "zod": "^4.3.6",
+    "zxcvbn": "^4.4.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  }
+}
+
+
+
+=========================================
+FILE: ./frontend/auth.config.ts
+=========================================
+// auth.config.ts
+import type { NextAuthConfig } from 'next-auth';
+
+export const authConfig = {
+  pages: {
+    signIn: '/login',
+  },
+  callbacks: {
+    authorized({ auth, request: { nextUrl } }) {
+      const isLoggedIn = !!auth?.user;
+      const isOnAdmin = nextUrl.pathname.startsWith('/admin');
+
+      if (isOnAdmin) {
+        if (isLoggedIn) return true;
+        return false; // Redirects unauthenticated users to /login
+      }
+      
+      // If the user is already logged in, don't let them see the login page
+      if (isLoggedIn && nextUrl.pathname === '/login') {
+        return Response.redirect(new URL('/admin/dashboards', nextUrl));
+      }
+
+      return true;
+    },
+  },
+  providers: [], 
+} satisfies NextAuthConfig;
+
+
+=========================================
+FILE: ./frontend/app/login/page.tsx
+=========================================
+import LoginForm from "../ui/login-form";
+
+ 
+export default function LoginPage() {
+  return (
+    <div className="home-bg">
+      <div className="flex items-center justify-center md:h-screen">
+        <div className="relative mx-auto flex w-full max-w-100 flex-col space-y-2.5 p-4 md:-mt-32">
+          <div className="flex h-20 w-full items-end rounded-lg bg-violet-300 p-3 md:h-36">
+            <div className="w-32 text-black md:w-36">
+              Log In
+            </div>
+          </div>
+          <LoginForm />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/globals.css
+=========================================
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.home-bg{
+  background-image: url(/circuit-board.svg);
+  background-repeat: repeat;
+  background-size: 200px auto;
+  background-color: rgba(166, 163, 255, 0.5);
+  min-height: 90vh;
+}
+
+.admin-bg{
+  min-height: 90vh;
+}
+
+.b-text{
+  padding: 1em;
+  width: fit-content;
+  text-transform: uppercase;
+  color: black;
+  z-index: 11!important;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  width: 50%;
+  font-size: 2vw;
+}
+
+.bannerOverlay{
+  background-color: rgba(255, 255, 255, 0.8);
+  position: absolute;
+  height: 100%;
+  width: 100%;
+  z-index: 10!important;
+}
+
+.home-banner{
+  height: 31vh;
+  overflow-y: hidden;
+  width: 100%;
+  background-image: url(/bg_home.jpg);
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position-y: 50%;
+  position: relative
+}
+
+.d-none{
+  display: none!important;
+}
+
+.table-container{
+  overflow-x:scroll;
+  max-width: 100vw!important;
+}
+
+.mdropdown{
+  position: absolute;
+  z-index:2000;
+  border: 1px solid black;
+  width: 70%;
+}
+
+.neoLoadingScreen{
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: row;
+}
+
+.loadingScreen{
+  width: 100%;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: row;
+  .loader {
+    border: 16px solid #f3f3f3; /* Light grey */
+    border-top: 16px solid #3498db; /* Blue */
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    animation: spin 2s linear infinite;
+  }
+  
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+}
+
+.border-left{
+  border-left: 1px solid #000!important;
+  padding-left: 1em;
+}
+
+.mcontent{
+  min-height: 90vh;
+}
+
+
+
+=========================================
+FILE: ./frontend/app/dashboards/[id]/page.tsx
+=========================================
+import { getDashboardConfig } from '@/app/lib/actions';
+import DashboardRenderer from '@/app/ui/dashboard/dashboard-renderer';
+import { notFound } from 'next/navigation';
+
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function DashboardPage({ params }: PageProps) {
+  const resolvedParams = await params;
+  const id = resolvedParams.id;
+
+  const config = await getDashboardConfig(id).catch(() => null);
+
+  if (!config) {
+    notFound();
+  }
+
+  return (
+    <div className="h-screen w-full bg-white">
+      <DashboardRenderer 
+        config={config} 
+        dashboardId={id} 
+      />
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/signup/page.tsx
+=========================================
+import SignupForm from '@/app/ui/signup-form';
+import Link from 'next/link';
+import { lusitana } from '@/app/ui/fonts';
+
+export default function SignupPage() {
+    return (
+        // <div className="home-bg">
+        //     <div className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
+        //     <div className="w-full max-w-md space-y-8">
+        //         <div>
+        //         <h2 className={`${lusitana.className} text-center text-3xl font-bold tracking-tight text-gray-900`}>
+        //             Create your account
+        //         </h2>
+        //         <p className="mt-2 text-center text-sm text-gray-600">
+        //             Or{' '}
+        //             <Link href="/login" className="font-medium text-purple-600 hover:text-purple-500">
+        //             sign in to existing account
+        //             </Link>
+        //         </p>
+        //         </div>
+        <div className="home-bg">
+            <div className="flex items-center justify-center md:h-screen">
+                <div className="relative mx-auto flex w-full max-w-100 flex-col space-y-2.5 p-4 md:-mt-32">
+                    <div className="flex h-20 w-full items-end rounded-lg bg-violet-300 p-3 md:h-36">
+                        <div className="text-black w-full max-w-md">
+                            <h2 className={`${lusitana.className} text-center text-3xl font-bold tracking-tight text-gray-900`}>
+                                Create your account
+                            </h2>
+                            <p className="mt-2 text-center text-sm text-black">
+                                Or{' '}
+                                <Link href="/login" className="font-medium text-violet-500 hover:text-white">
+                                sign in to existing account
+                                </Link>
+                            </p>
+                        </div>
+                    </div>
+                    <SignupForm />
+                </div>
+            </div>
+        </div>
+    )
+}
+
+
+=========================================
+FILE: ./frontend/app/theme.ts
+=========================================
+"use client";
+
+import { createTheme } from '@mui/material/styles';
+
+const theme = createTheme({
+  typography: {
+    fontFamily: 'var(--font-roboto)',
+  },
+});
+
+export default theme;
+
+
+
+=========================================
+FILE: ./frontend/app/base_api/auth/[...nextauth]/route.ts
+=========================================
+import { handlers } from "@/auth";
+export const { GET, POST } = handlers
+
+
+=========================================
+FILE: ./frontend/app/ui/buttons.tsx
+=========================================
+import clsx from 'clsx';
+import { EyeIcon, PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
+import Link from 'next/link';
+import { deleteDashboard } from '@/app/lib/actions'; // You will create this action
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  children: React.ReactNode;
+}
+
+export function Button({ children, className, ...rest }: ButtonProps) {
+  return (
+    <button
+      {...rest}
+      className={clsx(
+        'flex h-10 items-center rounded-lg bg-violet-500 px-4 text-sm font-medium text-white transition-colors hover:bg-violet-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 active:bg-violet-600 aria-disabled:cursor-not-allowed aria-disabled:opacity-50',
+        className,
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function CreateDashboard() {
+  return (
+    <Link
+      href="/admin/dashboards/create"
+      className="flex h-10 items-center rounded-lg bg-violet-600 px-4 text-sm font-medium text-white transition-colors hover:bg-violet-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600"
+    >
+      <span className="hidden md:block">Create Dashboard</span>{' '}
+      <PlusIcon className="h-5 md:ml-4" />
+    </Link>
+  );
+}
+
+export function UpdateDashboard({ id }: { id: string | number }) {
+  return (
+    <Link
+      href={`/admin/dashboards/${id}/edit`}
+      className="rounded-md border p-2 hover:bg-gray-100"
+    >
+      <PencilIcon className="w-5" />
+    </Link>
+  );
+}
+
+export function DeleteDashboard({ id }: { id: string | number }) {
+  const deleteDashboardWithId = deleteDashboard.bind(null, id);
+
+  return (
+    <form action={deleteDashboardWithId}>
+      <button className="rounded-md border p-2 hover:bg-gray-100 text-red-600">
+        <span className="sr-only">Delete</span>
+        <TrashIcon className="w-5" />
+      </button>
+    </form>
+  );
+}
+
+
+export function ViewDashboard({ id }: { id: string | number }) {
+  return (
+    <Link
+      href={`/admin/dashboards/${id}`}
+      className="rounded-md border p-2 hover:bg-gray-100 text-violet-600"
+    >
+      <EyeIcon className="w-5" />
+    </Link>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/fonts.ts
+=========================================
+import { Inter, Lusitana } from 'next/font/google';
+
+export const inter = Inter({ subsets: ['latin'] });
+
+export const lusitana = Lusitana({
+    weight: ['400', '700'],
+    subsets: ['latin'],
+});
+
+
+=========================================
+FILE: ./frontend/app/ui/dashboard/layouts/SideContentLayout.tsx
+=========================================
+'use client';
+
+import { useState, useEffect } from 'react';
+import { DashboardConfig } from "@/app/lib/definitions";
+import MenuSection from "../MenuSection";
+import ChartList from "../charts/ChartList";
+import dynamic from 'next/dynamic';
+import InteractiveFilters from '../InteractiveFilters';
+
+// Dynamic import with a consistent height loader to prevent layout shift
+const MapView = dynamic(() => import('../MapView'), { 
+  ssr: false,
+  loading: () => (
+    <div className="h-full w-full bg-gray-100 animate-pulse flex items-center justify-center rounded border">
+      <span className="text-gray-400 text-sm">Loading Spatial Data ...</span>
+    </div>
+  ) 
+});
+
+interface Props {
+  config: DashboardConfig;
+  dashboardId: string;
+}
+
+export default function SideContentLayout({ config, dashboardId }: Props) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [interactiveFilterValues, setInteractiveFilterValues] = useState<Record<string, any>>({});
+
+  const handleInteractiveFilterChange = (values: Record<string, any>) => {
+    setInteractiveFilterValues(values);
+  };
+
+  // Check if mobile on mount and when window resizes
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 300);
+    };
+    window.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      window.removeEventListener('resize', checkMobile);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Close sidebar when clicking a menu item on mobile
+  const handleMenuItemClick = (sectionId: string) => {
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+    
+    // Scroll to section
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  return (
+    <div className="flex h-screen bg-white relative">
+      {/* Overlay for mobile when sidebar is open */}
+      {isMobile && isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-20"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar - Collapsible drawer */}
+      <aside 
+        className={`
+          fixed md:static top-0 left-0 z-30
+          w-80 bg-gray-50 border-r border-gray-200 
+          transition-transform duration-300 ease-in-out
+          h-full overflow-y-auto p-6
+          ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        `}
+      >
+        {/* Close button for mobile */}
+        {isMobile && (
+          <button 
+            onClick={() => setIsSidebarOpen(false)}
+            className="absolute top-4 right-4 p-2 rounded-lg hover:bg-gray-200"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
+
+        {/* Menu navigation items */}
+        <nav className="mb-6 pb-4 border-b border-gray-200">
+          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Jump to</h2>
+          <div className="space-y-2">
+            <button
+              onClick={() => handleMenuItemClick('about-section')}
+              className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              About
+            </button>
+            <button
+              onClick={() => handleMenuItemClick('statistics-section')}
+              className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              Statistics
+            </button>
+            <button
+              onClick={() => handleMenuItemClick('map-section')}
+              className="block w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-200 rounded-lg transition-colors"
+            >
+              Map
+            </button>
+          </div>
+        </nav>
+
+        {config.interactiveFilters && config.interactiveFilters.length > 0 && (
+          <InteractiveFilters
+            dashboardId={dashboardId}
+            filters={config.interactiveFilters}
+            onFilterChange={handleInteractiveFilterChange}
+          />
+        )}
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Header with menu toggle */}
+        <header className="p-4 md:p-6 border-b border-gray-100 flex items-center gap-4">
+          {/* Hamburger menu button - visible on mobile and when sidebar is closed on desktop? optional */}
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+            aria-label="Open menu"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+          
+          <h1 className="text-2xl md:text-3xl font-extrabold text-gray-900 tracking-tight flex-1">
+            {config.name}
+          </h1>
+        </header>
+
+
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-8">
+          {/* About section */}
+          <div className="space-y-8">
+            <div id="about-section">
+              <MenuSection title="About" content={config.menus.about} />
+            </div>
+          </div>
+
+          {/* Stats Section */}
+          <section id="statistics-section" className="scroll-mt-4">
+            <MenuSection title="Statistics" content={config.menus.stats} />
+            <ChartList charts={config.stats} dashboardId={dashboardId} interactiveFilters={interactiveFilterValues}/>
+          </section>
+
+          {/* Map Section */}
+          <section id="map-section" className="space-y-3 scroll-mt-4">
+            <MenuSection title="Map Layers" content={config.menus.map} />
+            <h2 className="text-lg font-semibold text-gray-700">Geospatial Distribution</h2>
+            <div className="w-full h-100 md:h-125 border border-gray-200 rounded-xl overflow-hidden shadow-sm relative">
+              <MapView dashboardId={dashboardId} interactiveFilters={interactiveFilterValues}/>
+            </div>
+          </section>
+        </div>
+        {showBackToTop && (
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-6 right-6 bg-purple-600 text-white p-3 rounded-full shadow-lg hover:bg-purple-700 transition-colors z-40"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+            </svg>
+          </button>
+        )}
+      </main>
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/dashboard/layouts/TopContentLayout.tsx
+=========================================
+
+
+
+=========================================
+FILE: ./frontend/app/ui/dashboard/InteractiveFilters.tsx
+=========================================
+'use client';
+
+import { useEffect, useState, useRef } from 'react';
+import { InteractiveFilterDef } from '@/app/lib/definitions';
+import { DASHBOARD_CHART_DISTINCT_VALS } from '@/app/lib/constants';
+import { 
+  ChevronDownIcon, 
+  XMarkIcon,
+  FunnelIcon,
+  MagnifyingGlassIcon
+} from '@heroicons/react/24/outline';
+
+interface Props {
+  dashboardId: string;
+  filters: InteractiveFilterDef[];
+  onFilterChange: (filterValues: Record<string, any>) => void;
+}
+
+// Custom Select Component
+const CustomSelect = ({ 
+  options, 
+  value, 
+  onChange, 
+  placeholder,
+  loading,
+  multiple = false 
+}: { 
+  options: string[];
+  value: string | string[];
+  onChange: (value: any) => void;
+  placeholder: string;
+  loading?: boolean;
+  multiple?: boolean;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredOptions = options.filter(opt => 
+    opt.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const selectedOptions = multiple 
+    ? (value as string[]).map(v => ({ value: v, label: v }))
+    : value ? [{ value: value as string, label: value as string }] : [];
+
+  const removeOption = (optionToRemove: string) => {
+    if (multiple) {
+      const newValue = (value as string[]).filter(v => v !== optionToRemove);
+      onChange(newValue);
+    }
+  };
+
+  return (
+    <div className="relative" ref={containerRef}>
+      {/* Select trigger */}
+      <div
+        onClick={() => !loading && setIsOpen(!isOpen)}
+        className={`w-full min-h-[38px] px-3 py-2 bg-white border border-gray-300 rounded-lg cursor-pointer flex items-center justify-between hover:border-purple-400 transition-colors ${
+          loading ? 'opacity-50 cursor-wait' : ''
+        }`}
+      >
+        <div className="flex flex-wrap gap-1 flex-1">
+          {multiple ? (
+            selectedOptions.length > 0 ? (
+              selectedOptions.map(opt => (
+                <span
+                  key={opt.value}
+                  className="inline-flex items-center gap-1 px-2 py-1 bg-purple-100 text-purple-700 rounded-md text-xs"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {opt.label}
+                  <button
+                    onClick={() => removeOption(opt.value)}
+                    className="hover:text-purple-900"
+                  >
+                    <XMarkIcon className="w-3 h-3" />
+                  </button>
+                </span>
+              ))
+            ) : (
+              <span className="text-gray-400 text-sm">{placeholder}</span>
+            )
+          ) : (
+            <span className={value ? 'text-gray-900' : 'text-gray-400'}>
+              {value || placeholder}
+            </span>
+          )}
+        </div>
+        <ChevronDownIcon className={`w-4 h-4 text-gray-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+      </div>
+
+      {/* Dropdown */}
+      {isOpen && !loading && (
+        <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-80 overflow-hidden">
+          {/* Search input */}
+          <div className="p-2 border-b border-gray-100">
+            <div className="relative">
+              <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search..."
+                className="w-full pl-9 pr-3 py-2 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+          </div>
+
+          {/* Options list */}
+          <div className="overflow-y-auto max-h-60">
+            {filteredOptions.length > 0 ? (
+              filteredOptions.map(option => {
+                const isSelected = multiple 
+                  ? (value as string[]).includes(option)
+                  : value === option;
+                
+                return (
+                  <div
+                    key={option}
+                    className={`px-3 py-2 cursor-pointer hover:bg-purple-50 transition-colors ${
+                      isSelected ? 'bg-purple-100 text-purple-700' : ''
+                    }`}
+                    onClick={() => {
+                      if (multiple) {
+                        const newValue = isSelected
+                          ? (value as string[]).filter(v => v !== option)
+                          : [...(value as string[]), option];
+                        onChange(newValue);
+                      } else {
+                        onChange(option);
+                        setIsOpen(false);
+                        setSearchTerm('');
+                      }
+                    }}
+                  >
+                    <span className="text-sm">{option}</span>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="px-3 py-4 text-center text-sm text-gray-500">
+                No options found
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Custom Range Slider Component
+const RangeSlider = ({
+  min,
+  max,
+  value,
+  onChange,
+  step = 1
+}: {
+  min: number;
+  max: number;
+  value: { min?: number; max?: number };
+  onChange: (min: number | undefined, max: number | undefined) => void;
+  step?: number;
+}) => {
+  const [localMin, setLocalMin] = useState(value.min?.toString() || '');
+  const [localMax, setLocalMax] = useState(value.max?.toString() || '');
+
+  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newMin = e.target.value === '' ? undefined : Number(e.target.value);
+    setLocalMin(e.target.value);
+    onChange(newMin, value.max);
+  };
+
+  const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newMax = e.target.value === '' ? undefined : Number(e.target.value);
+    setLocalMax(e.target.value);
+    onChange(value.min, newMax);
+  };
+
+  const handleClear = () => {
+    setLocalMin('');
+    setLocalMax('');
+    onChange(undefined, undefined);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <label className="block text-xs text-gray-500 mb-1">Min</label>
+          <input
+            type="number"
+            value={localMin}
+            onChange={handleMinChange}
+            placeholder={`${min}`}
+            step={step}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+          />
+        </div>
+        <div className="flex-1">
+          <label className="block text-xs text-gray-500 mb-1">Max</label>
+          <input
+            type="number"
+            value={localMax}
+            onChange={handleMaxChange}
+            placeholder={`${max}`}
+            step={step}
+            className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+          />
+        </div>
+        {(localMin || localMax) && (
+          <button
+            onClick={handleClear}
+            className="self-end mb-1 p-2 text-gray-400 hover:text-gray-600 transition-colors"
+            title="Clear range"
+          >
+            <XMarkIcon className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+      
+      {/* Visual range indicator */}
+      {(value.min !== undefined || value.max !== undefined) && (
+        <div className="relative h-1 bg-gray-200 rounded-full">
+          <div
+            className="absolute h-full bg-purple-500 rounded-full"
+            style={{
+              left: value.min !== undefined ? `${((value.min - min) / (max - min)) * 100}%` : '0%',
+              right: value.max !== undefined ? `${100 - ((value.max - min) / (max - min)) * 100}%` : '0%'
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Main Component
+export default function InteractiveFilters({ dashboardId, filters, onFilterChange }: Props) {
+  const [filterValues, setFilterValues] = useState<Record<string, any>>({});
+  const [distinctValues, setDistinctValues] = useState<Record<string, string[]>>({});
+  const [rangeBounds, setRangeBounds] = useState<Record<string, { min: number; max: number }>>({});
+  const [loading, setLoading] = useState<Record<string, boolean>>({});
+  const [error, setError] = useState<Record<string, string>>({});
+  const [expanded, setExpanded] = useState(true);
+
+  // Fetch distinct values and range bounds
+  useEffect(() => {
+    filters.forEach(async (filter) => {
+      if (filter.type === 'dropdown' || filter.type === 'multiselect') {
+        setLoading(prev => ({ ...prev, [filter.column]: true }));
+        setError(prev => ({ ...prev, [filter.column]: '' }));
+        
+        try {
+          const url = DASHBOARD_CHART_DISTINCT_VALS(Number(dashboardId));
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ column: filter.column })
+          });
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          
+          const values = await response.json();
+          setDistinctValues(prev => ({ ...prev, [filter.column]: values }));
+        } catch (error) {
+          console.error(`Failed to fetch distinct values for ${filter.column}:`, error);
+          setError(prev => ({ ...prev, [filter.column]: error.message }));
+        } finally {
+          setLoading(prev => ({ ...prev, [filter.column]: false }));
+        }
+      } else if (filter.type === 'range') {
+        // Fetch min/max for range filter
+        try {
+          setLoading(prev => ({ ...prev, [filter.column]: true }));
+          
+          // Fetch min value
+          const minResponse = await fetch(DASHBOARD_CHART_DISTINCT_VALS(Number(dashboardId)), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              column: filter.column,
+              sort: 'asc',
+              limit: 1
+            })
+          });
+          
+          // Fetch max value
+          const maxResponse = await fetch(DASHBOARD_CHART_DISTINCT_VALS(Number(dashboardId)), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              column: filter.column,
+              sort: 'desc',
+              limit: 1
+            })
+          });
+          
+          if (minResponse.ok && maxResponse.ok) {
+            const min = await minResponse.json();
+            const max = await maxResponse.json();
+            setRangeBounds(prev => ({
+              ...prev,
+              [filter.column]: { 
+                min: min[0] || 0, 
+                max: max[0] || 100 
+              }
+            }));
+          }
+        } catch (error) {
+          console.error(`Failed to fetch range bounds for ${filter.column}:`, error);
+        } finally {
+          setLoading(prev => ({ ...prev, [filter.column]: false }));
+        }
+      }
+    });
+  }, [dashboardId, filters]);
+
+  const handleChange = (column: string, value: any) => {
+    const newValues = { ...filterValues, [column]: value };
+    setFilterValues(newValues);
+    onFilterChange(newValues);
+  };
+
+  const handleRangeChange = (column: string, min: number | undefined, max: number | undefined) => {
+    const newValues = { 
+      ...filterValues, 
+      [`${column}_min`]: min,
+      [`${column}_max`]: max
+    };
+    setFilterValues(newValues);
+    onFilterChange(newValues);
+  };
+
+  const clearAllFilters = () => {
+    setFilterValues({});
+    onFilterChange({});
+  };
+
+  const activeFilterCount = Object.keys(filterValues).filter(key => {
+    const val = filterValues[key];
+    if (key.endsWith('_min') || key.endsWith('_max')) return false;
+    return val !== undefined && val !== '' && (!Array.isArray(val) || val.length > 0);
+  }).length;
+
+  return (
+    <div className="space-y-4 border-t border-gray-200 pt-4 mt-4">
+      {/* Header with collapse toggle and clear button */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex items-center gap-2 text-sm font-semibold text-gray-700 hover:text-gray-900"
+        >
+          <FunnelIcon className="w-4 h-4" />
+          <span>Interactive Filters</span>
+          <ChevronDownIcon className={`w-4 h-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        </button>
+        
+        {activeFilterCount > 0 && (
+          <div className="flex items-center gap-2">
+            <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full">
+              {activeFilterCount} active
+            </span>
+            <button
+              onClick={clearAllFilters}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Filter content */}
+      {expanded && (
+        <div className="space-y-4">
+          {filters.map((filter) => (
+            <div key={filter.column} className="space-y-2 bg-gray-50 p-3 rounded-lg">
+              <label className="block text-xs font-medium text-gray-700">
+                {filter.label}
+              </label>
+              
+              {error[filter.column] && (
+                <p className="text-xs text-red-500">Error: {error[filter.column]}</p>
+              )}
+              
+              {filter.type === 'dropdown' && (
+                <CustomSelect
+                  options={distinctValues[filter.column] || []}
+                  value={filterValues[filter.column] || ''}
+                  onChange={(val) => handleChange(filter.column, val)}
+                  placeholder="Select an option..."
+                  loading={loading[filter.column]}
+                />
+              )}
+              
+              {filter.type === 'multiselect' && (
+                <CustomSelect
+                  multiple
+                  options={distinctValues[filter.column] || []}
+                  value={filterValues[filter.column] || []}
+                  onChange={(val) => handleChange(filter.column, val)}
+                  placeholder="Select options..."
+                  loading={loading[filter.column]}
+                />
+              )}
+              
+              {filter.type === 'range' && rangeBounds[filter.column] && (
+                <RangeSlider
+                  min={rangeBounds[filter.column].min}
+                  max={rangeBounds[filter.column].max}
+                  value={{
+                    min: filterValues[`${filter.column}_min`],
+                    max: filterValues[`${filter.column}_max`]
+                  }}
+                  onChange={(min, max) => handleRangeChange(filter.column, min, max)}
+                />
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/dashboard/MapView.tsx
+=========================================
+'use client';
+
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import 'leaflet.markercluster';
+import { fetchDashboardConfig } from '@/app/lib/client_actions';
+import { DashboardConfig, FilterCondition, MapStyleRule } from '@/app/lib/definitions';
+import { Feature, Point, GeoJsonProperties } from 'geojson';
+import { DASHBOARD_MAP_POINTS_IN_VIEW_URL, DASHBOARD_MAP_POINTS_URL, DASHBOARD_FILTERED_MAP_POINTS_URL } from '@/app/lib/constants';
+
+// Extend Leaflet types
+declare module 'leaflet' {
+  export function markerClusterGroup(options?: any): any;
+}
+
+interface Props {
+  dashboardId: string;
+  interactiveFilters?: Record<string, any>;
+}
+
+// Helper function to apply style rules
+const getColorFromRules = (properties: GeoJsonProperties, rules: MapStyleRule[], defaultColor: string): string => {
+  if (!properties) return defaultColor;
+  
+  for (const rule of rules) {
+    const fieldValue = properties[rule.field];
+    if (fieldValue === undefined || fieldValue === null) continue;
+    
+    const operator = rule.operator || '=';
+    
+    switch (operator) {
+      case '=':
+        if (String(fieldValue) === String(rule.value)) return rule.color;
+        break;
+      case '!=':
+        if (String(fieldValue) !== String(rule.value)) return rule.color;
+        break;
+      case 'like':
+        if (typeof fieldValue === 'string' && typeof rule.value === 'string') {
+          const pattern = rule.value.replace(/%/g, '.*');
+          if (new RegExp(pattern, 'i').test(fieldValue)) return rule.color;
+        }
+        break;
+      case 'in':
+        if (Array.isArray(rule.value)) {
+          const stringValues = rule.value.map(v => String(v));
+          if (stringValues.includes(String(fieldValue))) return rule.color;
+        }
+        break;
+    }
+  }
+  return defaultColor;
+};
+
+// Helper to get size based on field
+const getSizeFromField = (properties: GeoJsonProperties, sizeBy: string | undefined, defaultSize: number, minSize: number, maxSize: number): number => {
+  if (!sizeBy || !properties) return defaultSize;
+  
+  const value = properties[sizeBy];
+  if (!value || isNaN(Number(value))) return defaultSize;
+  
+  // Scale logarithmically to handle outliers
+  const scaled = Math.log(Number(value) + 1) * 3;
+  return Math.min(maxSize, Math.max(minSize, scaled));
+};
+
+// Type guard
+const isPointFeature = (feature: Feature): feature is Feature<Point> => {
+  return feature.geometry?.type === 'Point';
+};
+
+// Helper to convert interactive filters to FilterCondition array
+const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
+  return useMemo(() => {
+    const conditions: FilterCondition[] = [];
+    if (!interactiveFilters) return conditions;
+
+    Object.entries(interactiveFilters).forEach(([key, val]) => {
+      if (val === '' || val === undefined || val === null) return;
+      
+      // Handle range filters (they come as column_min and column_max)
+      if (key.endsWith('_min')) {
+        const column = key.replace('_min', '');
+        const maxVal = interactiveFilters[`${column}_max`];
+        if (maxVal !== undefined && maxVal !== '' && maxVal !== null) {
+          conditions.push({ 
+            column, 
+            operator: 'between', 
+            value: [Number(val), Number(maxVal)] 
+          });
+        } else {
+          conditions.push({ column, operator: '>=', value: Number(val) });
+        }
+      } 
+      else if (key.endsWith('_max')) {
+        // Skip - handled by _min
+        return;
+      }
+      else if (Array.isArray(val) && val.length > 0) {
+        conditions.push({ column: key, operator: 'in', value: val });
+      } 
+      else if (typeof val === 'object' && val !== null) {
+        // Handle case where range might still be an object (backward compatibility)
+        if ('min' in val && val.min !== undefined) {
+          conditions.push({ column: key, operator: '>=', value: Number(val.min) });
+        }
+        if ('max' in val && val.max !== undefined) {
+          conditions.push({ column: key, operator: '<=', value: Number(val.max) });
+        }
+      }
+      else if (val !== '') {
+        conditions.push({ column: key, operator: '=', value: String(val) });
+      }
+    });
+    
+    // Remove duplicates (for between operator, we want just one condition)
+    return conditions.filter((f, index, self) => 
+      index === self.findIndex(t => 
+        t.column === f.column && 
+        t.operator === f.operator && 
+        JSON.stringify(t.value) === JSON.stringify(f.value)
+      )
+    );
+  }, [interactiveFilters]);
+};
+
+// Legend component
+const Legend = ({ style, position }: { style: any; position: string }) => {
+  const positionClasses = {
+    topleft: 'top-4 left-4',
+    topright: 'top-4 right-4',
+    bottomleft: 'bottom-4 left-4',
+    bottomright: 'bottom-4 right-4'
+  };
+  
+  const legendItems = style.rules
+    .filter((rule: MapStyleRule, index: number, self: MapStyleRule[]) => 
+      index === self.findIndex((r) => r.color === rule.color)
+    )
+    .map((rule: MapStyleRule) => ({
+      color: rule.color,
+      label: rule.label || `${rule.field}: ${rule.value}`
+    }));
+  
+  return (
+    <div className={`absolute ${positionClasses[position as keyof typeof positionClasses] || 'bottom-4 right-4'} z-1000`}>
+      <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+        <h4 className="font-bold text-sm mb-2">{style.legend?.title || 'Legend'}</h4>
+        <div className="space-y-1.5">
+          {legendItems.map((item: any, idx: number) => (
+            <div key={idx} className="flex items-center gap-2">
+              <span className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }}></span>
+              <span className="text-xs">{item.label}</span>
+            </div>
+          ))}
+          {style.sizeBy && (
+            <div className="mt-3 pt-2 border-t border-gray-200">
+              <p className="text-xs text-gray-600">Size = {style.sizeBy}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default function MapView({ dashboardId, interactiveFilters }: Props) {
+  const [map, setMap] = useState<L.Map | null>(null);
+  const [points, setPoints] = useState<GeoJSON.FeatureCollection | null>(null);
+  const [config, setConfig] = useState<DashboardConfig | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [useClustering, setUseClustering] = useState(false);
+  const mapInstanceRef = useRef<L.Map | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const markersRef = useRef<L.LayerGroup | null>(null);
+  const clusterRef = useRef<any>(null);
+  
+  // Convert interactive filters to FilterCondition array
+  const filterConditions = useFilterConditions(interactiveFilters);
+
+  // Fetch config and decide on clustering strategy
+  useEffect(() => {
+    console.log('Fetching map config for dashboard:', dashboardId);
+    setIsLoading(true);
+    fetchDashboardConfig(dashboardId)
+      .then(configData => {
+        console.log('Config received:', configData);
+        setConfig(configData);
+        
+        // Determine if clustering should be enabled
+        const clusteringEnabled = configData.map?.clustering?.enabled ?? false;
+        setUseClustering(clusteringEnabled);
+      })
+      .catch(err => {
+        console.error('Error fetching map config:', err);
+      })
+      .finally(() => setIsLoading(false));
+  }, [dashboardId]);
+
+  // Initialize map
+  const mapRef = useCallback((node: HTMLDivElement | null) => {
+    if (node !== null && !mapInstanceRef.current) {
+      console.log('Initializing map');
+      const instance = L.map(node, {
+        center: [0, 0],
+        zoom: 2,
+        maxZoom: 18
+      });
+      
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        subdomains: 'abcd',
+        maxZoom: 20
+      }).addTo(instance);
+
+      mapInstanceRef.current = instance;
+      setMap(instance);
+      
+      setTimeout(() => {
+        if (mapInstanceRef.current) {
+          mapInstanceRef.current.invalidateSize();
+          console.log('Map invalidated after init');
+        }
+      }, 100);
+    }
+  }, []);
+
+  // Fetch all points with filters (for small datasets without clustering)
+  const fetchAllPoints = useCallback(async () => {
+    try {
+      // Use filtered endpoint if we have filters, otherwise use regular points endpoint
+      if (filterConditions.length > 0) {
+        const response = await fetch(DASHBOARD_FILTERED_MAP_POINTS_URL(Number(dashboardId)), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filters: filterConditions })
+        });
+        if (!response.ok) throw new Error('Failed to fetch filtered points');
+        const data = await response.json();
+        console.log(`Fetched ${data.features?.length || 0} filtered points`);
+        return data;
+      } else {
+        const response = await fetch(DASHBOARD_MAP_POINTS_URL(Number(dashboardId)));
+        if (!response.ok) throw new Error('Failed to fetch points');
+        const data = await response.json();
+        console.log(`Fetched ${data.features?.length || 0} points`);
+        return data;
+      }
+    } catch (err) {
+      console.error('Error fetching points:', err);
+      return null;
+    }
+  }, [dashboardId, filterConditions]);
+
+  // Fetch points in viewport with filters (for clustered datasets)
+  const fetchPointsInView = useCallback(async (bounds: L.LatLngBounds) => {
+    if (!config?.map?.clustering) return null;
+
+    try {
+      const sw = bounds.getSouthWest();
+      const ne = bounds.getNorthEast();
+      const limit = config.map.clustering.limit ?? 10000;
+      
+      const response = await fetch(DASHBOARD_MAP_POINTS_IN_VIEW_URL(Number(dashboardId)), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bbox: [sw.lng, sw.lat, ne.lng, ne.lat],
+          limit: limit,
+          filters: filterConditions  // Pass the filter conditions
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch points in view');
+      const data = await response.json();
+      console.log(`Fetched ${data.features?.length || 0} points in view with filters`);
+      return data;
+    } catch (err) {
+      console.error('Error loading points in view:', err);
+      return null;
+    }
+  }, [dashboardId, config, filterConditions]);
+
+  // Render points based on clustering setting
+  useEffect(() => {
+    if (!mapInstanceRef.current || !config) return;
+
+    const map = mapInstanceRef.current;
+    const mapStyle = config.map.style || {
+      defaultColor: '#6b7280',
+      defaultSize: 6,
+      minSize: 4,
+      maxSize: 12,
+      rules: []
+    };
+
+    // Clear existing layers properly
+    if (clusterRef.current) {
+      map.removeLayer(clusterRef.current);
+      clusterRef.current = null;
+    }
+    if (markersRef.current) {
+      map.removeLayer(markersRef.current);
+      markersRef.current = null;
+    }
+
+    if (useClustering) {
+      // === CLUSTERED MODE (for large datasets) ===
+      const clusterConfig = config.map.clustering;
+
+      // Only proceed if clustering is enabled and config exists
+      if (!clusterConfig) {
+        console.warn('Clustering enabled but no cluster config found');
+        return;
+      }
+
+      const clusterGroup = (L as any).markerClusterGroup({
+        maxClusterRadius: clusterConfig.maxClusterRadius ?? 60,
+        spiderfyOnMaxZoom: clusterConfig.spiderfyOnMaxZoom ?? true,
+        showCoverageOnHover: clusterConfig.showCoverageOnHover ?? false,
+        zoomToBoundsOnClick: clusterConfig.zoomToBoundsOnClick ?? true,
+        disableClusteringAtZoom: clusterConfig.disableClusteringAtZoom ?? 16,
+        chunkedLoading: clusterConfig.chunkedLoading ?? true,
+        chunkInterval: clusterConfig.chunkInterval ?? 100,
+        chunkDelay: clusterConfig.chunkDelay ?? 50
+      });
+
+      clusterRef.current = clusterGroup;
+      map.addLayer(clusterGroup);
+
+      // Function to load points for current view
+      const loadViewportPoints = async () => {
+        const bounds = map.getBounds();
+        const pointsData = await fetchPointsInView(bounds);
+        
+        if (!pointsData?.features) return;
+
+        clusterGroup.clearLayers();
+
+        pointsData.features.forEach((feature: Feature) => {
+          if (!isPointFeature(feature)) return;
+          
+          const props = feature.properties;
+          const coordinates = feature.geometry.coordinates;
+          
+          if (coordinates.length < 2) return;
+          
+          const [lon, lat] = coordinates;
+          
+          if (typeof lat !== 'number' || typeof lon !== 'number') return;
+          if (isNaN(lat) || isNaN(lon)) return;
+          
+          const color = getColorFromRules(
+            props, 
+            mapStyle.rules || [], 
+            mapStyle.defaultColor
+          );
+          
+          const size = getSizeFromField(
+            props,
+            mapStyle.sizeBy,
+            mapStyle.defaultSize,
+            mapStyle.minSize || 4,
+            mapStyle.maxSize || 12
+          );
+          
+          const popupContent = `
+            <div class="p-2 min-w-50">
+              <h3 class="font-bold text-lg border-b pb-1 mb-2">${props?.plant_specie_name || props?.species || 'Unknown'}</h3>
+              <table class="text-sm w-full">
+                ${Object.entries(props || {})
+                  .filter(([key]) => !['lat', 'lon'].includes(key.toLowerCase()))
+                  .map(([key, value]) => `
+                    <tr>
+                      <td class="font-semibold pr-3">${key}:</td>
+                      <td>${value}</td>
+                    </tr>
+                  `).join('')}
+              </table>
+            </div>
+          `;
+          
+          const marker = L.circleMarker([lat, lon], {
+            radius: size,
+            fillColor: color,
+            color: '#fff',
+            weight: 1,
+            fillOpacity: 0.8,
+          }).bindPopup(popupContent);
+          
+          clusterGroup.addLayer(marker);
+        });
+      };
+
+      // Load initial points
+      loadViewportPoints();
+
+      // Debounced update on map move
+      let timeoutId: NodeJS.Timeout;
+      const handleMoveEnd = () => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(loadViewportPoints, 300);
+      };
+
+      map.on('moveend', handleMoveEnd);
+      map.on('zoomend', handleMoveEnd);
+
+      return () => {
+        map.off('moveend', handleMoveEnd);
+        map.off('zoomend', handleMoveEnd);
+        if (clusterRef.current) {
+          map.removeLayer(clusterRef.current);
+        }
+      };
+
+    } else {
+      // === SIMPLE MODE (for small datasets) ===
+      const loadAllPoints = async () => {
+        const pointsData = await fetchAllPoints();
+        if (!pointsData?.features) return;
+
+        // Create a layer group for all markers
+        const layerGroup = L.layerGroup();
+        markersRef.current = layerGroup;
+        map.addLayer(layerGroup);
+
+        let bounds = L.latLngBounds([]);
+
+        pointsData.features.forEach((feature: Feature) => {
+          if (!isPointFeature(feature)) return;
+          
+          const props = feature.properties;
+          const coordinates = feature.geometry.coordinates;
+          
+          if (coordinates.length < 2) return;
+          
+          const [lon, lat] = coordinates;
+          
+          if (typeof lat !== 'number' || typeof lon !== 'number') return;
+          if (isNaN(lat) || isNaN(lon)) return;
+          
+          const color = getColorFromRules(
+            props, 
+            mapStyle.rules || [], 
+            mapStyle.defaultColor
+          );
+          
+          const size = getSizeFromField(
+            props,
+            mapStyle.sizeBy,
+            mapStyle.defaultSize,
+            mapStyle.minSize || 4,
+            mapStyle.maxSize || 12
+          );
+          
+          const popupContent = `
+            <div class="p-2 min-w-50">
+              <h3 class="font-bold text-lg border-b pb-1 mb-2">${props?.plant_specie_name || props?.species || 'Unknown'}</h3>
+              <table class="text-sm w-full">
+                ${Object.entries(props || {})
+                  .filter(([key]) => !['lat', 'lon'].includes(key.toLowerCase()))
+                  .map(([key, value]) => `
+                    <tr>
+                      <td class="font-semibold pr-3">${key}:</td>
+                      <td>${value}</td>
+                    </tr>
+                  `).join('')}
+              </table>
+            </div>
+          `;
+          
+          const marker = L.circleMarker([lat, lon], {
+            radius: size,
+            fillColor: color,
+            color: '#fff',
+            weight: 1,
+            fillOpacity: 0.8,
+          }).bindPopup(popupContent);
+          
+          marker.addTo(layerGroup);
+          bounds.extend([lat, lon]);
+        });
+
+        if (bounds.isValid()) {
+          map.fitBounds(bounds, { padding: [20, 20] });
+        }
+      };
+
+      loadAllPoints();
+
+      return () => {
+        if (markersRef.current) {
+          map.removeLayer(markersRef.current);
+        }
+      };
+    }
+  }, [config, useClustering, fetchAllPoints, fetchPointsInView, filterConditions]);
+
+  // Clean up
+  useEffect(() => {
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+    };
+  }, []);
+
+  if (isLoading) {
+    return <div className="w-full h-full min-h-100 bg-gray-100 animate-pulse rounded-xl" />;
+  }
+
+  return (
+    <div className="relative w-full h-full min-h-100">
+      <div 
+        ref={(node) => {
+          containerRef.current = node;
+          mapRef(node);
+        }}
+        className="w-full h-full bg-gray-50 rounded-xl"
+        style={{ isolation: 'isolate' }} 
+      />
+      {config?.map?.style && map && (
+        <Legend 
+          style={config.map.style} 
+          position={config.map.style.legend?.position || 'bottomright'} 
+        />
+      )}
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/dashboard/MenuSection.tsx
+=========================================
+'use client';
+
+import ReactMarkdown from 'react-markdown';
+
+interface Props {
+  title: string;
+  content: string;
+}
+
+export default function MenuSection({ title, content }: Props) {
+  return (
+    <div className="mb-6">
+      <h2 className="text-xl font-semibold mb-2">{title}</h2>
+      <div className="prose max-w-none">
+        <ReactMarkdown>{content}</ReactMarkdown>
+      </div>
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/dashboard/dashboard-renderer.tsx
+=========================================
+'use client';
+
+import { DashboardConfig } from "@/app/lib/definitions";
+import SideContentLayout from "./layouts/SideContentLayout";
+
+
+// import other layouts...
+
+interface Props {
+  config: DashboardConfig;
+  dashboardId: string;
+}
+
+export default function DashboardRenderer({ config, dashboardId }: Props) {
+  const layouts: Record<string, React.FC<{ config: DashboardConfig; dashboardId: string }>> = {
+    side_content: SideContentLayout,
+    // top_content: TopContentLayout,
+    // add others as needed
+  };
+
+  const LayoutComponent = layouts[config.template] || layouts.side_content;
+  return <LayoutComponent config={config} dashboardId={dashboardId} />;
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/dashboard/charts/LineChart.tsx
+=========================================
+'use client';
+
+import { fetchChartData } from '@/app/lib/client_actions';
+import { ChartDataResponse, ChartDef, FilterCondition } from '@/app/lib/definitions';
+import { useEffect, useState } from 'react';
+
+import {
+  LineChart as ReLineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
+} from 'recharts';
+
+interface Props {
+  chart: ChartDef;
+  dashboardId: string;
+  interactiveFilters?: Record<string, any>; 
+}
+
+export default function LineChart({ chart, dashboardId, interactiveFilters }: Props) {
+  const [data, setData] = useState<ChartDataResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Convert interactive filter values to FilterCondition array
+    const extraFilters: FilterCondition[] = [];
+    if (interactiveFilters) {
+      Object.entries(interactiveFilters).forEach(([col, val]) => {
+        if (val === '' || val === undefined || (Array.isArray(val) && val.length === 0)) return;
+        if (Array.isArray(val)) {
+          extraFilters.push({ column: col, operator: 'in', value: val });
+        } else if (typeof val === 'object' && val.min !== undefined && val.max !== undefined) {
+          extraFilters.push({ column: col, operator: '>=', value: val.min });
+          extraFilters.push({ column: col, operator: '<=', value: val.max });
+        } else {
+          extraFilters.push({ column: col, operator: '=', value: val });
+        }
+      });
+    }
+
+    fetchChartData(dashboardId, chart, extraFilters)
+      .then(setData)
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [dashboardId, chart, interactiveFilters]);
+
+
+  if (loading) return <div className="h-64 bg-gray-200 animate-pulse rounded" />;
+  if (error) return <div className="text-red-500">Error: {error}</div>;
+  if (!data) return null;
+
+  const chartData = data.labels.map((label, i) => ({ name: label, value: data.data[i] }));
+
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <h3 className="text-lg font-semibold mb-2">{chart.title}</h3>
+      <ResponsiveContainer width="100%" height={300}>
+        <ReLineChart data={chartData}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="name" />
+          <YAxis />
+          <Tooltip />
+          <Line type="monotone" dataKey="value" stroke="#8884d8" />
+        </ReLineChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/dashboard/charts/StackedBarChart.tsx
+=========================================
+'use client';
+
+import { fetchChartData } from '@/app/lib/client_actions';
+import { DASHBOARD_CHART_DISTINCT_VALS } from '@/app/lib/constants';
+import { ChartDef, FilterCondition } from '@/app/lib/definitions';
+import { useEffect, useState, useMemo } from 'react';
+import {
+  BarChart as ReBarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer
+} from 'recharts';
+
+interface Props {
+  chart: ChartDef;
+  dashboardId: string;
+  interactiveFilters?: Record<string, any>;
+}
+
+// Color palette for stacked categories
+const STACK_COLORS = [
+  '#ef4444', // Red
+  '#3b82f6', // Blue  
+  '#10b981', // Green
+  '#f59e0b', // Orange
+  '#8b5cf6', // Purple
+  '#ec4899', // Pink
+  '#06b6d4', // Cyan
+  '#f97316'  // Bright Orange
+];
+
+interface StackedDataPoint {
+  name: string;
+  [key: string]: string | number;
+}
+
+// Helper to convert interactive filters to FilterCondition array
+const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
+  return useMemo(() => {
+    const conditions: FilterCondition[] = [];
+    if (!interactiveFilters) return conditions;
+
+    Object.entries(interactiveFilters).forEach(([key, val]) => {
+      if (val === '' || val === undefined || val === null) return;
+      
+      // Handle range filters (they come as column_min and column_max)
+      if (key.endsWith('_min')) {
+        const column = key.replace('_min', '');
+        const maxVal = interactiveFilters[`${column}_max`];
+        if (maxVal !== undefined && maxVal !== '' && maxVal !== null) {
+          conditions.push({ 
+            column, 
+            operator: 'between', 
+            value: [Number(val), Number(maxVal)] 
+          });
+        } else {
+          conditions.push({ column, operator: '>=', value: Number(val) });
+        }
+      } 
+      else if (key.endsWith('_max')) {
+        // Skip - handled by _min
+        return;
+      }
+      else if (Array.isArray(val) && val.length > 0) {
+        conditions.push({ column: key, operator: 'in', value: val });
+      } 
+      else if (typeof val === 'object' && val !== null) {
+        // Handle case where range might still be an object (backward compatibility)
+        if ('min' in val && val.min !== undefined) {
+          conditions.push({ column: key, operator: '>=', value: Number(val.min) });
+        }
+        if ('max' in val && val.max !== undefined) {
+          conditions.push({ column: key, operator: '<=', value: Number(val.max) });
+        }
+      }
+      else if (val !== '') {
+        conditions.push({ column: key, operator: '=', value: String(val) });
+      }
+    });
+    
+    // Remove duplicates (for between operator, we want just one condition)
+    return conditions.filter((f, index, self) => 
+      index === self.findIndex(t => 
+        t.column === f.column && 
+        t.operator === f.operator && 
+        JSON.stringify(t.value) === JSON.stringify(f.value)
+      )
+    );
+  }, [interactiveFilters]);
+};
+
+export default function StackedBarChart({ chart, dashboardId, interactiveFilters }: Props) {
+  const [data, setData] = useState<StackedDataPoint[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Convert interactive filters to FilterCondition array
+  const filterConditions = useFilterConditions(interactiveFilters);
+
+  useEffect(() => {
+    const fetchStackedData = async () => {
+      if (!chart.stackBy) {
+        setError('stackBy is required for stacked bar charts');
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+      
+      try {
+        // Merge chart filters with interactive filters
+        const allBaseFilters = [
+          ...(chart.filters || []),
+          ...filterConditions
+        ];
+
+        // 1. Get unique categories to stack (with filters applied)
+        const catResponse = await fetch(DASHBOARD_CHART_DISTINCT_VALS(Number(dashboardId)), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            column: chart.stackBy,
+            filters: allBaseFilters  // Apply filters to category query
+          })
+        });
+        
+        if (!catResponse.ok) {
+          throw new Error('Failed to fetch categories');
+        }
+        
+        const uniqueCategories = await catResponse.json();
+        
+        // Filter out any null/undefined categories
+        const validCategories = uniqueCategories.filter((cat: any) => cat != null);
+        setCategories(validCategories);
+
+        if (validCategories.length === 0) {
+          setData([]);
+          setLoading(false);
+          return;
+        }
+
+        // 2. Fetch data for each category (with filters + category filter)
+        const allData: { [key: string]: any } = {};
+        
+        await Promise.all(validCategories.map(async (category: string) => {
+          // Create filter for the current category
+          const categoryFilter: FilterCondition = {
+            column: chart.stackBy!,
+            operator: '=',
+            value: category
+          };
+          
+          // Combine all filters: chart filters + interactive filters + category filter
+          const allFilters = [
+            ...(chart.filters || []),
+            ...filterConditions,
+            categoryFilter
+          ];
+          
+          const response = await fetchChartData(dashboardId, {
+            ...chart,
+            filters: allFilters
+          });
+          
+          response.labels.forEach((label: string, idx: number) => {
+            if (!allData[label]) {
+              allData[label] = { name: label };
+            }
+            allData[label][category] = response.data[idx];
+          });
+        }));
+
+        // Convert to array and sort if needed
+        const dataArray = Object.values(allData);
+        setData(dataArray);
+        
+      } catch (err: any) {
+        console.error('Stacked bar chart error:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStackedData();
+  }, [dashboardId, chart, filterConditions]); // Add filterConditions to dependencies
+
+  if (loading) return <div className="h-64 bg-gray-200 animate-pulse rounded" />;
+  if (error) return <div className="text-red-500">Error: {error}</div>;
+  if (data.length === 0) return <div className="text-gray-500">No data available</div>;
+
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <h3 className="text-lg font-semibold mb-2">{chart.title}</h3>
+      <ResponsiveContainer width="100%" height={400}>
+        <ReBarChart 
+          data={data} 
+          margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis 
+            dataKey="name" 
+            angle={45}
+            textAnchor="start"
+            height={80}
+            interval={0}
+            tick={{ fontSize: 11 }}
+          />
+          <YAxis />
+          <Tooltip 
+            contentStyle={{ 
+              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0'
+            }}
+          />
+          <Legend 
+            verticalAlign="top" 
+            height={36}
+            wrapperStyle={{ paddingBottom: '20px' }}
+          />
+          {categories.map((category, index) => (
+            <Bar
+              key={category}
+              dataKey={category}
+              stackId="stack"
+              fill={STACK_COLORS[index % STACK_COLORS.length]}
+              name={category}
+            />
+          ))}
+        </ReBarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/dashboard/charts/ChartList.tsx
+=========================================
+'use client';
+
+import { ChartDef } from "@/app/lib/definitions";
+import BarChart from "./BarChart";
+import LineChart from "./LineChart";
+import PieChart from "./PieChart";
+import StackedBarChart from './StackedBarChart';
+
+
+
+interface Props {
+  charts: ChartDef[];
+  dashboardId: string;
+  interactiveFilters?: Record<string, any>; 
+}
+
+export default function ChartList({ charts, dashboardId, interactiveFilters }: Props) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {charts.map((chart, idx) => {
+        switch (chart.type) {
+          case 'bar': return <BarChart key={idx} chart={chart} dashboardId={dashboardId} interactiveFilters={interactiveFilters} />;
+          case 'line': return <LineChart key={idx} chart={chart} dashboardId={dashboardId} interactiveFilters={interactiveFilters}/>;
+          case 'pie': return <PieChart key={idx} chart={chart} dashboardId={dashboardId} interactiveFilters={interactiveFilters}/>;
+          case 'stackedbar': return <StackedBarChart key={idx} chart={chart} dashboardId={dashboardId} interactiveFilters={interactiveFilters}/>;;
+          default: return null;
+        }
+      })}
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/dashboard/charts/BarChart.tsx
+=========================================
+'use client';
+
+import { fetchChartData } from '@/app/lib/client_actions';
+import { ChartDataResponse, ChartDef, FilterCondition } from '@/app/lib/definitions';
+import { useEffect, useState } from 'react';
+
+import {
+  BarChart as ReBarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell
+} from 'recharts';
+
+interface Props {
+  chart: ChartDef;
+  dashboardId: string;
+  interactiveFilters?: Record<string, any>; 
+}
+
+// Color palette for bars (you can customize these colors)
+const COLORS = [
+  '#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088fe',
+  '#00c49f', '#ffbb28', '#ff6b6b', '#a05e8a', '#d0bb57',
+  '#8dd1e1', '#b0e57c', '#fe938c', '#7b6c8c', '#6b5b7c'
+];
+
+export default function BarChart({ chart, dashboardId, interactiveFilters}: Props) {
+  const [data, setData] = useState<ChartDataResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Convert interactive filter values to FilterCondition array
+    const extraFilters: FilterCondition[] = [];
+    if (interactiveFilters) {
+      Object.entries(interactiveFilters).forEach(([col, val]) => {
+        if (val === '' || val === undefined || (Array.isArray(val) && val.length === 0)) return;
+        if (Array.isArray(val)) {
+          extraFilters.push({ column: col, operator: 'in', value: val });
+        } else if (typeof val === 'object' && val.min !== undefined && val.max !== undefined) {
+          extraFilters.push({ column: col, operator: '>=', value: val.min });
+          extraFilters.push({ column: col, operator: '<=', value: val.max });
+        } else {
+          extraFilters.push({ column: col, operator: '=', value: val });
+        }
+      });
+    }
+
+    fetchChartData(dashboardId, chart, extraFilters)
+      .then(setData)
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [dashboardId, chart, interactiveFilters]);
+
+  if (loading) return <div className="h-64 bg-gray-200 animate-pulse rounded" />;
+  if (error) return <div className="text-red-500">Error: {error}</div>;
+  if (!data) return null;
+
+  const chartData = data.labels.map((label, i) => ({ name: label, value: data.data[i] }));
+
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <h3 className="text-lg font-semibold mb-2">{chart.title}</h3>
+      <ResponsiveContainer width="100%" height={350}> {/* Increased height for rotated labels */}
+        <ReBarChart data={chartData} margin={{ bottom: 60 }}> {/* Added bottom margin */}
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis 
+            dataKey="name" 
+            angle={45} 
+            textAnchor="start" 
+            height={80} 
+            interval={0}
+            tick={{ fontSize: 11 }}
+          />
+          <YAxis />
+          <Tooltip />
+          <Bar dataKey="value">
+            {chartData.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Bar>
+        </ReBarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/dashboard/charts/PieChart.tsx
+=========================================
+'use client';
+
+import { fetchChartData } from '@/app/lib/client_actions';
+import { ChartDataResponse, ChartDef, FilterCondition } from '@/app/lib/definitions';
+import { useEffect, useState } from 'react';
+import {
+  PieChart as RePieChart,
+  Pie,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  Legend
+} from 'recharts';
+
+interface Props {
+  chart: ChartDef;
+  dashboardId: string;
+  interactiveFilters?: Record<string, any>; 
+}
+
+// Extended color palette for better variety
+const COLORS = [
+  '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D',
+  '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFE194', '#B4A5FF',
+  '#E6B0AA', '#A8E6CF', '#FFD3B6', '#D4A5A5', '#9B7EDE', '#F7C978'
+];
+
+// Custom tooltip formatter
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="bg-white p-3 shadow-lg rounded-lg border border-gray-200">
+        <p className="font-semibold text-gray-900">{data.name}</p>
+        <p className="text-sm text-gray-600">
+          Value: <span className="font-medium text-purple-600">{data.value}</span>
+        </p>
+        <p className="text-xs text-gray-500">
+          Percentage: <span className="font-medium">{((data.value / payload[0].total) * 100).toFixed(1)}%</span>
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
+// Custom legend content to show percentages
+const renderLegend = (props: any) => {
+  const { payload } = props;
+  const total = payload.reduce((sum: number, entry: any) => sum + entry.payload.value, 0);
+  
+  return (
+    <ul className="flex flex-wrap justify-center gap-4 mt-4 text-sm">
+      {payload.map((entry: any, index: number) => (
+        <li key={`legend-${index}`} className="flex items-center gap-2">
+          <div 
+            className="w-3 h-3 rounded-full" 
+            style={{ backgroundColor: entry.color }}
+          />
+          <span className="text-gray-700">
+            {entry.value}: <span className="font-medium">{entry.payload.value}</span>
+            <span className="text-gray-500 ml-1">
+              ({((entry.payload.value / total) * 100).toFixed(1)}%)
+            </span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+};
+
+export default function PieChart({ chart, dashboardId, interactiveFilters}: Props) {
+  const [data, setData] = useState<ChartDataResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Convert interactive filter values to FilterCondition array
+    const extraFilters: FilterCondition[] = [];
+    if (interactiveFilters) {
+      Object.entries(interactiveFilters).forEach(([col, val]) => {
+        if (val === '' || val === undefined || (Array.isArray(val) && val.length === 0)) return;
+        if (Array.isArray(val)) {
+          extraFilters.push({ column: col, operator: 'in', value: val });
+        } else if (typeof val === 'object' && val.min !== undefined && val.max !== undefined) {
+          extraFilters.push({ column: col, operator: '>=', value: val.min });
+          extraFilters.push({ column: col, operator: '<=', value: val.max });
+        } else {
+          extraFilters.push({ column: col, operator: '=', value: val });
+        }
+      });
+    }
+
+    fetchChartData(dashboardId, chart, extraFilters)
+      .then(setData)
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [dashboardId, chart, interactiveFilters]);
+
+  if (loading) return <div className="h-80 bg-gray-200 animate-pulse rounded" />;
+  if (error) return <div className="text-red-500">Error: {error}</div>;
+  if (!data) return null;
+
+  const chartData = data.labels.map((label, i) => ({
+    name: label,
+    value: data.data[i]
+  })).filter(item => item.value > 0); // Filter out zero values
+
+  // Calculate total for percentage display
+  const total = chartData.reduce((sum, item) => sum + item.value, 0);
+
+  return (
+    <div className="bg-white p-4 rounded shadow">
+      <h3 className="text-lg font-semibold mb-2">{chart.title}</h3>
+      {chartData.length === 0 ? (
+        <div className="h-80 flex items-center justify-center text-gray-500">
+          No data available for this chart
+        </div>
+      ) : (
+        <>
+          <ResponsiveContainer width="100%" height={400}>
+            <RePieChart>
+              <Pie
+                data={chartData}
+                dataKey="value"
+                nameKey="name"
+                cx="50%"
+                cy="50%"
+                outerRadius={120}  // Increased from 80 to 140
+                innerRadius={60}    // Added inner radius for donut effect (optional - remove if you want solid pie)
+                fill="#8884d8"
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                labelLine={false}
+                paddingAngle={2}    // Small gap between slices
+              >
+                {chartData.map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={COLORS[index % COLORS.length]}
+                    stroke="#fff"
+                    strokeWidth={2}
+                  />
+                ))}
+              </Pie>
+              <Tooltip content={<CustomTooltip />} />
+              <Legend 
+                content={renderLegend}
+                verticalAlign="bottom"
+                height={80}
+              />
+            </RePieChart>
+          </ResponsiveContainer>
+          
+          {/* Summary stats below chart */}
+          <div className="mt-4 pt-4 border-t border-gray-100 text-sm text-gray-600 flex justify-between">
+            <span>Total: <span className="font-semibold text-purple-600">{total}</span></span>
+            <span>Categories: <span className="font-semibold text-purple-600">{chartData.length}</span></span>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/admin/sidenav.tsx
+=========================================
+import Link from 'next/link';
+import NavLinks from '@/app/ui/admin/nav-links';
+import { HomeIcon } from '@heroicons/react/20/solid';
+import { handleSignOut } from '@/app/lib/actions';
+import { auth } from '@/auth';
+
+
+export default async function SideNav() {
+  const session = await auth();
+  const user = session?.user as any;
+
+  const userName = user?.username;
+
+  return (
+    <div className="flex h-full flex-col px-3 py-4 md:px-2">
+      <Link
+        className="mb-2 flex h-20 items-end justify-start rounded-md bg-violet-600 p-4 md:h-40"
+        href="/"
+      >
+        <div className="w-32 text-white md:w-40 font-bold">
+          {/* <AcmeLogo /> */}
+          Administration
+          <hr/>
+          <p className='mt-4 font-normal'>
+            Welcome, <b>{userName}</b>
+          </p>
+        </div>
+      </Link>
+      <div className="flex grow flex-row justify-between space-x-2 md:flex-col md:space-x-0 md:space-y-2">
+        <NavLinks />
+        <div className="hidden h-auto w-full grow rounded-md bg-gray-50 md:block"></div>
+        <form action={handleSignOut}>
+          <button className="flex h-12 w-full grow items-center justify-center gap-2 
+            rounded-md bg-gray-50 p-3 text-sm font-medium hover:bg-violet-100 hover:text-violet-600 
+            md:flex-none md:justify-start md:p-2 md:px-3">
+            <HomeIcon className="w-6" />
+            <div className="hidden md:block">Log Out</div>
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/admin/yaml_editor.tsx
+=========================================
+'use client';
+
+
+import { useState, useTransition } from 'react';
+import { updateDashboardYaml } from '@/app/lib/actions';
+
+export default function YamlEditor({ id, initialValue }: { id: number, initialValue: string }) {
+  const [code, setCode] = useState(initialValue);
+  const [isPending, startTransition] = useTransition();
+
+  const handleSave = () => {
+    startTransition(async () => {
+      await updateDashboardYaml(id, code);
+      // Optional: Add a toast notification here
+    });
+  };
+
+  return (
+    <div className="grow relative flex flex-col h-full">
+      {/* Hidden form that matches the ID in your Header button */}
+      <form 
+        id="yaml-form" 
+        action={handleSave} 
+        className="absolute inset-0"
+      >
+        <textarea
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+          className={`w-full h-full bg-transparent text-green-400 font-mono text-sm p-4 outline-none resize-none transition-opacity ${isPending ? 'opacity-50' : 'opacity-100'}`}
+          spellCheck={false}
+          placeholder="# Enter your YAML configuration here..."
+        />
+      </form>
+      
+      {isPending && (
+        <div className="absolute top-2 right-4 text-xs text-violet-400 animate-pulse">
+          Saving...
+        </div>
+      )}
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/admin/nav-links.tsx
+=========================================
+'use client';
+
+import {
+  MapIcon, ChartBarIcon, CircleStackIcon, DocumentIcon
+} from '@heroicons/react/24/outline';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import clsx from 'clsx';
+
+// Map of links to display in the side navigation.
+// Depending on the size of the application, this would be stored in a database.
+const links = [
+  { name: 'Dashboards', href: '/admin/dashboards', icon: CircleStackIcon },
+  { name: 'Documentation', href: '/admin/doc', icon: DocumentIcon }
+];
+
+export default function NavLinks() {
+  const pathname = usePathname();
+  return (
+    <>
+      {links.map((link) => {
+        const LinkIcon = link.icon;
+        return (
+          <Link
+            key={link.name}
+            href={link.href}
+            className={clsx(
+              'flex h-12 grow items-center justify-center gap-2 rounded-md bg-gray-50 p-3 text-sm font-medium hover:bg-violet-100 hover:text-violet-600 md:flex-none md:justify-start md:p-2 md:px-3',
+              {
+                'bg-violet-100 text-violet-600': pathname === link.href,
+              },
+            )}>
+            <LinkIcon className="w-6" />
+            <p className="hidden md:block">{link.name}</p>
+          </Link>
+        );
+      })}
+    </>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/admin/dashboard-breadcrumb.tsx
+=========================================
+import Link from 'next/link';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+
+export default function DashboardHeader({ code }: { code: string }) {
+  return (
+    <div className="mb-6">
+      <nav className="flex text-sm text-gray-500 mb-2">
+        <Link href="/admin/dashboards" className="hover:text-violet-600">Dashboards</Link>
+        <span className="mx-2">/</span>
+        <span className="text-gray-900 font-medium">{code}</span>
+      </nav>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/admin/dashboards">
+            <ArrowLeftIcon className="w-6 h-6 text-gray-600 hover:text-violet-600" />
+          </Link>
+          <h1 className="text-2xl font-bold">Dashboard: {code}</h1>
+        </div>
+        <div className="flex gap-2">
+          <button className="px-4 py-2 bg-gray-100 rounded-md text-sm font-medium hover:bg-gray-200">Add Data</button>
+          <button type="submit" form="yaml-form" className="px-4 py-2 bg-violet-600 text-white rounded-md text-sm font-medium hover:bg-violet-500">
+            Save Config
+          </button>
+          <button type="submit" form="yaml-form" className="px-4 py-2 bg-violet-600 text-white rounded-md text-sm font-medium hover:bg-violet-500">
+            Render Dashboard
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/admin/pagination.tsx
+=========================================
+'use client';
+
+import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import clsx from 'clsx';
+import Link from 'next/link';
+import { generatePagination } from '@/app/lib/utils';
+import { usePathname, useSearchParams } from 'next/navigation';
+
+export default function Pagination({ totalPages }: { totalPages: number }) {
+    // NOTE: Uncomment this code in Chapter 11
+    const pathname = usePathname();
+    const searchParams = useSearchParams();
+    const currentPage = Number(searchParams.get('page')) || 1;
+
+    const createPageURL = (pageNumber: number | string) => {
+        const params = new URLSearchParams(searchParams);
+        params.set('page', pageNumber?.toString());
+        return `${pathname}?${params.toString()}`;
+    };
+
+    const allPages = generatePagination(currentPage, totalPages);
+
+    return (
+        <>
+        {/*  NOTE: Uncomment this code in Chapter 11 */}
+            <div className="inline-flex">
+                <PaginationArrow
+                    direction="left"
+                    href={createPageURL(currentPage - 1)}
+                    isDisabled={currentPage <= 1}
+                />
+
+                <div className="flex -space-x-px">
+                    {allPages.map((page, index) => {
+                        let position: 'first' | 'last' | 'single' | 'middle' | undefined;
+
+                        if (index === 0) position = 'first';
+                        if (index === allPages.length - 1) position = 'last';
+                        if (allPages.length === 1) position = 'single';
+                        if (page === '...') position = 'middle';
+
+                        return (
+                        <PaginationNumber
+                            key={page}
+                            href={createPageURL(page)}
+                            page={page}
+                            position={position}
+                            isActive={currentPage === page}
+                        />
+                        );
+                    })}
+                </div>
+
+                <PaginationArrow
+                    direction="right"
+                    href={createPageURL(currentPage + 1)}
+                    isDisabled={currentPage >= totalPages}
+                />
+            </div>
+        </>
+    );
+    }
+
+    function PaginationNumber({
+        page,
+        href,
+        isActive,
+        position,
+    }: {
+        page: number | string;
+        href: string;
+        position?: 'first' | 'last' | 'middle' | 'single';
+        isActive: boolean;
+    }) {
+        const className = clsx(
+            'flex h-10 w-10 items-center justify-center text-sm border',
+            {
+            'rounded-l-md': position === 'first' || position === 'single',
+            'rounded-r-md': position === 'last' || position === 'single',
+            'z-10 bg-violet-600 border-violet-600 text-white': isActive,
+            'hover:bg-gray-100': !isActive && position !== 'middle',
+            'text-gray-300': position === 'middle',
+            },
+        );
+
+        return isActive || position === 'middle' ? (
+        <div className={className}>{page}</div>
+    ) : (
+        <Link href={href} className={className}>
+            {page}
+        </Link>
+    );
+    }
+
+    function PaginationArrow({
+        href,
+        direction,
+        isDisabled,
+    }: {
+        href: string;
+        direction: 'left' | 'right';
+        isDisabled?: boolean;
+    }) {
+        const className = clsx(
+            'flex h-10 w-10 items-center justify-center rounded-md border',
+            {
+            'pointer-events-none text-gray-300': isDisabled,
+            'hover:bg-gray-100': !isDisabled,
+            'mr-2 md:mr-4': direction === 'left',
+            'ml-2 md:ml-4': direction === 'right',
+            },
+        )  ;
+
+        const icon = direction === 'left' ? (
+            <ArrowLeftIcon className="w-4" />
+            ) : (
+            <ArrowRightIcon className="w-4" />
+            );
+
+    return isDisabled ? (
+        <div className={className}>{icon}</div>
+    ) : (
+        <Link className={className} href={href}>
+        {icon}
+        </Link>
+    );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/admin/dashboard-form-create.tsx
+=========================================
+'use client';
+
+import { Dashboard } from '@/app/lib/definitions';
+import Link from 'next/link';
+import { createDashboard, updateDashboard } from '@/app/lib/actions';
+import { Button } from '../buttons';
+import { useState } from 'react';
+import { 
+  DocumentTextIcon, 
+  XMarkIcon, 
+  CheckCircleIcon,
+  ExclamationCircleIcon 
+} from '@heroicons/react/24/outline';
+import { useRouter } from 'next/navigation';
+
+export default function DashboardFormCreate({ 
+  dashboard, 
+  onClose 
+}: { 
+  dashboard?: Dashboard;
+  onClose?: () => void; 
+}) {
+  const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [name, setName] = useState(dashboard?.name || '');
+  const [error, setError] = useState<string | null>(null);
+  const [touched, setTouched] = useState(false);
+
+  const isValid = name.trim().length >= 3;
+  const showError = touched && !isValid;
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    
+    if (!isValid) {
+      setTouched(true);
+      setError('Dashboard name must be at least 3 characters');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+    
+    try {
+      // Create a new FormData object
+      const formData = new FormData();
+      formData.append('name', name.trim());
+
+      let result = null;
+      
+      if (dashboard?.id) {
+        // Update existing dashboard
+        result = await updateDashboard(Number(dashboard.id), formData);
+      } else {
+        // Create new dashboard
+        result = await createDashboard(formData);
+      }
+      
+      // If we get a result object with errors/message, it's a validation error
+      if (result && typeof result === 'object') {
+        if ('errors' in result && result.errors) {
+          const errorMsg = Object.values(result.errors).flat().join(', ');
+          setError(errorMsg || 'Validation failed');
+          setIsSubmitting(false);
+          return;
+        }
+        
+        if ('message' in result && result.message) {
+          setError(result.message as string);
+          setIsSubmitting(false);
+          return;
+        }
+      }
+      
+      // Success - the actions will redirect, so we don't need to do anything here
+      // But in case they don't (e.g., in modal context), we handle it
+      router.refresh();
+      
+      if (onClose) {
+        onClose();
+      } else {
+        router.push('/admin/dashboards');
+      }
+      
+    } catch (err) {
+      // Check if this is a redirect (success case in Next.js)
+      // Next.js redirects throw errors with a digest property
+      if (err && typeof err === 'object' && 'digest' in err) {
+        // This is a redirect - success!
+        if (onClose) {
+          onClose();
+        }
+        return;
+      }
+      
+      // Real error
+      console.error('Form submission error:', err);
+      setError(err instanceof Error ? err.message : 'Failed to save dashboard');
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+        {/* Header */}
+        <div className="bg-linear-to-r from-purple-600 to-violet-600 px-6 py-4 flex justify-between items-center">
+          <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+            <DocumentTextIcon className="w-5 h-5" />
+            {dashboard ? 'Edit Dashboard' : 'Create New Dashboard'}
+          </h2>
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="text-white/80 hover:text-white transition-colors"
+              aria-label="Close"
+              disabled={isSubmitting}
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+
+        {/* Form - changed from action to onSubmit */}
+        <form onSubmit={handleSubmit} className="p-6">
+          <div className="mb-6">
+            <label 
+              htmlFor="name" 
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Dashboard Name <span className="text-red-500">*</span>
+            </label>
+            
+            <div className="relative">
+              <input
+                id="name"
+                name="name" 
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setTouched(true);
+                  setError(null);
+                }}
+                onBlur={() => setTouched(true)}
+                placeholder="e.g., Malaria Surveillance Dashboard"
+                className={`
+                  block w-full rounded-lg border py-3 px-4 
+                  text-gray-900 placeholder:text-gray-400
+                  focus:outline-none focus:ring-2 focus:ring-purple-500
+                  transition-all duration-200
+                  ${showError 
+                    ? 'border-red-300 bg-red-50 focus:ring-red-500' 
+                    : isValid && touched
+                    ? 'border-green-300 bg-green-50 focus:ring-green-500'
+                    : 'border-gray-300 hover:border-gray-400'
+                  }
+                `}
+                required
+                disabled={isSubmitting}
+                maxLength={100}
+              />
+              
+              {touched && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  {isValid ? (
+                    <CheckCircleIcon className="w-5 h-5 text-green-500" />
+                  ) : (
+                    <ExclamationCircleIcon className="w-5 h-5 text-red-500" />
+                  )}
+                </div>
+              )}
+            </div>
+
+            {showError && (
+              <p className="mt-2 text-sm text-red-600 flex items-center gap-1">
+                <ExclamationCircleIcon className="w-4 h-4" />
+                Name must be at least 3 characters
+              </p>
+            )}
+
+            <div className="mt-2 flex justify-between items-center text-xs text-gray-500">
+              <span>Min. 3 characters</span>
+              <span className={name.length > 90 ? 'text-yellow-600 font-medium' : ''}>
+                {name.length}/100
+              </span>
+            </div>
+          </div>
+
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+              <ExclamationCircleIcon className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
+          {/* Form Actions */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+            {onClose ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+            ) : (
+              <Link
+                href="/admin/dashboards"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </Link>
+            )}
+            
+            <Button 
+              type="submit" 
+              disabled={!isValid || isSubmitting}
+              className="min-w-30"
+            >
+              {isSubmitting ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Saving...
+                </span>
+              ) : (
+                <span>{dashboard ? 'Update' : 'Create'} Dashboard</span>
+              )}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/admin/search.tsx
+=========================================
+'use client';
+ 
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { useSearchParams, usePathname, useRouter } from 'next/navigation';
+import { useDebouncedCallback } from 'use-debounce';
+ 
+export default function Search({ placeholder }: { placeholder: string }) {
+
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+    const { replace } = useRouter();
+
+    const handleSearch = useDebouncedCallback((term) => {
+        const params = new URLSearchParams(searchParams);
+        params.set('page', '1');
+        if (term) {
+            params.set('query', term);
+        } else {
+            params.delete('query');
+        }
+        replace(`${pathname}?${params.toString()}`);
+    }, 300)
+    
+    return (
+        <div className="relative flex flex-1 shrink-0">
+        <label htmlFor="search" className="sr-only">
+            Search
+        </label>
+        <input
+            className="peer block w-full rounded-md border border-gray-200 py-2.25 pl-10 text-sm outline-2 placeholder:text-gray-500"
+            placeholder={placeholder}
+            onChange={(e) => {
+            handleSearch(e.target.value);
+            }}
+            defaultValue={searchParams.get('query')?.toString()}
+        />
+        <MagnifyingGlassIcon className="absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
+        </div>
+    );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/admin/dashboard-details.tsx
+=========================================
+import { Dashboard } from "@/app/lib/definitions";
+import DashboardHeader from "./dashboard-breadcrumb";
+import YamlEditor from "./yaml_editor";
+import yaml from 'js-yaml';
+
+export default function DashBoardDetails(props:{dashboard: Dashboard}){
+
+    const dashboard = props.dashboard;
+
+    let beautifiedYaml = "";
+    try {
+    // Parse the string and dump it back out with 2-space indentation
+    const jsonObject = yaml.load(dashboard.ui_yaml_script);
+    beautifiedYaml = yaml.dump(jsonObject, { indent: 2 });
+    } catch (e) {
+        // If parsing fails, fall back to the raw content
+        beautifiedYaml = dashboard.ui_yaml_script;
+    }
+
+    return (
+        <div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-200px)]">
+                {/* Left Column: Data Table Info */}
+                <div className="rounded-xl border bg-gray-50 p-4 overflow-auto">
+                <h2 className="text-lg font-semibold mb-4 text-gray-700">Data Preview</h2>
+                {dashboard.data_table_name ? (
+                    <div className="p-4 bg-white rounded border shadow-sm">
+                    <p className="text-sm font-mono text-violet-600">Table: {dashboard.data_table_name}</p>
+                    {/* Future: Add a mini table preview here */}
+                    </div>
+                ) : (
+                    <div className="flex items-center justify-center h-40 border-2 border-dashed rounded-lg border-gray-300">
+                    <p className="text-gray-400 italic">No data table defined.</p>
+                    </div>
+                )}
+                </div>
+
+                {/* Right Column: YAML Editor */}
+                <div className="flex flex-col rounded-xl border bg-gray-900 overflow-hidden">
+                <div className="px-4 py-2 bg-gray-800 text-gray-300 text-xs font-mono flex justify-between">
+                    <span>dashboard_config.yaml</span>
+                </div>
+                <YamlEditor 
+                    id={dashboard.id} 
+                    initialValue={beautifiedYaml || ''} 
+                />
+                </div>
+            </div>
+        </div>
+    )
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/admin/table.tsx
+=========================================
+
+import { getUserDashboardData } from '@/app/lib/actions';
+import { Dashboard, DashboardResponse } from '@/app/lib/definitions';
+import Pagination from './pagination';
+import { lusitana } from '../fonts';
+import { CreateDashboard, UpdateDashboard, DeleteDashboard, ViewDashboard } from '../buttons';
+
+// DataTable.use(DT);
+
+export default async function DataTable({
+  query,
+  currentPage,
+}: {
+  query: string;
+  currentPage: number;
+}) {
+  const dashboard_data_rows: DashboardResponse = await getUserDashboardData(query, currentPage);
+
+  return (
+    <div className={`${lusitana.className} mt-6 flow-root`}>  
+      <div className="inline-block min-w-full align-middle">
+        <div className="rounded-lg bg-gray-50 p-2 md:pt-0 table-container">
+          <table className="hidden min-w-full text-gray-900 md:table table-auto">
+            <thead className="rounded-lg text-left text-sm font-normal">
+              <tr>
+                <th scope="col" className="px-4 py-5 font-medium sm:pl-6 ">
+                  ID
+                </th>
+                <th scope="col" className="px-3 py-5 font-medium">
+                  NAME
+                </th>
+                <th scope="col" className="px-3 py-5 font-medium">
+                  CREATE DATE
+                </th>
+                <th scope="col" className="px-3 py-5 font-medium">
+                  LAST UPDATE
+                </th>
+                {/* 2. Actions Column Header */}
+                <th scope="col" className="relative py-3 pl-6 pr-3">
+                  <span className="sr-only">Actions</span>
+                </th>
+                {/* <th scope="col" className="px-3 py-5 font-medium">
+                  Scientific Name
+                </th> */}
+                {/* <th scope="col" className="px-3 py-5 font-medium">
+                  Taxon
+                </th> */}
+                {/* <th scope="col" className="px-3 py-5 font-medium">
+                  Kingdom
+                </th> */}
+              </tr>
+            </thead>
+            <tbody className="bg-white">
+              {dashboard_data_rows.data?.map((item_data) => (
+                <tr
+                  key={item_data.id}
+                  className="w-full border-b py-3 text-sm last-of-type:border-none [&:first-child>td:first-child]:rounded-tl-lg [&:first-child>td:last-child]:rounded-tr-lg [&:last-child>td:first-child]:rounded-bl-lg [&:last-child>td:last-child]:rounded-br-lg"
+                >
+                    <td className="px-3 py-3 break-all">
+                        {item_data.code}
+                    </td>
+                    <td className="px-3 py-3 break-all">
+                        {item_data.name}
+                    </td>
+                    <td className="px-3 py-3 break-all">
+                        {item_data.create_date}
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-3 break-all">
+                        {item_data.last_update_date}
+                    </td>
+                    {/* 3. Actions Column Body */}
+                    <td className="whitespace-nowrap py-3 pl-6 pr-3">
+                      <div className="flex justify-end gap-3">
+                        <ViewDashboard id={item_data.id} />
+                        <UpdateDashboard id={item_data.id} />
+                        <DeleteDashboard id={item_data.id} />
+                      </div>
+                    </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-5 flex w-full justify-center">
+          <Pagination totalPages={dashboard_data_rows.total_pages} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/admin/dashboard-create-trigger.tsx
+=========================================
+'use client';
+
+import { useState } from "react";
+import { Button } from "@/app/ui/buttons";
+import DashboardFormCreate from "@/app/ui/admin/dashboard-form-create";
+
+export default function CreateDashboardTrigger() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      <Button onClick={() => setIsOpen(true)}>+ New</Button>
+      
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white p-6 rounded-lg text-black">
+             <DashboardFormCreate onClose={() => setIsOpen(false)} />
+             <button onClick={() => setIsOpen(false)} className="mt-4 text-sm text-gray-500">
+               Cancel
+             </button>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/login-form.tsx
+=========================================
+"use client"
+import { lusitana } from '@/app/ui/fonts';
+import {
+  AtSymbolIcon,
+  KeyIcon,
+  ExclamationCircleIcon,
+} from '@heroicons/react/24/outline';
+import { ArrowRightIcon } from '@heroicons/react/20/solid';
+import { useActionState } from 'react';
+import { authenticate } from '@/app/lib/actions';
+import { Button } from './buttons';
+import Link from 'next/link';
+
+export default function LoginForm() {
+  const [errorMessage, formAction, isPending] = useActionState(
+    authenticate,
+    undefined,
+  )
+
+  return (
+    <div>
+      <form action={formAction} className="space-y-3">
+        <div className="flex-1 rounded-lg bg-gray-50 px-6 pb-4 pt-8">
+          <h1 className={`${lusitana.className} mb-3 text-2xl text-black`}>
+            Please log in to continue.
+          </h1>
+          <div className="w-full">
+            <div>
+              <label
+                className="mb-3 mt-5 block text-xs font-medium text-black"
+                htmlFor="username"
+              >
+                Username
+              </label>
+              <div className="relative">
+                <input
+                  className="peer block w-full rounded-md border border-gray-200 py-2.25 pl-10 text-sm  text-black outline-2 placeholder:text-gray-500"
+                  id="username"
+                  type="text"
+                  name="username"
+                  placeholder="Enter your username"
+                  required
+                />
+                <AtSymbolIcon className="pointer-events-none absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
+              </div>
+            </div>
+            <div className="mt-4">
+              <label
+                className="mb-3 mt-5 block text-xs font-medium text-black"
+                htmlFor="password"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  className="peer block w-full rounded-md border border-gray-200 py-2.25 pl-10 text-sm outline-2 placeholder:text-gray-500 text-black"
+                  id="password"
+                  type="password"
+                  name="password"
+                  placeholder="Enter password"
+                  required
+                  minLength={4}
+                />
+                <KeyIcon className="pointer-events-none absolute left-3 top-1/2 h-4.5 w-4.5 -translate-y-1/2 text-gray-500 peer-focus:text-gray-900" />
+              </div>
+            </div>
+          </div>
+          <Button className="mt-4 w-full" aria-disabled={isPending}>
+            Log in <ArrowRightIcon className="ml-auto h-5 w-5 text-white" />
+          </Button>
+          <div className="flex h-8 items-end space-x-1">
+            {errorMessage && (
+              <>
+                <ExclamationCircleIcon className="h-5 w-5 text-red-500" />
+                <p className="text-sm text-red-500">{errorMessage}</p>
+              </>
+            )}
+          </div>
+          <div className="mt-4 text-center text-sm text-gray-600">
+            Don't have an account?{' '}
+            <Link href="/signup" className="font-medium text-purple-600 hover:text-purple-500">
+              Sign up here
+            </Link>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/home/footer.tsx
+=========================================
+
+
+export default function Header(){
+    return(
+        <div  className="bg-white w-full border-b border-gray-200 dark:border-gray-600 mt-5 py-4 flex justify-center items-center">
+            <span>Copyright@2026</span>
+        </div>
+    )
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/home/header.tsx
+=========================================
+import Link from "next/link";
+import { Button } from "../buttons";
+import { ArrowRightIcon } from "@heroicons/react/16/solid";
+import Image from "next/image";
+
+export default function Header(){
+    return(
+        <div className="">
+            <nav className="bg-white fixed w-full z-20 top-0 inset-s-0 border-b border-gray-200 dark:border-gray-600">
+                <div className="max-w-7xl flex flex-wrap items-center justify-between mx-auto p-4">
+                    <Link href="/" className="flex items-center space-x-3 rtl:space-x-reverse">
+                        <Image src="/qgd_logo.svg" className="h-8" width="50" height="50" alt="QGD Logo"></Image>
+                        <span className="flex flex-col">
+                            <span className="self-left text-sm font-semibold whitespace-nowrap dark:text-white">
+                                Quick
+                            </span><br/>
+                            <span className="self-left text-sm font-semibold whitespace-nowrap dark:text-white">
+                                Geo-Dashboard
+                            </span>
+                        </span>
+                    </Link>
+                    <div className="flex md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse">
+                        <Link href="/login">
+                            <Button> 
+                                Log In
+                                <ArrowRightIcon className="ml-auto h-5 w-5 text-gray-50" />
+                            </Button>
+                        </Link>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    )
+}
+
+
+=========================================
+FILE: ./frontend/app/ui/signup-form.tsx
+=========================================
+"use client";
+
+import {
+  AtSymbolIcon,
+  KeyIcon,
+  UserIcon,
+  EnvelopeIcon,
+  ExclamationCircleIcon,
+} from '@heroicons/react/24/outline';
+import { ArrowRightIcon } from '@heroicons/react/20/solid';
+import { useActionState, useEffect, useState, useRef } from 'react';
+import { signup } from '@/app/lib/actions';
+import { Button } from './buttons';
+
+
+export default function SignupForm() {
+  const [errorMessage, formAction, isPending] = useActionState(
+    signup,
+    undefined,
+  );
+  const [passwordStrength, setPasswordStrength] = useState(0);
+  const [password, setPassword] = useState('');
+  const formRef = useRef<HTMLFormElement>(null);
+
+  // Password strength monitoring
+  useEffect(() => {
+    if (typeof window !== 'undefined' && password) {
+      // Dynamic import for zxcvbn to avoid server-side rendering issues
+      import('zxcvbn').then((zxcvbnModule) => {
+        const zxcvbn = zxcvbnModule.default;
+        const result = zxcvbn(password);
+        setPasswordStrength(result.score);
+      });
+    } else {
+      setPasswordStrength(0);
+    }
+  }, [password]);
+
+  return (
+    <div>
+        <form 
+          ref={formRef}
+          action={formAction} 
+          className="mt-8 space-y-6"
+        >
+          <div className="space-y-4 rounded-lg bg-white px-6 py-8 shadow-md">
+            {/* Full Name Field */}
+            <div>
+              <label
+                className="mb-2 block text-sm font-medium text-gray-700"
+                htmlFor="fullname"
+              >
+                Full Name
+              </label>
+              <div className="relative">
+                <input
+                  className="peer block w-full rounded-md border border-gray-300 py-2.5 pl-10 text-sm text-gray-900 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                  id="fullname"
+                  type="text"
+                  name="fullname"
+                  placeholder="John Doe"
+                  required
+                  disabled={isPending}
+                />
+                <UserIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 peer-focus:text-purple-500" />
+              </div>
+            </div>
+
+            {/* Username Field */}
+            <div>
+              <label
+                className="mb-2 block text-sm font-medium text-gray-700"
+                htmlFor="username"
+              >
+                Username
+              </label>
+              <div className="relative">
+                <input
+                  className="peer block w-full rounded-md border border-gray-300 py-2.5 pl-10 text-sm text-gray-900 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                  id="username"
+                  type="text"
+                  name="username"
+                  placeholder="johndoe"
+                  required
+                  disabled={isPending}
+                />
+                <AtSymbolIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 peer-focus:text-purple-500" />
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Must be unique, at least 3 characters
+              </p>
+            </div>
+
+            {/* Email Field */}
+            <div>
+              <label
+                className="mb-2 block text-sm font-medium text-gray-700"
+                htmlFor="email"
+              >
+                Email Address
+              </label>
+              <div className="relative">
+                <input
+                  className="peer block w-full rounded-md border border-gray-300 py-2.5 pl-10 text-sm text-gray-900 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                  id="email"
+                  type="email"
+                  name="email"
+                  placeholder="john@example.com"
+                  required
+                  disabled={isPending}
+                />
+                <EnvelopeIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 peer-focus:text-purple-500" />
+              </div>
+            </div>
+
+            {/* Password Field */}
+            <div>
+              <label
+                className="mb-2 block text-sm font-medium text-gray-700"
+                htmlFor="password"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  className="peer block w-full rounded-md border border-gray-300 py-2.5 pl-10 text-sm text-gray-900 outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500"
+                  id="password"
+                  type="password"
+                  name="password"
+                  placeholder="••••••••"
+                  required
+                  minLength={4}
+                  disabled={isPending}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <KeyIcon className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400 peer-focus:text-purple-500" />
+              </div>
+              <p className="mt-1 text-xs text-gray-500">
+                Must be at least 4 characters
+              </p>
+            </div>
+
+            {/* Password Strength Indicator */}
+            {password.length >= 4 && (
+              <div className="mt-2">
+                <div className="flex h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                  <div 
+                    className={`h-full transition-all duration-300 ${
+                      passwordStrength === 1 ? 'w-1/4 bg-red-500' :
+                      passwordStrength === 2 ? 'w-2/4 bg-yellow-500' :
+                      passwordStrength === 3 ? 'w-3/4 bg-blue-500' :
+                      passwordStrength === 4 ? 'w-full bg-green-500' : ''
+                    }`}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  {passwordStrength === 1 && 'Weak password'}
+                  {passwordStrength === 2 && 'Fair password'}
+                  {passwordStrength === 3 && 'Good password'}
+                  {passwordStrength === 4 && 'Strong password'}
+                </p>
+              </div>
+            )}
+
+            {/* Error/Success Message */}
+            <div className="flex min-h-10 items-end space-x-2">
+              {errorMessage && (
+                <div className="flex w-full items-center space-x-2 rounded-md bg-red-50 p-3 text-sm">
+                  <ExclamationCircleIcon className="h-5 w-5 shrink-0 text-red-500" />
+                  <p className="text-red-600">{errorMessage}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Submit Button */}
+            <Button 
+              className="w-full" 
+              aria-disabled={isPending}
+              disabled={isPending}
+            >
+              {isPending ? (
+                <span className="flex items-center justify-center">
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Creating Account...
+                </span>
+              ) : (
+                <span className="flex items-center justify-center">
+                  Sign up <ArrowRightIcon className="ml-2 h-5 w-5" />
+                </span>
+              )}
+            </Button>
+          </div>
+        </form>
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/admin/dashboards/page.tsx
+=========================================
+
+import Search from "@/app/ui/admin/search";
+import DataTable from "@/app/ui/admin/table";
+import { Suspense } from "react";
+import CreateDashboardTrigger from "@/app/ui/admin/dashboard-create-trigger";
+
+ 
+export default async function DashboardsPage(props: {
+    searchParams?: Promise<{
+      query?: string;
+      page?: string;
+    }>;
+  }) {
+  const searchParams = await props.searchParams;
+  const query = searchParams?.query || '';
+  const currentPage = Number(searchParams?.page) || 1;
+
+  return (
+    <div className="admin-bg">
+      <div className="bg-violet-600 text-white py-3 px-2 rounded-md 
+        mb-2 font-bold flex flex-row justify-between items-center">
+        My Dashboards
+        <CreateDashboardTrigger />
+      </div>
+      <div>
+          <div className="sm:col-span-4 md:col-span-3">
+              <Search placeholder="Search ..." />
+              <Suspense key={query + currentPage} fallback={<p>Loading...</p>}>
+                <DataTable query={query} currentPage={currentPage} />
+              </Suspense>
+          </div>
+        </div> 
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/admin/dashboards/[id]/page.tsx
+=========================================
+import { fetchDashboardById } from '@/app/lib/actions';
+import DashboardHeader from '@/app/ui/admin/dashboard-breadcrumb';
+import DashBoardDetails from '@/app/ui/admin/dashboard-details';
+import { notFound } from 'next/navigation';
+
+
+export default async function Page({ 
+  params 
+}: { 
+  params: Promise<{ id: string }> 
+}) {
+  const { id } = await params;
+  
+  const dashboard = await fetchDashboardById(Number(id));
+
+  if (!dashboard) {
+    notFound();
+  }
+
+  return (
+    <main className="p-4">
+      <DashboardHeader code={dashboard.name} />
+      <DashBoardDetails dashboard={dashboard}/>
+    </main>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/admin/dashboards/[id]/edit/page.tsx
+=========================================
+
+export default function DashboardEdit(){
+    return (
+        <div>
+            Dashboard edit page
+        </div>
+    )
+}
+
+
+=========================================
+FILE: ./frontend/app/admin/doc/page.tsx
+=========================================
+import React from 'react';
+import Link from 'next/link';
+
+export default function DocPage() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <h1 className="text-3xl font-bold text-gray-900">Documentation</h1>
+          <p className="mt-2 text-lg text-gray-600">
+            Learn how to create, configure, and share interactive geo-dashboards
+          </p>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Sidebar Navigation */}
+          <div className="lg:col-span-1">
+            <nav className="sticky top-8 space-y-2">
+              <a href="#getting-started" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                🚀 Getting Started
+              </a>
+              <a href="#authentication" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                🔐 Authentication
+              </a>
+              <a href="#dashboards" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                📊 Dashboards
+              </a>
+              <a href="#data-upload" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                📤 Data Upload
+              </a>
+              <a href="#yaml-configuration" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                ⚙️ YAML Configuration
+              </a>
+              <a href="#chart-types" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                📈 Chart Types
+              </a>
+              <a href="#map-configuration" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                🗺️ Map Configuration
+              </a>
+              <a href="#filters" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                🔍 Filters
+              </a>
+              <a href="#examples" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                📋 Examples
+              </a>
+              <a href="#api-reference" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                🔌 API Reference
+              </a>
+              <a href="#troubleshooting" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                🛠️ Troubleshooting
+              </a>
+            </nav>
+          </div>
+
+          {/* Documentation Content */}
+          <div className="lg:col-span-3 prose prose-purple max-w-none">
+            {/* Getting Started */}
+            <section id="getting-started" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">🚀 Getting Started</h2>
+              <p className="text-gray-700">
+                Welcome to the Geo-Dashboard tool! This platform allows you to transform your CSV or Excel data into interactive, 
+                shareable geo-dashboards using a simple YAML configuration language. No coding experience required!
+              </p>
+              
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Quick Start</h3>
+              <ol className="list-decimal pl-6 space-y-2 text-gray-700">
+                <li><strong>Create an account</strong> or log in to your existing account</li>
+                <li><strong>Create a new dashboard</strong> from the admin panel</li>
+                <li><strong>Upload your data</strong> (CSV or Excel format)</li>
+                <li><strong>Configure your dashboard</strong> using YAML</li>
+                <li><strong>Share your dashboard</strong> with a unique URL</li>
+              </ol>
+            </section>
+
+            {/* Authentication */}
+            <section id="authentication" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">🔐 Authentication</h2>
+              <p className="text-gray-700">
+                All dashboards are private by default. You need to be authenticated to create, edit, or delete dashboards.
+              </p>
+              
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Creating an Account</h3>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                <li>Navigate to the <Link href="/login" className="text-purple-600 hover:underline">login page</Link></li>
+                <li>Click on "Register" to create a new account</li>
+                <li>Provide a username, email, and password</li>
+                <li>Once registered, you can log in with your credentials</li>
+              </ul>
+
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mt-4">
+                <p className="text-blue-800 text-sm">
+                  <strong>💡 Note:</strong> Your session will remain active for 30 days. You can log out at any time.
+                </p>
+              </div>
+            </section>
+
+            {/* Dashboards */}
+            <section id="dashboards" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">📊 Dashboards</h2>
+              
+              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Creating a Dashboard</h3>
+              <ol className="list-decimal pl-6 space-y-2 text-gray-700">
+                <li>From the admin panel, click "New Dashboard"</li>
+                <li>Give your dashboard a meaningful name</li>
+                <li>A unique dashboard ID and sharing URL will be generated</li>
+              </ol>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Managing Dashboards</h3>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                <li><strong>View:</strong> Click on any dashboard in the list to see its public view</li>
+                <li><strong>Edit:</strong> Use the edit button to modify the dashboard configuration</li>
+                <li><strong>Delete:</strong> Remove dashboards you no longer need</li>
+                <li><strong>Share:</strong> Each dashboard has a unique URL that you can share with anyone</li>
+              </ul>
+            </section>
+
+            {/* Data Upload */}
+            <section id="data-upload" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">📤 Data Upload</h2>
+              
+              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Supported Formats</h3>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                <li><strong>CSV</strong> (Comma-separated values) - Recommended</li>
+                <li><strong>Excel</strong> (.xlsx, .xls) - Automatically converted</li>
+              </ul>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Upload Process</h3>
+              <ol className="list-decimal pl-6 space-y-2 text-gray-700">
+                <li>Navigate to your dashboard's edit page</li>
+                <li>Click on "Upload Data"</li>
+                <li>Select one or more files (CSV or Excel)</li>
+                <li>Optionally, provide column type overrides in JSON format:
+                  <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg mt-2 text-sm">
+{`{
+  "date_column": "DATE",
+  "value_column": "FLOAT",
+  "category_column": "TEXT"
+}`}
+                  </pre>
+                </li>
+                <li>The system will automatically create a database table and import your data</li>
+              </ol>
+
+              <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mt-4">
+                <p className="text-yellow-800 text-sm">
+                  <strong>⚠️ Important:</strong> Column names with spaces or special characters are automatically 
+                  sanitized. Use quotes in your YAML when referencing them (e.g., <code>"Specie counts"</code>).
+                </p>
+              </div>
+            </section>
+
+            {/* YAML Configuration */}
+            <section id="yaml-configuration" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">⚙️ YAML Configuration</h2>
+              
+              <p className="text-gray-700 mb-4">
+                The heart of your dashboard is the YAML configuration file. It defines the dashboard's name, layout, 
+                charts, map, and menus. YAML is a human-readable data format that's easy to learn.
+              </p>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Basic Structure</h3>
+              <pre className="bg-gray-800 text-gray-200 p-4 rounded-lg overflow-x-auto text-sm">
+{`geo-dashboard:
+  name: "My Dashboard Name"
+  template: side_content
+  filters:
+    - column: Year
+      operator: ">="
+      value: 2020
+  stats:
+    - type: bar
+      title: "My Chart Title"
+      x: category_column
+      y: count
+  map:
+    lat: latitude_column
+    lon: longitude_column
+  menus:
+    about: "Information about this dashboard"
+    stats: "Statistical summary"
+    map: "Map description"`}
+              </pre>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Available Templates</h3>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                <li><code>side_content</code> - Sidebar on the left, main content on the right</li>
+                <li><code>top_content</code> - Menus on top, charts below</li>
+                <li><code>content_side</code> - Main content on the left, sidebar on the right</li>
+                <li><code>content_bottom</code> - Menus on top, charts in the middle, map at bottom</li>
+              </ul>
+            </section>
+
+            {/* Chart Types */}
+            <section id="chart-types" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">📈 Chart Types</h2>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Bar Chart</h3>
+              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+{`- type: bar
+  title: "Sales by Category"
+  x: category
+  y: 
+    column: sales
+    aggregation: sum`}
+              </pre>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Line Chart</h3>
+              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+{`- type: line
+  title: "Trend Over Time"
+  x: year
+  y: 
+    column: value
+    aggregation: avg`}
+              </pre>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Pie Chart</h3>
+              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+{`- type: pie
+  title: "Distribution by Category"
+  x: category
+  y: count  # Simple count of rows`}
+              </pre>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Stacked Bar Chart</h3>
+              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+{`- type: stackedbar
+  title: "Species by Country"
+  x: country
+  y:
+    column: count
+    aggregation: sum
+  stackBy: species`}
+              </pre>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Aggregation Functions</h3>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                <li><code>sum</code> - Total sum of values</li>
+                <li><code>avg</code> - Average value</li>
+                <li><code>count</code> - Number of records</li>
+                <li><code>min</code> - Minimum value</li>
+                <li><code>max</code> - Maximum value</li>
+                <li><code>count distinct</code> - Number of unique values</li>
+              </ul>
+            </section>
+
+            {/* Map Configuration */}
+            <section id="map-configuration" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">🗺️ Map Configuration</h2>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Basic Map</h3>
+              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+{`map:
+  lat: latitude_column
+  lon: longitude_column`}
+              </pre>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Styled Map with Clustering</h3>
+              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+{`map:
+  lat: lat
+  lon: lon
+  clustering:
+    enabled: true
+    maxClusterRadius: 80
+    disableClusteringAtZoom: 14
+    limit: 15000
+  style:
+    colorBy: category_column
+    sizeBy: value_column
+    defaultColor: "#94a3b8"
+    defaultSize: 6
+    minSize: 4
+    maxSize: 14
+    rules:
+      - field: category
+        operator: "="
+        value: "Type A"
+        color: "#ef4444"
+        label: "Category A"
+      - field: category
+        operator: "="
+        value: "Type B"
+        color: "#3b82f6"
+        label: "Category B"
+    legend:
+      title: "Legend Title"
+      position: "bottomright"`}
+              </pre>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Clustering Options</h3>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                <li><code>enabled</code> - Enable/disable clustering (boolean)</li>
+                <li><code>maxClusterRadius</code> - Maximum radius of clusters in pixels</li>
+                <li><code>disableClusteringAtZoom</code> - Zoom level where clusters break apart</li>
+                <li><code>spiderfyOnMaxZoom</code> - Spread out clusters when zooming in</li>
+                <li><code>chunkedLoading</code> - Load markers in batches for performance</li>
+                <li><code>limit</code> - Maximum points to load per viewport</li>
+              </ul>
+            </section>
+
+            {/* Filters */}
+            <section id="filters" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">🔍 Filters</h2>
+
+              <p className="text-gray-700 mb-4">
+                Filters can be applied globally to all charts and the map, or specifically to individual charts.
+              </p>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Filter Operators</h3>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                <li><code>=</code> - Equal to</li>
+                <li><code>!=</code> - Not equal to</li>
+                <li><code>&gt;</code> - Greater than</li>
+                <li><code>&gt;=</code> - Greater than or equal to</li>
+                <li><code>&lt;</code> - Less than</li>
+                <li><code>&lt;=</code> - Less than or equal to</li>
+                <li><code>like</code> - Pattern matching (use % as wildcard)</li>
+                <li><code>in</code> - Value in a list</li>
+                <li><code>between</code> - Between two values</li>
+              </ul>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Global Filters</h3>
+              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+{`filters:
+  - column: year
+    operator: ">="
+    value: 2020
+  - column: country
+    operator: in
+    value: ["USA", "Canada", "Mexico"]`}
+              </pre>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Chart-Specific Filters</h3>
+              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+{`- type: bar
+  title: "Filtered Chart"
+  x: category
+  y: count
+  filters:
+    - column: status
+      operator: "="
+      value: "active"
+    - column: value
+      operator: ">"
+      value: 100`}
+              </pre>
+            </section>
+
+            {/* Examples */}
+            <section id="examples" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">📋 Examples</h2>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Leishmaniasis Vector Dashboard</h3>
+              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm overflow-x-auto">
+{`geo-dashboard:
+  name: "Leishmaniasis Vector Dashboard"
+  template: side_content
+  filters:
+    - column: Year
+      operator: ">="
+      value: 2000
+  stats:
+    - type: pie
+      title: "Top 10 VL Vectors"
+      x: species
+      y:
+        column: "Specie counts"
+        aggregation: sum
+      filters:
+        - column: Form
+          operator: "="
+          value: VL
+  map:
+    lat: Lat
+    lon: Lon
+    clustering:
+      enabled: false
+    style:
+      colorBy: Form
+      sizeBy: "Specie counts"
+      rules:
+        - field: Form
+          operator: "="
+          value: VL
+          color: "#ef4444"
+          label: "VL Vectors"
+        - field: Form
+          operator: "="
+          value: CL
+          color: "#3b82f6"
+          label: "CL Vectors"`}
+              </pre>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Bee-Plant Interactions Dashboard</h3>
+              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm overflow-x-auto">
+{`geo-dashboard:
+  name: "Bee-Plant Interactions"
+  template: side_content
+  filters:
+    - column: continent
+      operator: like
+      value: "%Africa%"
+  stats:
+    - type: bar
+      title: "Top 10 Plant Species"
+      x: plant_specie_name
+      y: count
+  map:
+    lat: lat
+    lon: lon
+    clustering:
+      enabled: true
+      maxClusterRadius: 80
+      disableClusteringAtZoom: 14
+      limit: 15000
+    style:
+      colorBy: family_name
+      sizeBy: id
+      rules:
+        - field: family_name
+          operator: "="
+          value: "Fabaceae"
+          color: "#fbbf24"
+          label: "Fabaceae"`}
+              </pre>
+            </section>
+
+            {/* API Reference */}
+            <section id="api-reference" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">🔌 API Reference</h2>
+
+              <p className="text-gray-700 mb-4">
+                All API endpoints are available under the <code>/qgd_api</code> base path.
+              </p>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Authentication</h3>
+              <ul className="space-y-3">
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">POST /token</code>
+                  <p className="text-sm text-gray-600 mt-1">Get access token (username/password)</p>
+                </li>
+              </ul>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Dashboards</h3>
+              <ul className="space-y-3">
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">GET /dashboards/</code>
+                  <p className="text-sm text-gray-600 mt-1">List all dashboards (paginated)</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">POST /dashboards/add</code>
+                  <p className="text-sm text-gray-600 mt-1">Create a new dashboard</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}</code>
+                  <p className="text-sm text-gray-600 mt-1">Get dashboard details</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">PUT /dashboards/{`{id}`}/config</code>
+                  <p className="text-sm text-gray-600 mt-1">Update dashboard YAML configuration</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/add_data</code>
+                  <p className="text-sm text-gray-600 mt-1">Upload data files (CSV/Excel)</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/delete</code>
+                  <p className="text-sm text-gray-600 mt-1">Delete a dashboard</p>
+                </li>
+              </ul>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Data Endpoints</h3>
+              <ul className="space-y-3">
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}/config</code>
+                  <p className="text-sm text-gray-600 mt-1">Get dashboard configuration (public)</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}/points</code>
+                  <p className="text-sm text-gray-600 mt-1">Get all map points as GeoJSON</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/points-in-view</code>
+                  <p className="text-sm text-gray-600 mt-1">Get points within bounding box (for clustering)</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/chart-data</code>
+                  <p className="text-sm text-gray-600 mt-1">Get aggregated data for a chart</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/distinct-values</code>
+                  <p className="text-sm text-gray-600 mt-1">Get distinct values for a column (for stacked charts)</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}/dashboard.js</code>
+                  <p className="text-sm text-gray-600 mt-1">Get generated JavaScript config</p>
+                </li>
+              </ul>
+            </section>
+
+            {/* Troubleshooting */}
+            <section id="troubleshooting" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">🛠️ Troubleshooting</h2>
+
+              <div className="space-y-4">
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900">Map not displaying points</h3>
+                  <ul className="list-disc pl-6 mt-2 text-sm text-gray-700">
+                    <li>Verify that your data has valid latitude/longitude columns</li>
+                    <li>Check that column names in YAML match exactly (case-sensitive)</li>
+                    <li>Ensure lat/lon values are within valid ranges (-90 to 90, -180 to 180)</li>
+                    <li>For large datasets, enable clustering in map configuration</li>
+                  </ul>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900">Charts showing no data</h3>
+                  <ul className="list-disc pl-6 mt-2 text-sm text-gray-700">
+                    <li>Verify that column names in YAML match your data</li>
+                    <li>Check if filters are too restrictive</li>
+                    <li>Ensure data was successfully uploaded to the database</li>
+                    <li>For pie charts with many categories, the backend automatically shows top 10 + "Others"</li>
+                  </ul>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900">YAML validation errors</h3>
+                  <ul className="list-disc pl-6 mt-2 text-sm text-gray-700">
+                    <li>Use online YAML validators to check syntax</li>
+                    <li>Ensure proper indentation (2 spaces per level)</li>
+                    <li>Quote strings containing special characters</li>
+                    <li>Check that all required fields are present (name, template, stats, map, menus)</li>
+                  </ul>
+                </div>
+
+                <div className="bg-white border border-gray-200 rounded-lg p-4">
+                  <h3 className="font-semibold text-gray-900">Performance issues with large datasets</h3>
+                  <ul className="list-disc pl-6 mt-2 text-sm text-gray-700">
+                    <li>Enable clustering on the map for millions of points</li>
+                    <li>Use TOP 10 aggregations in charts to limit data processed</li>
+                    <li>Add global filters to focus on relevant subsets</li>
+                    <li>Consider using count distinct instead of listing all values</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="bg-green-50 border-l-4 border-green-500 p-4 mt-6">
+                <p className="text-green-800 text-sm">
+                  <strong>💬 Need more help?</strong> Check the console logs for detailed error messages 
+                  or contact support with your dashboard ID and YAML configuration.
+                </p>
+              </div>
+            </section>
+
+            {/* Footer */}
+            <div className="border-t border-gray-200 pt-8 mt-12">
+              <p className="text-sm text-gray-500 text-center">
+                Version 1.0.0 | Last updated: March 2025 | © 2025 Geo-Dashboard Platform
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/admin/loading.tsx
+=========================================
+
+"use client";
+
+export default function LoadingSkeleton() {
+    return (
+        // <div className="loadingScreen">
+        //     <div className="loader"/> 
+        // </div>
+        <div className="neoLoadingScreen">
+            <p>Loading ...</p>
+        </div>
+    )
+}
+
+
+=========================================
+FILE: ./frontend/app/admin/layout.tsx
+=========================================
+import SideNav from '@/app/ui/admin/sidenav';
+ 
+export default function Layout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex h-screen flex-col md:flex-row md:overflow-hidden">
+      <div className="w-full flex-none md:w-64">
+        <SideNav />
+      </div>
+      <div className="grow p-6 md:overflow-y-auto md:p-12">{children}</div>
+    </div>
+  );
+}
+
+
+=========================================
+FILE: ./frontend/app/page.tsx
+=========================================
+import Image from "next/image";
+import Header from "./ui/home/header";
+import Footer from "./ui/home/footer";
+import { lusitana } from "./ui/fonts";
+import Link from "next/link";
+import { Button } from "./ui/buttons";
+import { DocumentArrowDownIcon, DocumentIcon } from "@heroicons/react/24/outline";
+import { DocumentChartBarIcon } from "@heroicons/react/24/solid";
+
+export default function Home() {
+  return (
+    <div>
+      <Header></Header>
+      <div className="mx-auto mt-5 flex flex-col items-center justify-center mcontent">
+        <div className="py-10">
+            <div className="max-w-7xl bg-white p-4 rounded-md">
+              <h1 className={`${lusitana.className} mb-4 text-xl md:text-2xl text-center py-4`}>
+                Welcome to the Quick Geo Dashboard creation tool
+              </h1>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+                <div>
+                  <Image src="/QGD.drawio.png" alt="Banner image" width="600" height="500" className=""></Image>
+                </div>
+                <div className={`${lusitana.className} mt-4 mb-4 text-wrap text-justify`}>
+                  <p>
+                    The goal of this tool is to enable non-technical users to quickly transform 
+                    tabular data (CSV or Excel) into interactive, shareable geo-dashboards. A domain-specific 
+                    language based on YAML allows users to define the dashboard's layout, charts, map layers, 
+                    and textual content without writing code. The system automatically ingests the data, creates 
+                    a database table, and generates a lightweight JavaScript configuration that drives a modern, 
+                    responsive frontend built with Next.js, Leaflet, and Recharts.
+                  </p>
+                  <p className="mt-3">
+                    You can consult our documentation using the link bellow:
+                    <Link href="/admin/documentation">
+                      <Button> 
+                        Go to Documentation
+                        <DocumentIcon className="ml-auto h-5 w-5 text-gray-50" />
+                      </Button>
+                    </Link>
+                  </p>
+                  <p className="mt-3">
+                    You can consult free dashboard examples using the link bellow
+                    <Link href="#">
+                      <Button> 
+                        See examples of dashboards
+                        <DocumentChartBarIcon className="ml-auto h-5 w-5 text-gray-50" />
+                      </Button>
+                    </Link>
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+      </div>
+      <Footer></Footer>
+    </div>
+  );
+}
+
+
+
+=========================================
+FILE: ./frontend/app/layout.tsx
+=========================================
+import type { Metadata } from "next";
+import { Geist, Geist_Mono, Roboto } from "next/font/google";
+import "./globals.css";
+import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
+import { ThemeProvider } from '@mui/material/styles';
+import theme from '@/app/theme';
+
+
+const geistSans = Geist({
+	variable: "--font-geist-sans",
+	subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+	variable: "--font-geist-mono",
+	subsets: ["latin"],
+});
+
+const roboto = Roboto({
+	weight: ['300', '400', '500', '700'],
+	subsets: ['latin'],
+	display: 'swap',
+	variable: '--font-roboto',
+})
+
+
+export const metadata: Metadata = {
+	title: "Quick Geo-Dashboard",
+	description: "Create quick geo dashboards and maps for your csv or excel data",
+}; 
+
+export default function RootLayout({children}: Readonly<{children: React.ReactNode;}>) {
+	return (
+    		<html lang="en">
+      			<body className={
+				`${geistSans.variable} 
+				 ${geistMono.variable} 
+				 ${roboto.variable} antialiased`}>
+      				<AppRouterCacheProvider>
+					<ThemeProvider theme={theme}>
+        					{children}
+					</ThemeProvider>
+				</AppRouterCacheProvider>
+      			</body>
+    		</html>
+  	);
+}
+
+
+
+=========================================
+FILE: ./frontend/app/lib/utils.ts
+=========================================
+
+export const generatePagination = (currentPage: number, totalPages: number) => {
+    // If the total number of pages is 7 or less,
+    // display all pages without any ellipsis.
+    if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    // If the current page is among the first 3 pages,
+    // show the first 3, an ellipsis, and the last 2 pages.
+    if (currentPage <= 3) {
+    return [1, 2, 3, '...', totalPages - 1, totalPages];
+    }
+
+    // If the current page is among the last 3 pages,
+    // show the first 2, an ellipsis, and the last 3 pages.
+    if (currentPage >= totalPages - 2) {
+    return [1, 2, '...', totalPages - 2, totalPages - 1, totalPages];
+    }
+
+    // If the current page is somewhere in the middle,
+    // show the first page, an ellipsis, the current page and its neighbors,
+    // another ellipsis, and the last page.
+    return [
+    1,
+    '...',
+    currentPage - 1,
+    currentPage,
+    currentPage + 1,
+    '...',
+    totalPages,
+    ];
+};
+
+
+=========================================
+FILE: ./frontend/app/lib/client_actions.ts
+=========================================
+
+import { auth } from '@/auth';
+import { DASHBOARD_ADD_URL, DASHBOARD_CHART_DATA_URL, DASHBOARD_CONFIG_URL, DASHBOARD_FILTERED_MAP_POINTS_URL, DASHBOARD_MAP_POINTS_URL } from './constants';
+import { ChartDef, ChartDataResponse, DashboardConfig, FilterCondition } from './definitions';
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+
+
+export async function fetchDashboardConfig(dashboardId: string): Promise<DashboardConfig> {
+  const res = await fetch(DASHBOARD_CONFIG_URL(Number(dashboardId)));
+  if (!res.ok) throw new Error('Failed to fetch dashboard config');
+  return res.json();
+}
+
+export async function fetchChartData(
+  dashboardId: string,
+  chartDef: ChartDef,
+  extraFilters?: FilterCondition[]
+): Promise<ChartDataResponse> {
+  // Merge chart-specific filters with interactive filters
+  const filters = [...(chartDef.filters || []), ...(extraFilters || [])];
+  
+  // Create the request payload - just include filters, don't nest another body
+  const payload = {
+    type: chartDef.type,
+    title: chartDef.title,
+    x: chartDef.x,
+    y: chartDef.y,
+    filters: filters
+  };
+  
+  const response = await fetch(DASHBOARD_CHART_DATA_URL(Number(dashboardId)), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+  
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Chart data error:', errorText);
+    throw new Error(`Failed to fetch chart data: ${response.status}`);
+  }
+  
+  return response.json();
+}
+
+
+export async function fetchMapPoints(dashboardId: string): Promise<GeoJSON.FeatureCollection> {
+  // Map filters are applied on backend based on YAML config
+  // No need to pass them here
+  const response = await fetch(DASHBOARD_MAP_POINTS_URL(Number(dashboardId)));
+  if (!response.ok) throw new Error('Failed to fetch map points');
+  return response.json();
+}
+
+
+export async function fetchFilteredMapPoints(
+  dashboardId: string,
+  filters: FilterCondition[]
+): Promise<GeoJSON.FeatureCollection> {
+  const response = await fetch(DASHBOARD_FILTERED_MAP_POINTS_URL(Number(dashboardId)), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ filters })
+  });
+  if (!response.ok) throw new Error('Failed to fetch filtered map points');
+  return response.json();
+}
+
+
+
+
+=========================================
+FILE: ./frontend/app/lib/actions.ts
+=========================================
+'use server'
+
+import { AuthError } from 'next-auth';
+import { DASHBOARD_ADD_URL, DASHBOARD_CONFIG_URL, DASHBOARD_DELETE_URL, DASHBOARD_EDIT_URL, DASHBOARD_GET_URL, SIGNUP_URL, USER_DASH_DATA_ALL } from './constants';
+import { cookies } from 'next/headers'
+import { signIn, signOut, auth } from "@/auth";
+import { Dashboard, DashboardResponse, DashboardConfig } from "./definitions";
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+import { z } from 'zod';
+
+
+const DashboardSchema = z.object({
+  name: z.string().min(3, "Name must be at least 3 characters"),
+  code: z.string().min(1, "Code is required"),
+});
+
+
+export type State = {
+    errors?: {
+      status?: string[];
+    };
+    message?: string | null;
+};
+
+
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    // We add redirectTo here to be explicit
+    await signIn('credentials', {
+      ...Object.fromEntries(formData),
+      redirectTo: '/admin/dashboards',
+    });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      // Handle actual login failures
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return 'Invalid username or password.';
+        default:
+          return 'Something went wrong.';
+      }
+    }
+    throw error;
+  }
+}
+
+
+export async function getToken(){
+  const cookieStore = await cookies()
+  const base_token = cookieStore.get('auth-token')
+  const token = base_token?.value.split("__").join(" ")
+  // return (session?.user as any).accessToken; // eslint-disable-line
+  return token
+}
+
+
+export async function handleSignOut() {
+  // 1. Clear your custom cookie first
+  const cookieStore = await cookies();
+  cookieStore.delete('auth-token');
+  
+  // 2. Trigger the NextAuth signout
+  // This will throw a redirect error which Next.js handles automatically
+  await signOut({ redirectTo: '/' });
+}
+
+
+// Add to lib/actions.ts
+
+export async function signup(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    const fullname = formData.get('fullname');
+    const username = formData.get('username');
+    const email = formData.get('email');
+    const password = formData.get('password');
+
+    // Basic validation
+    if (!fullname || !username || !email || !password) {
+      return 'All fields are required.';
+    }
+
+    if (password.toString().length < 4) {
+      return 'Password must be at least 4 characters.';
+    }
+
+    // Prepare user data
+    const userData = {
+      fullname: fullname.toString(),
+      username: username.toString(),
+      email: email.toString(),
+      password: password.toString(),
+    };
+
+    // Call your Python backend
+    const response = await fetch(SIGNUP_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(userData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      
+      // Handle specific error cases
+      if (response.status === 400) {
+        if (errorData.detail === "Username already registered") {
+          return 'Username already exists. Please choose another.';
+        }
+        return errorData.detail || 'Registration failed. Please check your information.';
+      }
+      
+      return 'Something went wrong. Please try again.';
+    }
+
+    //  Log in after successful registration
+    try {
+      await signIn('credentials', {
+        username: username.toString(),
+        password: password.toString(),
+        redirect: false, // Important: set redirect to false
+      });
+      
+      // Manually redirect after successful sign in
+      redirect('/admin/dashboards');
+      
+    } catch (loginError) {
+      console.error('Auto-login failed:', loginError);
+      // If auto-login fails, redirect to login page
+      redirect('/login?registered=true');
+    }
+
+    return undefined; // No error, success
+  } catch (error) {
+    if ((error as any)?.digest?.startsWith('NEXT_REDIRECT')) {
+      throw error; // Re-throw redirects so Next.js can handle them
+    }
+    
+    console.error('Signup error:', error);
+    return 'An unexpected error occurred. Please try again.';
+  }
+}
+
+
+
+export async function getUserDashboardData(query: string, currentPage: number) {
+  const session = await auth();
+  
+  if (!session?.user?.accessToken) { // eslint-disable-line
+    throw new Error("Unauthorized: No access token found");
+  }
+
+  const limit = 10;
+  const skip = (currentPage - 1) * limit;
+
+  const url = new URL(USER_DASH_DATA_ALL);
+  url.searchParams.append("skip", skip.toString());
+  url.searchParams.append("limit", limit.toString());
+  url.searchParams.append("query", query.toString());
+  
+  // if (query) url.searchParams.append("query", query);
+
+  try {
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${session.user.accessToken}`, // eslint-disable-line
+        "Content-Type": "application/json",
+      },
+      cache: 'no-store' // Use this if data changes frequently
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch dashboards: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return data as DashboardResponse;
+  } catch (error) {
+    console.error("Dashboard Fetch Error:", error);
+    return []; // Return empty array to prevent UI crash
+  }
+}
+
+
+export async function fetchDashboardById(id: number) {
+  const session = await auth();
+
+  if (!session?.user?.accessToken) return null; // eslint-disable-line
+
+  try {
+    const response = await fetch(DASHBOARD_GET_URL(id), {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${session.user.accessToken}`, // eslint-disable-line
+        'Content-Type': 'application/json',
+      },
+      // CRITICAL: Always get fresh data for the editor
+      cache: 'no-store', 
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    return data as Dashboard;
+  } catch (error) {
+    console.error('Database Error:', error);
+    return null;
+  }
+}
+
+
+export async function deleteDashboard(id: number) {
+  const session = await auth();
+  
+  try {
+    const response = await fetch(DASHBOARD_DELETE_URL(id), {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${session?.user?.accessToken}`, // eslint-disable-line
+      },
+    });
+
+    if (!response.ok) throw new Error('Failed to delete dashboard');
+
+    // Clear the cache for the dashboard list so the deleted item disappears
+    revalidatePath('/admin/dashboards');
+    return { message: 'Deleted Dashboard.' };
+  } catch (error) {
+    return { message: 'Database Error: Failed to Delete Dashboard.' };
+  }
+}
+
+
+export async function createDashboard(formData: FormData) {
+  console.log("WE ARE IN ...");
+  const session = await auth();
+  const validatedFields = DashboardSchema.safeParse(Object.fromEntries(formData.entries()));
+
+  if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
+
+  const response = await fetch(DASHBOARD_ADD_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${session?.user?.accessToken}`, // eslint-disable-line
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(validatedFields.data),
+  });
+
+  if (!response.ok) throw new Error('Failed to create dashboard');
+
+  revalidatePath('/admin/dashboards');
+  redirect('/admin/dashboards');
+}
+
+export async function updateDashboard(id: number, formData: FormData) {
+  const session = await auth();
+  const validatedFields = DashboardSchema.safeParse(Object.fromEntries(formData.entries()));
+
+  if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
+
+  const response = await fetch(DASHBOARD_EDIT_URL(id), {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${session?.user?.accessToken}`, // eslint-disable-line
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(validatedFields.data),
+  });
+
+  if (!response.ok) throw new Error('Failed to update dashboard');
+
+  revalidatePath('/admin/dashboards');
+  redirect('/admin/dashboards');
+}
+
+
+export async function updateDashboardYaml(id: number, yamlContent: string) {
+  const session = await auth();
+  
+  if (!session?.user?.accessToken) { // eslint-disable-line
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const response = await fetch(DASHBOARD_CONFIG_URL(id), {
+      method: 'PUT', // Your Python decorator is @app.put
+      headers: {
+        'Authorization': `Bearer ${session.user.accessToken}`, // eslint-disable-line
+        'Content-Type': 'application/json',
+      },
+      // Ensure the key matches your Python "DashboardConfigUpdate" schema
+      body: JSON.stringify({ yaml_content: yamlContent }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Failed to update configuration');
+    }
+
+    // Refresh the page data so the UI reflects the saved state
+    revalidatePath(`/admin/dashboards/${id}`);
+    
+    return { success: true };
+  } catch (error) {
+    console.error('YAML Update Error:', error);
+    return { success: false, message: 'Failed to save configuration.' };
+  }
+}
+
+
+export async function getDashboardConfig(id: string): Promise<DashboardConfig> {
+  const res = await fetch(DASHBOARD_CONFIG_URL(Number(id)));
+  if (!res.ok) throw new Error('Dashboard not found');
+  return res.json();
+}
+
+
+=========================================
+FILE: ./frontend/app/lib/constants.ts
+=========================================
+export const BASE_API_URL = process.env.BASE_API_URL;
+export const BASE_PUBLIC_API_URL = process.env.NEXT_PUBLIC_BASE_PUBLIC_API_URL;
+// internal endpoints
+export const AUTH_URL = BASE_API_URL + "/token";
+export const SIGNUP_URL = BASE_API_URL + "/users";
+export const USERINFO_URL = BASE_API_URL + "/users/details/me";
+export const USER_DASH_DATA_ALL = BASE_API_URL + "/dashboards";
+export const DASHBOARD_ADD_URL = BASE_API_URL + "/dashboards/add";
+export const DASHBOARD_GET_URL = (id: number) => BASE_API_URL + `/dashboards/${id}`;
+export const DASHBOARD_EDIT_URL = (id: number) => BASE_API_URL + `/dashboards/${id}/edit`;
+export const DASHBOARD_DELETE_URL = (id: number) => BASE_API_URL + `/dashboards/${id}/delete`;
+export const DASHBOARD_ADD_DATA_URL = (id: number) => BASE_API_URL + `/dashboards/${id}/add_data`;
+// public endpoints
+export const DASHBOARD_CONFIG_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/config`;
+export const DASHBOARD_MAP_POINTS_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/points`;
+export const DASHBOARD_MAP_POINTS_IN_VIEW_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/points-in-view`;
+export const DASHBOARD_FILTERED_MAP_POINTS_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/filtered-points`;
+export const DASHBOARD_CHART_DATA_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/chart-data`;
+export const DASHBOARD_CHART_DISTINCT_VALS = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/distinct-values`
+export const DASHBOARD_JS_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/dashboard.js`;
+
+
+
+=========================================
+FILE: ./frontend/app/lib/data.ts
+=========================================
+
+
+export const dashboards = [
+    {
+        "id": 1,
+        "user_id": 1,
+        "name": "first-dashboard",
+        "code": "2a7e8cf2-985f-48bc-8522-5ba5c485c9a4",
+        "data_table_name": "dash_2a7e8cf2_985f_48bc_8522_5ba5c485c9a4_data",
+        "ui_yaml_script": "",
+        "ui_js_script": "",
+        "create_date": "2026-03-06T00:57:29.076437",
+        "last_update_date": "2026-03-06T00:57:29.076448"
+    },
+    {
+    "id": 2,
+    "user_id": 1,
+    "name": "second-dashboard",
+    "code": "3a7e8cf2-985f-48bc-8522-5ba5c485c9a4",
+    "data_table_name": "dash_3a7e8cf2_985f_48bc_8522_5ba5c485c9a4_data",
+    "ui_yaml_script": "",
+    "ui_js_script": "",
+    "create_date": "2026-04-06T00:57:29.076437",
+    "last_update_date": "2026-04-06T00:57:29.076448"
+  }
+]
+
+
+=========================================
+FILE: ./frontend/app/lib/definitions.ts
+=========================================
+
+
+export interface Dashboard {
+    id: number,
+    user_id: number,
+    name: string,
+    code: string,
+    data_table_name: string,
+    ui_yaml_script: string,
+    ui_js_script: string,
+    create_date: string,
+    last_update_date: string
+}
+
+export interface DashboardResponse {
+  data: Dashboard[];
+  total_count: number;
+  total_pages: number;
+}
+
+
+export interface YAxisDef {
+  column?: string;
+  aggregation?: 'sum' | 'avg' | 'count' | 'min' | 'max';
+}
+
+
+export type FilterOperator = '=' | '!=' | '>' | '>=' | '<' | '<=' | 'like' | 'in' | 'between';
+
+export interface FilterCondition {
+  column: string;
+  operator: FilterOperator;
+  value: string | number | (string | number)[];  // Array for 'in' operator, two values for 'between'
+  value2?: string | number;  // For 'between' operator
+}
+
+
+export interface ChartDef {
+  type: 'bar' | 'line' | 'pie' | 'stackedbar';
+  title: string;
+  x: string;
+  y: YAxisDef | string; // string for simple count
+  filters?: FilterCondition[]; 
+  stackBy?: string;
+}
+
+
+export interface MenusDef {
+  about: string;   // markdown content
+  stats: string;   // markdown content for stats menu
+  map: string;     // markdown content for map menu
+}
+
+export interface InteractiveFilterDef {
+  column: string;
+  label: string;
+  type: 'dropdown' | 'multiselect' | 'range';
+  // For range, you may optionally provide min/max (otherwise derived from data)
+  min?: number;
+  max?: number;
+}
+
+export interface DashboardConfig {
+  name: string;
+  template: 'side_content' | 'top_content' | 'content_side' | 'content_bottom';
+  stats: ChartDef[];
+  filters?: FilterCondition[]; // Global filters apply to all charts/map
+  interactiveFilters?: InteractiveFilterDef[]; 
+  map: MapDef;
+  menus: MenusDef;
+}
+
+// For chart data API response
+export interface ChartDataResponse {
+  labels: string[];
+  data: number[];
+}
+
+export interface MapStyleRule {
+  field: string;
+  operator?: '=' | '!=' | 'like' | 'in';
+  value: string | number | string[];
+  color: string;
+  label?: string;
+}
+
+export interface MapStyle {
+  colorBy?: string;
+  sizeBy?: string;
+  defaultColor: string;
+  defaultSize: number;
+  minSize?: number;
+  maxSize?: number;
+  rules: MapStyleRule[];
+  legend?: {
+    title?: string;
+    position?: 'topleft' | 'topright' | 'bottomleft' | 'bottomright';
+    grouped?: boolean;
+  };
+}
+
+export interface MapClustering {
+  enabled: boolean;
+  maxClusterRadius?: number;
+  disableClusteringAtZoom?: number;
+  spiderfyOnMaxZoom?: boolean;
+  showCoverageOnHover?: boolean;
+  zoomToBoundsOnClick?: boolean;
+  chunkedLoading?: boolean;
+  chunkInterval?: number;
+  chunkDelay?: number;
+  limit?: number;
+}
+
+export interface MapDef {
+  lat: string;
+  lon: string;
+  layer?: string;
+  style?: MapStyle;
+  clustering?: MapClustering;
+  filters?: FilterCondition[];
+}
+
+
+
+

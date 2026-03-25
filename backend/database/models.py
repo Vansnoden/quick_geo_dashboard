@@ -5,7 +5,7 @@ from sqlalchemy import UUID, Boolean, Column, Date, ForeignKey, Integer, String,
 from sqlalchemy.orm import relationship
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
-from .session import Base
+from database.session import Base
 import datetime
 from geoalchemy2 import Geometry
 import uuid

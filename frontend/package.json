@@ -9,7 +9,12 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
     "@heroicons/react": "^2.2.0",
+    "@mui/material": "^7.3.9",
+    "@mui/material-nextjs": "^7.3.9",
     "@recharts/devtools": "^0.0.9",
     "@types/geojson": "^7946.0.16",
     "@types/leaflet": "^1.9.21",
