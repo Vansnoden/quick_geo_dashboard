@@ -1,13 +1,11 @@
-
 "use client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function LoadingSkeleton() {
-    return (
-        // <div className="loadingScreen">
-        //     <div className="loader"/> 
-        // </div>
-        <div className="neoLoadingScreen">
-            <p>Loading ...</p>
-        </div>
-    )
+        return (
+                <div className="neoLoadingScreen">
+                        <Skeleton className="w-32 h-8" />
+                        <p className="ml-2">Loading ...</p>
+                </div>
+        );
 }

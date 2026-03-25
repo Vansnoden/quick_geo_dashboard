@@ -1,19 +1,21 @@
-import LoginForm from "../ui/login-form";
+import LoginForm from "@/app/ui/login-form";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
- 
 export default function LoginPage() {
-  return (
-    <div className="home-bg">
-      <div className="flex items-center justify-center md:h-screen">
-        <div className="relative mx-auto flex w-full max-w-100 flex-col space-y-2.5 p-4 md:-mt-32">
-          <div className="flex h-20 w-full items-end rounded-lg bg-violet-300 p-3 md:h-36">
-            <div className="w-32 text-black md:w-36">
-              Log In
-            </div>
-          </div>
-          <LoginForm />
-        </div>
-      </div>
-    </div>
-  );
+        return (
+                <div className="home-bg">
+                        <div className="flex items-center justify-center md:h-screen">
+                                <Card className="w-full max-w-md mx-auto">
+                                        <CardHeader className="bg-violet-300 rounded-t-lg">
+                                                <CardTitle className="text-black text-2xl text-center">
+                                                        Log In
+                                                </CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="pt-6">
+                                                <LoginForm />
+                                        </CardContent>
+                                </Card>
+                        </div>
+                </div>
+        );
 }

@@ -1,42 +1,29 @@
-import SignupForm from '@/app/ui/signup-form';
-import Link from 'next/link';
-import { lusitana } from '@/app/ui/fonts';
+import SignupForm from "@/app/ui/signup-form";
+import Link from "next/link";
+import { lusitana } from "@/app/ui/fonts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function SignupPage() {
-    return (
-        // <div className="home-bg">
-        //     <div className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-        //     <div className="w-full max-w-md space-y-8">
-        //         <div>
-        //         <h2 className={`${lusitana.className} text-center text-3xl font-bold tracking-tight text-gray-900`}>
-        //             Create your account
-        //         </h2>
-        //         <p className="mt-2 text-center text-sm text-gray-600">
-        //             Or{' '}
-        //             <Link href="/login" className="font-medium text-purple-600 hover:text-purple-500">
-        //             sign in to existing account
-        //             </Link>
-        //         </p>
-        //         </div>
-        <div className="home-bg">
-            <div className="flex items-center justify-center md:h-screen">
-                <div className="relative mx-auto flex w-full max-w-100 flex-col space-y-2.5 p-4 md:-mt-32">
-                    <div className="flex h-20 w-full items-end rounded-lg bg-violet-300 p-3 md:h-36">
-                        <div className="text-black w-full max-w-md">
-                            <h2 className={`${lusitana.className} text-center text-3xl font-bold tracking-tight text-gray-900`}>
-                                Create your account
-                            </h2>
-                            <p className="mt-2 text-center text-sm text-black">
-                                Or{' '}
-                                <Link href="/login" className="font-medium text-violet-500 hover:text-white">
-                                sign in to existing account
-                                </Link>
-                            </p>
+        return (
+                <div className="home-bg">
+                        <div className="flex items-center justify-center md:h-screen">
+                                <Card className="w-full max-w-md mx-auto">
+                                        <CardHeader className="bg-violet-300 rounded-t-lg">
+                                                <CardTitle className="text-black text-2xl text-center">
+                                                        Create your account
+                                                </CardTitle>
+                                                <p className="mt-2 text-center text-sm text-black">
+                                                        Or{' '}
+                                                        <Link href="/login" className="font-medium text-violet-500 hover:text-white">
+                                                                sign in to existing account
+                                                        </Link>
+                                                </p>
+                                        </CardHeader>
+                                        <CardContent className="pt-6">
+                                                <SignupForm />
+                                        </CardContent>
+                                </Card>
                         </div>
-                    </div>
-                    <SignupForm />
                 </div>
-            </div>
-        </div>
-    )
+        );
 }

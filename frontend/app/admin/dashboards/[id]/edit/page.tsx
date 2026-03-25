@@ -1,8 +1,3 @@
-
-export default function DashboardEdit(){
-    return (
-        <div>
-            Dashboard edit page
-        </div>
-    )
+export default function DashboardEdit() {
+        return <div>Dashboard edit page</div>;
 }
