@@ -1,9 +1,11 @@
+import { Box, Typography } from '@mui/material';
 
-
-export default function Header(){
-    return(
-        <div  className="bg-white w-full border-b border-gray-200 dark:border-gray-600 mt-5 py-4 flex justify-center items-center">
-            <span>Copyright@2026</span>
-        </div>
-    )
+export default function Footer() {
+        return (
+                <Box sx={{ bgcolor: 'background.paper', borderTop: 1, borderColor: 'divider', py: 2, textAlign: 'center' }}>
+                        <Typography variant="body2" color="textSecondary">
+                                Copyright © {new Date().getFullYear()}
+                        </Typography>
+                </Box>
+        );
 }

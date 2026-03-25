@@ -1,26 +1,18 @@
 'use client';
 
 import { useState } from "react";
-import { Button } from "@/app/ui/buttons";
+import { Button } from "@mui/material";
 import DashboardFormCreate from "@/app/ui/admin/dashboard-form-create";
 
 export default function CreateDashboardTrigger() {
-  const [isOpen, setIsOpen] = useState(false);
+        const [isOpen, setIsOpen] = useState(false);
 
-  return (
-    <>
-      <Button onClick={() => setIsOpen(true)}>+ New</Button>
-      
-      {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white p-6 rounded-lg text-black">
-             <DashboardFormCreate onClose={() => setIsOpen(false)} />
-             <button onClick={() => setIsOpen(false)} className="mt-4 text-sm text-gray-500">
-               Cancel
-             </button>
-          </div>
-        </div>
-      )}
-    </>
-  );
+        return (
+                <>
+                        <Button variant="contained" onClick={() => setIsOpen(true)}>
+                                + New
+                        </Button>
+                        {isOpen && <DashboardFormCreate onClose={() => setIsOpen(false)} />}
+                </>
+        );
 }
