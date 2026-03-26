@@ -68,6 +68,7 @@ export interface DashboardConfig {
   interactiveFilters?: InteractiveFilterDef[]; 
   map: MapDef;
   menus: MenusDef;
+  download?: boolean;
 }
 
 // For chart data API response

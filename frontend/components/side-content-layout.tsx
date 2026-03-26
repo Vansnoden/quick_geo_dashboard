@@ -6,6 +6,8 @@ import MenuSection from "@/components/menu-section";
 import ChartList from "@/components/chart-list";
 import dynamic from 'next/dynamic';
 import InteractiveFilters from '@/components/interactive-filters';
+import { filterValuesToConditions } from '@/lib/filter-helpers';
+import DownloadButton from '@/components/data-download-button';
 
 // Dynamic import with a consistent height loader to prevent layout shift
 const MapView = dynamic(() => import('@/components/map-view'), { 
@@ -129,6 +131,12 @@ export default function SideContentLayout({ config, dashboardId }: Props) {
                     onFilterChange={handleInteractiveFilterChange}
                 />
                 )}
+		{config.download && (
+		    <DownloadButton
+			dashboardId={dashboardId}
+			filters={filterValuesToConditions(interactiveFilterValues)}
+		    />
+		)}
             </aside>
 
             {/* Main content */}

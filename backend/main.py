@@ -34,6 +34,8 @@ from numpy.linalg import norm
 import ast
 from fastapi.responses import StreamingResponse
 from pydantic.json_schema import SkipJsonSchema
+import csv
+from io import StringIO
 
 
 
@@ -877,3 +879,58 @@ def get_range_bounds(
     # Return as numbers
     return {"min": float(min_val) if isinstance(min_val, (int, float)) else min_val, 
             "max": float(max_val) if isinstance(max_val, (int, float)) else max_val}
+
+
+@app.post("/dashboards/{dashboard_id}/export")
+def export_filtered_data(
+    dashboard_id: int,
+    request: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    dashboard = db.query(models.Dashboard).filter(models.Dashboard.id == dashboard_id).first()
+    if not dashboard or not dashboard.data_table_name:
+        raise HTTPException(status_code=404, detail="Dashboard or data table not found")
+
+    # Parse YAML for global filters
+    import yaml
+    config = yaml.safe_load(dashboard.ui_yaml_script) if dashboard.ui_yaml_script else {}
+    global_filters = config.get('geo-dashboard', {}).get('filters', [])
+
+    # Get interactive filters from request
+    request_filters = request.get('filters', [])
+
+    # Merge all filters
+    all_filters = merge_filters(global_filters, request_filters)
+
+    # Build WHERE clause
+    where_clause, params = build_where_clause(all_filters, dashboard.data_table_name)
+
+    # Get all column names from the table
+    inspector = inspect(db.bind)
+    columns = [col['name'] for col in inspector.get_columns(dashboard.data_table_name)]
+
+    # Build query
+    quoted_columns = [f'"{col}"' for col in columns]
+    select_clause = ", ".join(quoted_columns)
+    query = f"SELECT {select_clause} FROM {dashboard.data_table_name}"
+    if where_clause:
+        query += f" WHERE {where_clause}"
+
+    result = db.execute(text(query), params).fetchall()
+
+    # Create CSV in memory
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(columns)  # header
+    for row in result:
+        writer.writerow(row)
+
+    csv_content = output.getvalue()
+    output.close()
+
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=dashboard_{dashboard_id}_export.csv"}
+    )
+
