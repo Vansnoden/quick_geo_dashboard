@@ -934,3 +934,36 @@ def export_filtered_data(
         headers={"Content-Disposition": f"attachment; filename=dashboard_{dashboard_id}_export.csv"}
     )
 
+
+@app.get("/dashboards/{dashboard_id}/data-info")
+def get_data_info(
+    dashboard_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_active_user)
+):
+    dashboard = db.query(models.Dashboard).filter(models.Dashboard.id == dashboard_id).first()
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+    if not dashboard.data_table_name:
+        raise HTTPException(status_code=404, detail="No data table associated")
+
+    # Get total rows
+    result = db.execute(text(f"SELECT COUNT(*) FROM {dashboard.data_table_name}"))
+    total_rows = result.scalar()
+
+    # Get column info
+    inspector = inspect(db.bind)
+    columns = inspector.get_columns(dashboard.data_table_name)
+    # Filter out the internal 'id' column
+    columns_info = [{"name": col["name"], "type": str(col["type"])} for col in columns if col["name"] != "id"]
+
+    # Get sample rows (first 5)
+    result = db.execute(text(f"SELECT * FROM {dashboard.data_table_name} LIMIT 5"))
+    sample_rows = [dict(row._mapping) for row in result]
+
+    return {
+        "total_rows": total_rows,
+        "columns": columns_info,
+        "sample": sample_rows,
+        "table_name": dashboard.data_table_name
+    }

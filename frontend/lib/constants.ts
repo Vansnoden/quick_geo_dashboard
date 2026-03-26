@@ -21,3 +21,4 @@ export const DASHBOARD_JS_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboar
 export const DASHBOARD_ADD_DATA_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/add_data`;
 export const DASHBOARD_RANGE_BOUNDS = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/range-bounds`;
 export const DASHBOARD_EXPORT_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/export`;
+export const DASHBOARD_DATA_INFO_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/data-info`;
