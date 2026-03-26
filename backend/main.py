@@ -243,16 +243,12 @@ def read_dashboards(
 @app.post("/dashboards/add", response_model=schemas.Dashboard, include_in_schema=True)
 def create_dashboard(
     user: Annotated[User, Depends(get_current_active_user)],
-    dashboard: schemas.DashboardCreate, 
+    dashboard: schemas.DashboardCreateRequest, 
     db: Session = Depends(get_db)):
-    if user and dashboard.name:
-        return crud.create_dashboard(
-            db,
-            user,
-            dashboard,
-        )
-    if validate_user(user):
-        return crud.create_user(db=db, user=user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Unauthorized access")
+    dashboard_create = schemas.DashboardCreate(user_id=user.id, name=dashboard.name)
+    return crud.create_dashboard(db, user, dashboard_create)
 
 
 @app.get("/dashboards/{dashboard_id}", response_model=schemas.Dashboard, include_in_schema=True)
@@ -835,3 +831,49 @@ def get_filtered_map_points(
             continue
     
     return {"type": "FeatureCollection", "features": features}
+
+
+@app.post("/dashboards/{dashboard_id}/range-bounds")
+def get_range_bounds(
+    dashboard_id: int,
+    request: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    """Get min and max values for a column (numeric or date)"""
+    dashboard = db.query(models.Dashboard).filter(models.Dashboard.id == dashboard_id).first()
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+    
+    column = request.get('column')
+    if not column:
+        raise HTTPException(status_code=400, detail="Column name required")
+    
+    # Parse YAML for global filters (optional)
+    config = yaml.safe_load(dashboard.ui_yaml_script) if dashboard.ui_yaml_script else {}
+    global_filters = config.get('geo-dashboard', {}).get('filters', [])
+    request_filters = request.get('filters', [])
+    all_filters = merge_filters(global_filters, request_filters)
+    
+    where_clause, params = build_where_clause(all_filters, dashboard.data_table_name)
+    
+    table = dashboard.data_table_name
+    col_quoted = f'"{column}"'
+    
+    # Use MIN/MAX aggregation
+    query = f"SELECT MIN({col_quoted}) as min_val, MAX({col_quoted}) as max_val FROM {table}"
+    if where_clause:
+        query += f" WHERE {where_clause}"
+    
+    result = db.execute(text(query), params).fetchone()
+    
+    min_val = result.min_val
+    max_val = result.max_val
+    
+    # Convert to appropriate types
+    if min_val is None or max_val is None:
+        min_val = 0
+        max_val = 0
+    
+    # Return as numbers
+    return {"min": float(min_val) if isinstance(min_val, (int, float)) else min_val, 
+            "max": float(max_val) if isinstance(max_val, (int, float)) else max_val}

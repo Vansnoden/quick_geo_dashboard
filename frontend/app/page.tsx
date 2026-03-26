@@ -1,9 +1,9 @@
 import Image from "next/image";
-import Header from "./ui/home/header";
-import Footer from "./ui/home/footer";
-import { lusitana } from "./ui/fonts";
+import Header from "@/components/header";
+import Footer from "@/components/footer";
+import { lusitana } from "@/components/fonts";
 import Link from "next/link";
-import { Button } from "./ui/buttons";
+import { Button } from "@/components/buttons";
 import { DocumentArrowDownIcon, DocumentIcon } from "@heroicons/react/24/outline";
 import { DocumentChartBarIcon } from "@heroicons/react/24/solid";
 

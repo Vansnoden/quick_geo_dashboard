@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from 'next-auth/providers/credentials';
 import { z } from 'zod';
-import { AUTH_URL, USERINFO_URL } from './app/lib/constants';
+import { AUTH_URL, USERINFO_URL } from '@/lib/constants';
 import { cookies } from 'next/headers';
 import { authConfig } from './auth.config'; 
 

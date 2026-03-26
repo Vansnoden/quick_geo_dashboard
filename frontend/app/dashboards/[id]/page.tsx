@@ -1,5 +1,5 @@
-import { getDashboardConfig } from '@/app/lib/actions';
-import DashboardRenderer from '@/app/ui/dashboard/dashboard-renderer';
+import { getDashboardConfig } from '@/lib/actions';
+import DashboardRenderer from '@/components/dashboard-renderer';
 import { notFound } from 'next/navigation';
 
 interface PageProps {
