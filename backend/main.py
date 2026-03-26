@@ -281,13 +281,13 @@ def edit_dashboard(
     return updated
 
 
-@app.post("/dashboards/{dashboard_id}/delete")
+@app.delete("/dashboards/{dashboard_id}/delete")
 def delete_dashboard(
     dashboard_id: int, 
     db: Session = Depends(get_db),
     user: User = Depends(get_current_active_user)
 ):
-    success = crud.delete_dashboard(db, dashboard_id, user.id)
+    success = crud.delete_dashboard(db, dashboard_id)
     
     if not success:
         raise HTTPException(
