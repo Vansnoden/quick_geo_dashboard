@@ -4,15 +4,15 @@ import { AuthError } from 'next-auth';
 import { DASHBOARD_ADD_URL, DASHBOARD_CONFIG_URL, DASHBOARD_DELETE_URL, DASHBOARD_EDIT_URL, DASHBOARD_GET_URL, SIGNUP_URL, USER_DASH_DATA_ALL } from './constants';
 import { cookies } from 'next/headers'
 import { signIn, signOut, auth } from "@/auth";
-import { Dashboard, DashboardResponse, DashboardConfig } from "./definitions";
+import { Dashboard, DashboardResponse, DashboardConfig } from "@/lib/definitions";
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 
 
 const DashboardSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters"),
-  code: z.string().min(1, "Code is required"),
+	name: z.string().min(3, "Name must be at least 3 characters"),
+  	code: z.string().min(1, "Code is required"),
 });
 
 

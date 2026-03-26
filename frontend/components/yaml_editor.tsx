@@ -2,7 +2,7 @@
 
 
 import { useState, useTransition } from 'react';
-import { updateDashboardYaml } from '@/app/lib/actions';
+import { updateDashboardYaml } from '@/lib/actions';
 
 export default function YamlEditor({ id, initialValue }: { id: number, initialValue: string }) {
   const [code, setCode] = useState(initialValue);

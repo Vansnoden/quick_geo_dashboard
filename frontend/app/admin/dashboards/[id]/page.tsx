@@ -1,6 +1,6 @@
-import { fetchDashboardById } from '@/app/lib/actions';
-import DashboardHeader from '@/app/ui/admin/dashboard-breadcrumb';
-import DashBoardDetails from '@/app/ui/admin/dashboard-details';
+import { fetchDashboardById } from '@/lib/actions';
+import DashboardHeader from '@/components/dashboard-breadcrumb';
+import DashBoardDetails from '@/components/dashboard-details';
 import { notFound } from 'next/navigation';
 
 

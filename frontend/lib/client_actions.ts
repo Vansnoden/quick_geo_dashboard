@@ -1,7 +1,7 @@
 
 import { auth } from '@/auth';
-import { DASHBOARD_ADD_URL, DASHBOARD_CHART_DATA_URL, DASHBOARD_CONFIG_URL, DASHBOARD_FILTERED_MAP_POINTS_URL, DASHBOARD_MAP_POINTS_URL } from './constants';
-import { ChartDef, ChartDataResponse, DashboardConfig, FilterCondition } from './definitions';
+import { DASHBOARD_ADD_URL, DASHBOARD_CHART_DATA_URL, DASHBOARD_CONFIG_URL, DASHBOARD_FILTERED_MAP_POINTS_URL, DASHBOARD_MAP_POINTS_URL } from '@/lib/constants';
+import { ChartDef, ChartDataResponse, DashboardConfig, FilterCondition } from '@/lib/definitions';
 
 
 export async function fetchDashboardConfig(dashboardId: string): Promise<DashboardConfig> {

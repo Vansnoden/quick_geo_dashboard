@@ -1,9 +1,9 @@
 
-import { getUserDashboardData } from '@/app/lib/actions';
-import { Dashboard, DashboardResponse } from '@/app/lib/definitions';
-import Pagination from './pagination';
-import { lusitana } from '../fonts';
-import { CreateDashboard, UpdateDashboard, DeleteDashboard, ViewDashboard } from '../buttons';
+import { getUserDashboardData } from '@/lib/actions';
+import { Dashboard, DashboardResponse } from '@/lib/definitions';
+import Pagination from '@/components/pagination';
+import { lusitana } from '@/components/fonts';
+import { CreateDashboard, UpdateDashboard, DeleteDashboard, ViewDashboard } from '@/components/buttons';
 
 // DataTable.use(DT);
 

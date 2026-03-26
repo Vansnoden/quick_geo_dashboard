@@ -1,8 +1,8 @@
 
-import Search from "@/app/ui/admin/search";
-import DataTable from "@/app/ui/admin/table";
+import Search from "@/components/search";
+import DataTable from "@/components/table";
 import { Suspense } from "react";
-import CreateDashboardTrigger from "@/app/ui/admin/dashboard-create-trigger";
+import CreateDashboardTrigger from "@/components/dashboard-create-trigger";
 
  
 export default async function DashboardsPage(props: {

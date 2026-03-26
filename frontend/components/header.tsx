@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Button } from "../buttons";
+import { Button } from "@/components/buttons";
 import { ArrowRightIcon } from "@heroicons/react/16/solid";
 import Image from "next/image";
 

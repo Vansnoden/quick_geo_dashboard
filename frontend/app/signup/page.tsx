@@ -1,23 +1,9 @@
-import SignupForm from '@/app/ui/signup-form';
+import SignupForm from '@/components/signup-form';
 import Link from 'next/link';
-import { lusitana } from '@/app/ui/fonts';
+import { lusitana } from '@/components/fonts';
 
 export default function SignupPage() {
     return (
-        // <div className="home-bg">
-        //     <div className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
-        //     <div className="w-full max-w-md space-y-8">
-        //         <div>
-        //         <h2 className={`${lusitana.className} text-center text-3xl font-bold tracking-tight text-gray-900`}>
-        //             Create your account
-        //         </h2>
-        //         <p className="mt-2 text-center text-sm text-gray-600">
-        //             Or{' '}
-        //             <Link href="/login" className="font-medium text-purple-600 hover:text-purple-500">
-        //             sign in to existing account
-        //             </Link>
-        //         </p>
-        //         </div>
         <div className="home-bg">
             <div className="flex items-center justify-center md:h-screen">
                 <div className="relative mx-auto flex w-full max-w-100 flex-col space-y-2.5 p-4 md:-mt-32">
