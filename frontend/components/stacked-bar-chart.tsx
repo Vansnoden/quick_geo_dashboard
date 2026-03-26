@@ -1,9 +1,9 @@
 'use client';
 
+import { useEffect, useState, useMemo } from 'react';
 import { fetchChartData } from '@/lib/client_actions';
 import { DASHBOARD_CHART_DISTINCT_VALS } from '@/lib/constants';
 import { ChartDef, FilterCondition } from '@/lib/definitions';
-import { useEffect, useState, useMemo } from 'react';
 import {
     BarChart as ReBarChart,
     Bar,
@@ -21,7 +21,6 @@ interface Props {
     interactiveFilters?: Record<string, any>;
 }
 
-// Color palette for stacked categories
 const STACK_COLORS = [
     '#ef4444', // Red
     '#3b82f6', // Blue  
@@ -38,58 +37,66 @@ interface StackedDataPoint {
     [key: string]: string | number;
 }
 
-// Helper to convert interactive filters to FilterCondition array
 const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
     return useMemo(() => {
         const conditions: FilterCondition[] = [];
         if (!interactiveFilters) return conditions;
 
-        Object.entries(interactiveFilters).forEach(([key, val]) => {
-            if (val === '' || val === undefined || val === null) return;
-      
-            // Handle range filters (they come as column_min and column_max)
+        const processedColumns = new Set<string>();
+
+        for (const [key, val] of Object.entries(interactiveFilters)) {
+            if (val === '' || val === undefined || val === null) continue;
+
             if (key.endsWith('_min')) {
-                const column = key.replace('_min', '');
-                const maxVal = interactiveFilters[`${column}_max`];
+                const column = key.slice(0, -4);
+                const maxKey = `${column}_max`;
+                const maxVal = interactiveFilters[maxKey];
                 if (maxVal !== undefined && maxVal !== '' && maxVal !== null) {
-                    conditions.push({ 
-                        column, 
-                        operator: 'between', 
-                        value: [Number(val), Number(maxVal)] 
+                    conditions.push({
+                        column,
+                        operator: 'between',
+                        value: [Number(val), Number(maxVal)]
                     });
+                    processedColumns.add(column);
                 } else {
-                    conditions.push({ column, operator: '>=', value: Number(val) });
+                    conditions.push({
+                        column,
+                        operator: '>=',
+                        value: Number(val)
+                    });
+                    processedColumns.add(column);
                 }
             } 
             else if (key.endsWith('_max')) {
-                // Skip - handled by _min
-                return;
-            }
-            else if (Array.isArray(val) && val.length > 0) {
-                conditions.push({ column: key, operator: 'in', value: val });
-            } 
-            else if (typeof val === 'object' && val !== null) {
-                // Handle case where range might still be an object (backward compatibility)
-                if ('min' in val && val.min !== undefined) {
-                    conditions.push({ column: key, operator: '>=', value: Number(val.min) });
-                }
-                if ('max' in val && val.max !== undefined) {
-                    conditions.push({ column: key, operator: '<=', value: Number(val.max) });
+                const column = key.slice(0, -4);
+                if (!processedColumns.has(column)) {
+                    conditions.push({
+                        column,
+                        operator: '<=',
+                        value: Number(val)
+                    });
+                    processedColumns.add(column);
                 }
             }
-            else if (val !== '') {
-                conditions.push({ column: key, operator: '=', value: String(val) });
+            else {
+                if (Array.isArray(val) && val.length > 0) {
+                    conditions.push({ column: key, operator: 'in', value: val });
+                } 
+                else if (typeof val === 'object' && val !== null) {
+                    if ('min' in val && val.min !== undefined) {
+                        conditions.push({ column: key, operator: '>=', value: Number(val.min) });
+                    }
+                    if ('max' in val && val.max !== undefined) {
+                        conditions.push({ column: key, operator: '<=', value: Number(val.max) });
+                    }
+                } 
+                else if (val !== '') {
+                    conditions.push({ column: key, operator: '=', value: String(val) });
+                }
             }
-        });
-    
-        // Remove duplicates (for between operator, we want just one condition)
-        return conditions.filter((f, index, self) => 
-            index === self.findIndex(t => 
-                t.column === f.column && 
-                t.operator === f.operator && 
-                JSON.stringify(t.value) === JSON.stringify(f.value)
-            )
-        );
+        }
+
+        return conditions;
     }, [interactiveFilters]);
 };
 
@@ -99,98 +106,92 @@ export default function StackedBarChart({ chart, dashboardId, interactiveFilters
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
   
-    // Convert interactive filters to FilterCondition array
     const filterConditions = useFilterConditions(interactiveFilters);
 
     useEffect(() => {
         const fetchStackedData = async () => {
-        if (!chart.stackBy) {
-            setError('stackBy is required for stacked bar charts');
-            setLoading(false);
-            return;
-        }
-
-        setLoading(true);
-        setError(null);
-      
-        try {
-            // Merge chart filters with interactive filters
-            const allBaseFilters = [
-                ...(chart.filters || []),
-                ...filterConditions
-            ];
-
-            // 1. Get unique categories to stack (with filters applied)
-            const catResponse = await fetch(DASHBOARD_CHART_DISTINCT_VALS(Number(dashboardId)), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    column: chart.stackBy,
-                    filters: allBaseFilters  // Apply filters to category query
-                })
-            });
-        
-            if (!catResponse.ok) {
-                throw new Error('Failed to fetch categories');
-            }
-        
-            const uniqueCategories = await catResponse.json();
-        
-            // Filter out any null/undefined categories
-            const validCategories = uniqueCategories.filter((cat: any) => cat != null);
-                setCategories(validCategories);
-
-            if (validCategories.length === 0) {
-                setData([]);
+            if (!chart.stackBy) {
+                setError('stackBy is required for stacked bar charts');
                 setLoading(false);
                 return;
             }
 
-            // 2. Fetch data for each category (with filters + category filter)
-            const allData: { [key: string]: any } = {};
-        
-            await Promise.all(validCategories.map(async (category: string) => {
-                // Create filter for the current category
-                const categoryFilter: FilterCondition = {
-                    column: chart.stackBy!,
-                    operator: '=',
-                    value: category
-                };
-          
-                // Combine all filters: chart filters + interactive filters + category filter
-                const allFilters = [
+            setLoading(true);
+            setError(null);
+      
+            try {
+                // Merge chart filters with interactive filters
+                const allBaseFilters = [
                     ...(chart.filters || []),
-                    ...filterConditions,
-                    categoryFilter
+                    ...filterConditions
                 ];
-          
-                const response = await fetchChartData(dashboardId, {
-                    ...chart,
-                    filters: allFilters
-                });
-          
-                response.labels.forEach((label: string, idx: number) => {
-                    if (!allData[label]) {
-                        allData[label] = { name: label };
-                    }
-                    allData[label][category] = response.data[idx];
-                });
-            }));
 
-            // Convert to array and sort if needed
-            const dataArray = Object.values(allData);
-            setData(dataArray);
+                // 1. Get unique categories to stack (with filters applied)
+                const catResponse = await fetch(DASHBOARD_CHART_DISTINCT_VALS(Number(dashboardId)), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        column: chart.stackBy,
+                        filters: allBaseFilters
+                    })
+                });
         
-        } catch (err: any) {
-            console.error('Stacked bar chart error:', err);
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
+                if (!catResponse.ok) {
+                    throw new Error('Failed to fetch categories');
+                }
+        
+                const uniqueCategories = await catResponse.json();
+                const validCategories = uniqueCategories.filter((cat: any) => cat != null);
+                setCategories(validCategories);
 
-    fetchStackedData();
-    }, [dashboardId, chart, filterConditions]); // Add filterConditions to dependencies
+                if (validCategories.length === 0) {
+                    setData([]);
+                    setLoading(false);
+                    return;
+                }
+
+                // 2. Fetch data for each category (with filters + category filter)
+                const allData: { [key: string]: any } = {};
+        
+                await Promise.all(validCategories.map(async (category: string) => {
+                    const categoryFilter: FilterCondition = {
+                        column: chart.stackBy!,
+                        operator: '=',
+                        value: category
+                    };
+          
+                    const allFilters = [
+                        ...(chart.filters || []),
+                        ...filterConditions,
+                        categoryFilter
+                    ];
+          
+                    const response = await fetchChartData(dashboardId, {
+                        ...chart,
+                        filters: allFilters
+                    });
+          
+                    response.labels.forEach((label: string, idx: number) => {
+                        if (!allData[label]) {
+                            allData[label] = { name: label };
+                        }
+                        allData[label][category] = response.data[idx];
+                    });
+                }));
+
+                const dataArray = Object.values(allData);
+                setData(dataArray);
+        
+            } catch (err: any) {
+                console.error('Stacked bar chart error:', err);
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStackedData();
+    }, [dashboardId, chart, filterConditions]);
 
     if (loading) return <div className="h-64 bg-gray-200 animate-pulse rounded" />;
     if (error) return <div className="text-red-500">Error: {error}</div>;
@@ -199,11 +200,11 @@ export default function StackedBarChart({ chart, dashboardId, interactiveFilters
     return (
         <div className="bg-white p-4 rounded shadow">
             <h3 className="text-lg font-semibold mb-2">{chart.title}</h3>
-                <ResponsiveContainer width="100%" height={400}>
-                    <ReBarChart 
-                        data={data} 
-                        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                    >
+            <ResponsiveContainer width="100%" height={400}>
+                <ReBarChart 
+                    data={data} 
+                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                         dataKey="name" 
@@ -227,16 +228,16 @@ export default function StackedBarChart({ chart, dashboardId, interactiveFilters
                         wrapperStyle={{ paddingBottom: '20px' }}
                     />
                     {categories.map((category, index) => (
-                    <Bar
-                        key={category}
-                        dataKey={category}
-                        stackId="stack"
-                        fill={STACK_COLORS[index % STACK_COLORS.length]}
-                        name={category}
-                    />
+                        <Bar
+                            key={category}
+                            dataKey={category}
+                            stackId="stack"
+                            fill={STACK_COLORS[index % STACK_COLORS.length]}
+                            name={category}
+                        />
                     ))}
-                    </ReBarChart>
-                </ResponsiveContainer>
-            </div>
-        );
+                </ReBarChart>
+            </ResponsiveContainer>
+        </div>
+    );
 }

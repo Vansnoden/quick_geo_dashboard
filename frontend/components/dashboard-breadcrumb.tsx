@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { AddDataButton } from '@/components/dashboard-form-upload-data';
 
-export default function DashboardHeader({ code }: { code: string }) {
+
+export default function DashboardHeader({ code, dashboardId }: { code: string, dashboardId: number }) {
     return (
         <div className="mb-6">
             <nav className="flex text-sm text-gray-500 mb-2">
@@ -17,17 +19,15 @@ export default function DashboardHeader({ code }: { code: string }) {
                     <h1 className="text-2xl font-bold">Dashboard: {code}</h1>
                 </div>
                 <div className="flex gap-2">
-                    <button className="px-4 py-2 bg-gray-100 rounded-md text-sm font-medium hover:bg-gray-200">
-                        Add Data
-                    </button>
-                    <button type="submit" form="yaml-form" className="px-4 py-2 bg-violet-600 text-white rounded-md 
+                    <AddDataButton dashboardId={dashboardId} />
+		    <button type="submit" form="yaml-form" className="px-4 py-2 bg-violet-600 text-white rounded-md 
                         text-sm font-medium hover:bg-violet-500">
                         Save Config
                     </button>
-                    <button type="submit" form="yaml-form" className="px-4 py-2 bg-violet-600 text-white rounded-md 
-                        text-sm font-medium hover:bg-violet-500">
+		    <Link href={`/dashboards/${dashboardId}`} target="_blank" 
+		        className="px-4 py-2 bg-violet-600 text-white rounded-md text-sm font-medium hover:bg-violet-500">
                         Render Dashboard
-                    </button>
+                    </Link>
                 </div>
             </div>
         </div>

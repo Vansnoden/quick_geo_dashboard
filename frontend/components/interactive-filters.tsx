@@ -1,8 +1,10 @@
 'use client';
 
+
+import { Slider } from '@mui/material';
 import { useEffect, useState, useRef } from 'react';
 import { InteractiveFilterDef } from '@/lib/definitions';
-import { DASHBOARD_CHART_DISTINCT_VALS } from '@/lib/constants';
+import { DASHBOARD_CHART_DISTINCT_VALS, DASHBOARD_RANGE_BOUNDS } from '@/lib/constants';
 import { 
     ChevronDownIcon, 
     XMarkIcon,
@@ -173,77 +175,68 @@ const RangeSlider = ({
     onChange: (min: number | undefined, max: number | undefined) => void;
     step?: number;
 }) => {
-    const [localMin, setLocalMin] = useState(value.min?.toString() || '');
-    const [localMax, setLocalMax] = useState(value.max?.toString() || '');
-
-    const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newMin = e.target.value === '' ? undefined : Number(e.target.value);
-        setLocalMin(e.target.value);
-        onChange(newMin, value.max);
-    };
-
-    const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newMax = e.target.value === '' ? undefined : Number(e.target.value);
-        setLocalMax(e.target.value);
-        onChange(value.min, newMax);
+    const handleSliderChange = (_event: Event, newValue: number | number[]) => {
+        if (Array.isArray(newValue)) {
+            const [newMin, newMax] = newValue;
+            onChange(newMin, newMax);
+        }
     };
 
     const handleClear = () => {
-        setLocalMin('');
-        setLocalMax('');
         onChange(undefined, undefined);
     };
 
+    // Determine the current range for the slider
+    const currentMin = value.min !== undefined ? value.min : min;
+    const currentMax = value.max !== undefined ? value.max : max;
+
     return (
         <div className="space-y-3">
-            <div className="flex items-center gap-3">
-                <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1">Min</label>
-                    <input
-                        type="number"
-                        value={localMin}
-                        onChange={handleMinChange}
-                        placeholder={`${min}`}
-                        step={step}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg 
-                            focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
-                    />
+            <Slider
+                value={[currentMin, currentMax]}
+                onChange={handleSliderChange}
+                valueLabelDisplay="auto"
+                min={min}
+                max={max}
+                step={step}
+                disabled={min === max} // Disable if no range
+                disableSwap
+                getAriaLabel={() => 'Range filter'}
+                valueLabelFormat={(value) => value}
+                sx={{
+                    color: '#8b5cf6', // purple-600
+                    '& .MuiSlider-thumb': {
+                        width: 16,
+                        height: 16,
+                        backgroundColor: '#fff',
+                        border: '2px solid #8b5cf6',
+                        '&:hover, &.Mui-focusVisible': {
+                            boxShadow: '0 0 0 6px rgba(139,92,246,0.2)',
+                        },
+                    },
+                    '& .MuiSlider-track': {
+                        height: 4,
+                    },
+                    '& .MuiSlider-rail': {
+                        height: 4,
+                        backgroundColor: '#e2e8f0',
+                    },
+                }}
+            />
+            <div className="flex items-center justify-between gap-3">
+                <div className="text-xs text-gray-500">
+                    Range: {currentMin} – {currentMax}
                 </div>
-                <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1">Max</label>
-                    <input
-                        type="number"
-                        value={localMax}
-                        onChange={handleMaxChange}
-                        placeholder={`${max}`}
-                        step={step}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none 
-                            focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
-                    />
-                </div>
-                {(localMin || localMax) && (
-                <button
-                    onClick={handleClear}
-                    className="self-end mb-1 p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                    title="Clear range"
-                >
-                    <XMarkIcon className="w-4 h-4" />
-                </button>
+                {(value.min !== undefined || value.max !== undefined) && (
+                    <button
+                        onClick={handleClear}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                        title="Clear range"
+                    >
+                        <XMarkIcon className="w-4 h-4" />
+                    </button>
                 )}
             </div>
-      
-            {/* Visual range indicator */}
-            {(value.min !== undefined || value.max !== undefined) && (
-            <div className="relative h-1 bg-gray-200 rounded-full">
-                <div
-                    className="absolute h-full bg-purple-500 rounded-full"
-                    style={{
-                        left: value.min !== undefined ? `${((value.min - min) / (max - min)) * 100}%` : '0%',
-                        right: value.max !== undefined ? `${100 - ((value.max - min) / (max - min)) * 100}%` : '0%'
-                    }}
-                />
-                </div>
-            )}
         </div>
     );
 };
@@ -285,49 +278,30 @@ export default function InteractiveFilters({ dashboardId, filters, onFilterChang
                 setLoading(prev => ({ ...prev, [filter.column]: false }));
             }
         } else if (filter.type === 'range') {
-            // Fetch min/max for range filter
-            try {
-                setLoading(prev => ({ ...prev, [filter.column]: true }));
-          
-                // Fetch min value
-                const minResponse = await fetch(DASHBOARD_CHART_DISTINCT_VALS(Number(dashboardId)), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                     body: JSON.stringify({ 
-                        column: filter.column,
-                        sort: 'asc',
-                        limit: 1
-                    })
-                });
-          
-                // Fetch max value
-                const maxResponse = await fetch(DASHBOARD_CHART_DISTINCT_VALS(Number(dashboardId)), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        column: filter.column,
-                        sort: 'desc',
-                        limit: 1
-                    })
-                });
-          
-                if (minResponse.ok && maxResponse.ok) {
-                    const min = await minResponse.json();
-                    const max = await maxResponse.json();
-                    setRangeBounds(prev => ({
-                        ...prev,
-                        [filter.column]: { 
-                            min: min[0] || 0, 
-                            max: max[0] || 100 
-                        }
-                    }));
-                }
-            } catch (error) {
-                console.error(`Failed to fetch range bounds for ${filter.column}:`, error);
-            } finally {
-                setLoading(prev => ({ ...prev, [filter.column]: false }));
-            }
-        }
+        	try {
+       			setLoading(prev => ({ ...prev, [filter.column]: true }));
+        
+			const response = await fetch(DASHBOARD_RANGE_BOUNDS(Number(dashboardId)), {
+			    method: 'POST',
+			    headers: { 'Content-Type': 'application/json' },
+			    body: JSON.stringify({ column: filter.column })
+			});
+        
+        		if (response.ok) {
+			    const bounds = await response.json();
+			    setRangeBounds(prev => ({
+				...prev,
+				[filter.column]: { min: bounds.min, max: bounds.max }
+			    }));
+			} else {
+			    console.error(`Failed to fetch range bounds for ${filter.column}`);
+			}
+    		} catch (error) {
+        		console.error(`Failed to fetch range bounds for ${filter.column}:`, error);
+    		} finally {
+        		setLoading(prev => ({ ...prev, [filter.column]: false }));
+    		}
+	}
     });
     }, [dashboardId, filters]);
 

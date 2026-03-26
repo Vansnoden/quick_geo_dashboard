@@ -1,9 +1,8 @@
 'use client';
 
+import { useEffect, useState, useMemo } from 'react';
 import { fetchChartData } from '@/lib/client_actions';
 import { ChartDataResponse, ChartDef, FilterCondition } from '@/lib/definitions';
-import { useEffect, useState } from 'react';
-
 import {
     LineChart as ReLineChart,
     Line,
@@ -17,37 +16,85 @@ import {
 interface Props {
     chart: ChartDef;
     dashboardId: string;
-    interactiveFilters?: Record<string, any>; 
+    interactiveFilters?: Record<string, any>;
 }
+
+const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
+    return useMemo(() => {
+        const conditions: FilterCondition[] = [];
+        if (!interactiveFilters) return conditions;
+
+        const processedColumns = new Set<string>();
+
+        for (const [key, val] of Object.entries(interactiveFilters)) {
+            if (val === '' || val === undefined || val === null) continue;
+
+            if (key.endsWith('_min')) {
+                const column = key.slice(0, -4);
+                const maxKey = `${column}_max`;
+                const maxVal = interactiveFilters[maxKey];
+                if (maxVal !== undefined && maxVal !== '' && maxVal !== null) {
+                    conditions.push({
+                        column,
+                        operator: 'between',
+                        value: [Number(val), Number(maxVal)]
+                    });
+                    processedColumns.add(column);
+                } else {
+                    conditions.push({
+                        column,
+                        operator: '>=',
+                        value: Number(val)
+                    });
+                    processedColumns.add(column);
+                }
+            } 
+            else if (key.endsWith('_max')) {
+                const column = key.slice(0, -4);
+                if (!processedColumns.has(column)) {
+                    conditions.push({
+                        column,
+                        operator: '<=',
+                        value: Number(val)
+                    });
+                    processedColumns.add(column);
+                }
+            }
+            else {
+                if (Array.isArray(val) && val.length > 0) {
+                    conditions.push({ column: key, operator: 'in', value: val });
+                } 
+                else if (typeof val === 'object' && val !== null) {
+                    if ('min' in val && val.min !== undefined) {
+                        conditions.push({ column: key, operator: '>=', value: Number(val.min) });
+                    }
+                    if ('max' in val && val.max !== undefined) {
+                        conditions.push({ column: key, operator: '<=', value: Number(val.max) });
+                    }
+                } 
+                else if (val !== '') {
+                    conditions.push({ column: key, operator: '=', value: String(val) });
+                }
+            }
+        }
+
+        return conditions;
+    }, [interactiveFilters]);
+};
 
 export default function LineChart({ chart, dashboardId, interactiveFilters }: Props) {
     const [data, setData] = useState<ChartDataResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const filterConditions = useFilterConditions(interactiveFilters);
+
     useEffect(() => {
-        // Convert interactive filter values to FilterCondition array
-        const extraFilters: FilterCondition[] = [];
-        if (interactiveFilters) {
-            Object.entries(interactiveFilters).forEach(([col, val]) => {
-            if (val === '' || val === undefined || (Array.isArray(val) && val.length === 0)) return;
-            if (Array.isArray(val)) {
-                extraFilters.push({ column: col, operator: 'in', value: val });
-            } else if (typeof val === 'object' && val.min !== undefined && val.max !== undefined) {
-                extraFilters.push({ column: col, operator: '>=', value: val.min });
-                extraFilters.push({ column: col, operator: '<=', value: val.max });
-            } else {
-                extraFilters.push({ column: col, operator: '=', value: val });
-            }
-        });
-    }
-
-    fetchChartData(dashboardId, chart, extraFilters)
-        .then(setData)
-        .catch(err => setError(err.message))
-        .finally(() => setLoading(false));
-    }, [dashboardId, chart, interactiveFilters]);
-
+        fetchChartData(dashboardId, chart, filterConditions)
+            .then(setData)
+            .catch(err => setError(err.message))
+            .finally(() => setLoading(false));
+    }, [dashboardId, chart, filterConditions]);
 
     if (loading) return <div className="h-64 bg-gray-200 animate-pulse rounded" />;
     if (error) return <div className="text-red-500">Error: {error}</div>;
