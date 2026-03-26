@@ -1,7 +1,12 @@
+"use client";
+
 import clsx from 'clsx';
 import { EyeIcon, PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { deleteDashboard } from '@/lib/actions';
+import RenameDashboardModal from '@/components/dashboard-form-rename';
+import { useState } from 'react';
+
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     children: React.ReactNode;
@@ -40,15 +45,29 @@ export function CreateDashboard() {
     );
 }
 
-export function UpdateDashboard({ id }: { id: string | number }) {
+
+export function UpdateDashboard({ id, name }: UpdateDashboardProps) {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
     return (
-        <Link
-            href={`/admin/dashboards/${id}/edit`}
-            className="rounded-md border p-2 hover:bg-gray-100">
-            <PencilIcon className="w-5" />
-        </Link>
+        <>
+            <button
+                onClick={() => setIsModalOpen(true)}
+                className="rounded-md border p-2 hover:bg-gray-100"
+            >
+                <PencilIcon className="w-5" />
+            </button>
+            {isModalOpen && (
+                <RenameDashboardModal
+                    dashboardId={id}
+                    currentName={name}
+                    onClose={() => setIsModalOpen(false)}
+                />
+            )}
+        </>
     );
 }
+
 
 export function DeleteDashboard({ id }: { id: string | number }) {
     const deleteDashboardWithId = deleteDashboard.bind(null, id);

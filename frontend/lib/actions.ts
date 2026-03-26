@@ -327,3 +327,34 @@ export async function getDashboardConfig(id: string): Promise<DashboardConfig> {
   if (!res.ok) throw new Error('Dashboard not found');
   return res.json();
 }
+
+
+export async function renameDashboard(id: number, name: string) {
+  const session = await auth();
+  if (!session?.user?.accessToken) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(DASHBOARD_EDIT_URL(id), {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${session.user.accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name }),
+  });
+
+  if (!response.ok) {
+    let errorDetail = 'Failed to update dashboard';
+    try {
+      const errorData = await response.json();
+      errorDetail = errorData.detail || errorDetail;
+    } catch (e) {
+      // ignore
+    }
+    throw new Error(errorDetail);
+  }
+
+  revalidatePath('/admin/dashboards');
+  return { success: true };
+}

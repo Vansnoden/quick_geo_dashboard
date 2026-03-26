@@ -268,13 +268,13 @@ def get_dashboard(
         raise HTTPException(status_code=403, detail="Unauthorized access")
     
 
-@app.post("/dashboards/{dashboard_id}/edit", response_model=schemas.Dashboard, include_in_schema=True)
+@app.put("/dashboards/{dashboard_id}/edit", response_model=schemas.Dashboard, include_in_schema=True)
 def edit_dashboard(
     dashboard_id: int,
-    dashboard_update: schemas.DashboardCreate,
-    user: Annotated[User, Depends(get_current_active_user)],
-    dashboard: schemas.Dashboard, 
+    dashboard: schemas.DashboardCreateRequest,
+    user: Annotated[User, Depends(get_current_active_user)], 
     db: Session = Depends(get_db)):
+    dashboard_update = schemas.DashboardCreate(user_id=user.id, name=dashboard.name)
     updated = crud.edit_dashboard(db, dashboard_id, dashboard_update)
     if not updated:
         raise HTTPException(status_code=404, detail="Dashboard not found")
