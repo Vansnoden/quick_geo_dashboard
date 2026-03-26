@@ -12,7 +12,6 @@ import { z } from 'zod';
 
 const DashboardSchema = z.object({
 	name: z.string().min(3, "Name must be at least 3 characters"),
-  	code: z.string().min(1, "Code is required"),
 });
 
 
@@ -246,17 +245,22 @@ export async function createDashboard(formData: FormData) {
   const validatedFields = DashboardSchema.safeParse(Object.fromEntries(formData.entries()));
 
   if (!validatedFields.success) return { errors: validatedFields.error.flatten().fieldErrors };
-
+  
+  const { name } = validatedFields.data;
+  
   const response = await fetch(DASHBOARD_ADD_URL, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${session?.user?.accessToken}`, // eslint-disable-line
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(validatedFields.data),
+    body: JSON.stringify({ name }),
   });
 
-  if (!response.ok) throw new Error('Failed to create dashboard');
+  if (!response.ok){
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to create dashboard');
+  }
 
   revalidatePath('/admin/dashboards');
   redirect('/admin/dashboards');

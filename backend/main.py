@@ -243,16 +243,12 @@ def read_dashboards(
 @app.post("/dashboards/add", response_model=schemas.Dashboard, include_in_schema=True)
 def create_dashboard(
     user: Annotated[User, Depends(get_current_active_user)],
-    dashboard: schemas.DashboardCreate, 
+    dashboard: schemas.DashboardCreateRequest, 
     db: Session = Depends(get_db)):
-    if user and dashboard.name:
-        return crud.create_dashboard(
-            db,
-            user,
-            dashboard,
-        )
-    if validate_user(user):
-        return crud.create_user(db=db, user=user)
+    if not user:
+        raise HTTPException(status_code=403, detail="Unauthorized access")
+    dashboard_create = schemas.DashboardCreate(user_id=user.id, name=dashboard.name)
+    return crud.create_dashboard(db, user, dashboard_create)
 
 
 @app.get("/dashboards/{dashboard_id}", response_model=schemas.Dashboard, include_in_schema=True)
