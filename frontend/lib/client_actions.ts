@@ -65,3 +65,11 @@ export async function fetchFilteredMapPoints(
   return response.json();
 }
 
+
+export function getAuthToken(): string | null {
+    const match = document.cookie.match(/(^| )auth-token=([^;]+)/);
+    if (match) {
+        return match[2].replace(/__/g, ' ');
+    }
+    return null;
+}

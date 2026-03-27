@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import crud, models, schemas
 from database.session import SessionLocal, engine
 from sqlalchemy.orm import Session
-from sqlalchemy import inspect
+from sqlalchemy import inspect, desc, or_, cast, String, Integer
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.encoders import jsonable_encoder
 from slugify import slugify
@@ -34,6 +34,8 @@ from numpy.linalg import norm
 import ast
 from fastapi.responses import StreamingResponse
 from pydantic.json_schema import SkipJsonSchema
+import csv
+from io import StringIO
 
 
 
@@ -266,26 +268,26 @@ def get_dashboard(
         raise HTTPException(status_code=403, detail="Unauthorized access")
     
 
-@app.post("/dashboards/{dashboard_id}/edit", response_model=schemas.Dashboard, include_in_schema=True)
+@app.put("/dashboards/{dashboard_id}/edit", response_model=schemas.Dashboard, include_in_schema=True)
 def edit_dashboard(
     dashboard_id: int,
-    dashboard_update: schemas.DashboardCreate,
-    user: Annotated[User, Depends(get_current_active_user)],
-    dashboard: schemas.Dashboard, 
+    dashboard: schemas.DashboardCreateRequest,
+    user: Annotated[User, Depends(get_current_active_user)], 
     db: Session = Depends(get_db)):
+    dashboard_update = schemas.DashboardCreate(user_id=user.id, name=dashboard.name)
     updated = crud.edit_dashboard(db, dashboard_id, dashboard_update)
     if not updated:
         raise HTTPException(status_code=404, detail="Dashboard not found")
     return updated
 
 
-@app.post("/dashboards/{dashboard_id}/delete")
+@app.delete("/dashboards/{dashboard_id}/delete")
 def delete_dashboard(
     dashboard_id: int, 
     db: Session = Depends(get_db),
     user: User = Depends(get_current_active_user)
 ):
-    success = crud.delete_dashboard(db, dashboard_id, user.id)
+    success = crud.delete_dashboard(db, dashboard_id)
     
     if not success:
         raise HTTPException(
@@ -877,3 +879,144 @@ def get_range_bounds(
     # Return as numbers
     return {"min": float(min_val) if isinstance(min_val, (int, float)) else min_val, 
             "max": float(max_val) if isinstance(max_val, (int, float)) else max_val}
+
+
+@app.post("/dashboards/{dashboard_id}/export")
+def export_filtered_data(
+    dashboard_id: int,
+    request: Dict[str, Any],
+    db: Session = Depends(get_db)
+):
+    dashboard = db.query(models.Dashboard).filter(models.Dashboard.id == dashboard_id).first()
+    if not dashboard or not dashboard.data_table_name:
+        raise HTTPException(status_code=404, detail="Dashboard or data table not found")
+
+    # Parse YAML for global filters
+    import yaml
+    config = yaml.safe_load(dashboard.ui_yaml_script) if dashboard.ui_yaml_script else {}
+    global_filters = config.get('geo-dashboard', {}).get('filters', [])
+
+    # Get interactive filters from request
+    request_filters = request.get('filters', [])
+
+    # Merge all filters
+    all_filters = merge_filters(global_filters, request_filters)
+
+    # Build WHERE clause
+    where_clause, params = build_where_clause(all_filters, dashboard.data_table_name)
+
+    # Get all column names from the table
+    inspector = inspect(db.bind)
+    columns = [col['name'] for col in inspector.get_columns(dashboard.data_table_name)]
+
+    # Build query
+    quoted_columns = [f'"{col}"' for col in columns]
+    select_clause = ", ".join(quoted_columns)
+    query = f"SELECT {select_clause} FROM {dashboard.data_table_name}"
+    if where_clause:
+        query += f" WHERE {where_clause}"
+
+    result = db.execute(text(query), params).fetchall()
+
+    # Create CSV in memory
+    output = StringIO()
+    writer = csv.writer(output)
+    writer.writerow(columns)  # header
+    for row in result:
+        writer.writerow(row)
+
+    csv_content = output.getvalue()
+    output.close()
+
+    return Response(
+        content=csv_content,
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=dashboard_{dashboard_id}_export.csv"}
+    )
+
+
+@app.get("/dashboards/{dashboard_id}/data-info")
+def get_data_info(
+    dashboard_id: int,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_active_user)
+):
+    dashboard = db.query(models.Dashboard).filter(models.Dashboard.id == dashboard_id).first()
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+    if not dashboard.data_table_name:
+        raise HTTPException(status_code=404, detail="No data table associated")
+
+    # Get total rows
+    result = db.execute(text(f"SELECT COUNT(*) FROM {dashboard.data_table_name}"))
+    total_rows = result.scalar()
+
+    # Get column info
+    inspector = inspect(db.bind)
+    columns = inspector.get_columns(dashboard.data_table_name)
+    # Filter out the internal 'id' column
+    columns_info = [{"name": col["name"], "type": str(col["type"])} for col in columns if col["name"] != "id"]
+
+    # Get sample rows (first 5)
+    result = db.execute(text(f"SELECT * FROM {dashboard.data_table_name} LIMIT 5"))
+    sample_rows = [dict(row._mapping) for row in result]
+
+    return {
+        "total_rows": total_rows,
+        "columns": columns_info,
+        "sample": sample_rows,
+        "table_name": dashboard.data_table_name
+    }
+
+
+@app.patch("/dashboards/{dashboard_id}/publish")
+def toggle_publish(
+    dashboard_id: int,
+    user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    dashboard = crud.get_user_dashboard(db, dashboard_id, user.id)
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+    
+    dashboard.is_published = not dashboard.is_published
+    db.commit()
+    db.refresh(dashboard)
+    return {"id": dashboard.id, "is_published": dashboard.is_published}
+
+
+@app.get("/public/dashboards")
+def list_public_dashboards(
+    query: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    db_query = db.query(models.Dashboard).filter(models.Dashboard.is_published == True)
+    if query:
+        search = f"%{query}%"
+        db_query = db_query.filter(
+            or_(
+                models.Dashboard.name.ilike(search),
+                cast(models.Dashboard.code, String).ilike(search)
+            )
+        )
+    total = db_query.count()
+    dashboards = db_query.order_by(desc(models.Dashboard.create_date)).offset(skip).limit(limit).all()
+    return {
+        "data": dashboards,
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
+
+
+@app.get("/public/dashboards/{dashboard_id}")
+def get_public_dashboard(dashboard_id: int, db: Session = Depends(get_db)):
+    dashboard = db.query(models.Dashboard).filter(
+        models.Dashboard.id == dashboard_id,
+        models.Dashboard.is_published == True
+    ).first()
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+    return dashboard

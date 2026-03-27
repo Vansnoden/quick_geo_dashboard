@@ -72,7 +72,7 @@ export default async function DataTable({
                     <td className="whitespace-nowrap py-3 pl-6 pr-3">
                       <div className="flex justify-end gap-3">
                         <ViewDashboard id={item_data.id} />
-                        <UpdateDashboard id={item_data.id} />
+                        <UpdateDashboard id={item_data.id} name={item_data.name} />
                         <DeleteDashboard id={item_data.id} />
                       </div>
                     </td>

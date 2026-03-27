@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/buttons";
 import { ArrowRightIcon } from "@heroicons/react/16/solid";
@@ -20,6 +22,11 @@ export default function Header(){
                         </span>
                     </Link>
                     <div className="flex md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse">
+		        <Link href="/dashboards" className="flex items-center mr-3 text-center text-sm text-gray-600 hover:text-purple-600">
+    				<span className="self-center text-center">
+					Public Dashboards
+				</span>
+			</Link>
                         <Link href="/login">
                             <Button> 
                                 Log In

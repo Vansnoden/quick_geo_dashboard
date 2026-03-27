@@ -34,3 +34,4 @@ class Dashboard(Base):
     ui_js_script = Column(String, nullable=True)
     create_date = Column(DateTime, nullable=False)
     last_update_date = Column(DateTime, nullable=False)
+    is_published = Column(Boolean, default=False)

@@ -44,6 +44,15 @@ export default function DocPage() {
               <a href="#filters" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
                 🔍 Filters
               </a>
+              <a href="#interactive-filters" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                🎛️ Interactive Filters
+              </a>
+              <a href="#data-download" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                💾 Data Download
+              </a>
+              <a href="#data-preview" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                👁️ Data Preview
+              </a>
               <a href="#examples" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
                 📋 Examples
               </a>
@@ -86,7 +95,7 @@ export default function DocPage() {
               <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Creating an Account</h3>
               <ul className="list-disc pl-6 space-y-2 text-gray-700">
                 <li>Navigate to the <Link href="/login" className="text-purple-600 hover:underline">login page</Link></li>
-                <li>Click on "Register" to create a new account</li>
+                <li>Click on "Sign up here" to create a new account</li>
                 <li>Provide a username, email, and password</li>
                 <li>Once registered, you can log in with your credentials</li>
               </ul>
@@ -105,15 +114,15 @@ export default function DocPage() {
               <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Creating a Dashboard</h3>
               <ol className="list-decimal pl-6 space-y-2 text-gray-700">
                 <li>From the admin panel, click "New Dashboard"</li>
-                <li>Give your dashboard a meaningful name</li>
+                <li>Give your dashboard a meaningful name (at least 3 characters)</li>
                 <li>A unique dashboard ID and sharing URL will be generated</li>
               </ol>
 
               <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Managing Dashboards</h3>
               <ul className="list-disc pl-6 space-y-2 text-gray-700">
                 <li><strong>View:</strong> Click on any dashboard in the list to see its public view</li>
-                <li><strong>Edit:</strong> Use the edit button to modify the dashboard configuration</li>
-                <li><strong>Delete:</strong> Remove dashboards you no longer need</li>
+                <li><strong>Edit:</strong> Click the pencil icon to open a modal and rename the dashboard</li>
+                <li><strong>Delete:</strong> Click the trash icon, confirm deletion in the modal</li>
                 <li><strong>Share:</strong> Each dashboard has a unique URL that you can share with anyone</li>
               </ul>
             </section>
@@ -131,7 +140,7 @@ export default function DocPage() {
               <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Upload Process</h3>
               <ol className="list-decimal pl-6 space-y-2 text-gray-700">
                 <li>Navigate to your dashboard's edit page</li>
-                <li>Click on "Upload Data"</li>
+                <li>Click on "Add Data" button</li>
                 <li>Select one or more files (CSV or Excel)</li>
                 <li>Optionally, provide column type overrides in JSON format:
                   <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg mt-2 text-sm">
@@ -167,6 +176,7 @@ export default function DocPage() {
 {`geo-dashboard:
   name: "My Dashboard Name"
   template: side_content
+  download: false  # Set to true to enable data download button
   filters:
     - column: Year
       operator: ">="
@@ -176,6 +186,13 @@ export default function DocPage() {
       title: "My Chart Title"
       x: category_column
       y: count
+  interactiveFilters:
+    - column: Year
+      label: Year Range
+      type: range
+    - column: Country
+      label: Country
+      type: multiselect
   map:
     lat: latitude_column
     lon: longitude_column
@@ -187,11 +204,17 @@ export default function DocPage() {
 
               <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Available Templates</h3>
               <ul className="list-disc pl-6 space-y-2 text-gray-700">
-                <li><code>side_content</code> - Sidebar on the left, main content on the right</li>
+                <li><code>side_content</code> - Sidebar on the left, main content on the right (recommended)</li>
                 <li><code>top_content</code> - Menus on top, charts below</li>
                 <li><code>content_side</code> - Main content on the left, sidebar on the right</li>
                 <li><code>content_bottom</code> - Menus on top, charts in the middle, map at bottom</li>
               </ul>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Data Download</h3>
+              <p className="text-gray-700 mb-2">
+                Set <code>download: true</code> in the root of the config to display a "Download Data" button in the sidebar. 
+                When clicked, it exports the currently filtered dataset (respecting global and interactive filters) as a CSV file.
+              </p>
             </section>
 
             {/* Chart Types */}
@@ -351,6 +374,74 @@ export default function DocPage() {
               </pre>
             </section>
 
+            {/* Interactive Filters */}
+            <section id="interactive-filters" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">🎛️ Interactive Filters</h2>
+              <p className="text-gray-700 mb-4">
+                Interactive filters appear in the sidebar and allow users to dynamically filter the dashboard without editing YAML. They are defined in the YAML under <code>interactiveFilters</code>.
+              </p>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Types</h3>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                <li><code>dropdown</code> - Single-select dropdown</li>
+                <li><code>multiselect</code> - Multi-select dropdown with search</li>
+                <li><code>range</code> - Range slider for numeric columns</li>
+              </ul>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Example</h3>
+              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+{`interactiveFilters:
+  - column: Year
+    label: Year Range
+    type: range
+  - column: Country
+    label: Country
+    type: multiselect
+  - column: Form
+    label: Disease Form
+    type: dropdown`}
+              </pre>
+
+              <div className="bg-green-50 border-l-4 border-green-500 p-4 mt-4">
+                <p className="text-green-800 text-sm">
+                  <strong>💡 Tip:</strong> The range filter automatically fetches the minimum and maximum values from your data (respecting global filters) and displays a slider. Adjusting it instantly updates all charts and the map.
+                </p>
+              </div>
+            </section>
+
+            {/* Data Download */}
+            <section id="data-download" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">💾 Data Download</h2>
+              <p className="text-gray-700 mb-4">
+                If you set <code>download: true</code> in the YAML, a "Download Data" button appears in the sidebar. When clicked, it exports the currently filtered dataset (including all applied global and interactive filters) as a CSV file.
+              </p>
+              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+{`geo-dashboard:
+  download: true
+  # ... rest of config`}
+              </pre>
+              <p className="text-gray-700 mt-2">
+                The download respects all active filters, so users can export exactly the subset they're viewing.
+              </p>
+            </section>
+
+            {/* Data Preview */}
+            <section id="data-preview" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">👁️ Data Preview</h2>
+              <p className="text-gray-700 mb-4">
+                On the dashboard edit page, a rich preview shows information about the uploaded data:
+              </p>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                <li>Total number of records</li>
+                <li>Table name</li>
+                <li>Column names and their SQL types</li>
+                <li>First 5 sample rows</li>
+              </ul>
+              <p className="text-gray-700 mt-2">
+                This helps you understand the structure of your data before building charts and maps.
+              </p>
+            </section>
+
             {/* Examples */}
             <section id="examples" className="mb-12">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">📋 Examples</h2>
@@ -358,16 +449,37 @@ export default function DocPage() {
               <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Leishmaniasis Vector Dashboard</h3>
               <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm overflow-x-auto">
 {`geo-dashboard:
-  name: "Leishmaniasis Vector Dashboard"
+  name: "Leishmaniasis Vector Surveillance Dashboard"
   template: side_content
+  download: true
   filters:
     - column: Year
       operator: ">="
       value: 2000
+  interactiveFilters:
+    - column: Year
+      label: Year Range
+      type: range
+    - column: Country
+      label: Country
+      type: multiselect
+    - column: Form
+      label: Disease Form
+      type: dropdown
   stats:
     - type: pie
-      title: "Top 10 VL Vectors"
+      title: "Top 10 VL Vectors by Abundance"
       x: species
+      y:
+        column: "Specie counts"
+        aggregation: sum
+      filters:
+        - column: Form
+          operator: "="
+          value: VL
+    - type: bar
+      title: "VL Vector Abundance by Country"
+      x: Country
       y:
         column: "Specie counts"
         aggregation: sum
@@ -393,40 +505,14 @@ export default function DocPage() {
           operator: "="
           value: CL
           color: "#3b82f6"
-          label: "CL Vectors"`}
-              </pre>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Bee-Plant Interactions Dashboard</h3>
-              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm overflow-x-auto">
-{`geo-dashboard:
-  name: "Bee-Plant Interactions"
-  template: side_content
-  filters:
-    - column: continent
-      operator: like
-      value: "%Africa%"
-  stats:
-    - type: bar
-      title: "Top 10 Plant Species"
-      x: plant_specie_name
-      y: count
-  map:
-    lat: lat
-    lon: lon
-    clustering:
-      enabled: true
-      maxClusterRadius: 80
-      disableClusteringAtZoom: 14
-      limit: 15000
-    style:
-      colorBy: family_name
-      sizeBy: id
-      rules:
-        - field: family_name
-          operator: "="
-          value: "Fabaceae"
-          color: "#fbbf24"
-          label: "Fabaceae"`}
+          label: "CL Vectors"
+    legend:
+      title: "Vector Types"
+      position: "bottomright"
+  menus:
+    about: |
+      ## 🦟 Leishmaniasis Vector Surveillance Dashboard
+      A comprehensive visualization platform for sand fly vector surveillance data...`}
               </pre>
             </section>
 
@@ -461,16 +547,20 @@ export default function DocPage() {
                   <p className="text-sm text-gray-600 mt-1">Get dashboard details</p>
                 </li>
                 <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">PUT /dashboards/{`{id}`}/edit</code>
+                  <p className="text-sm text-gray-600 mt-1">Rename dashboard</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/delete</code>
+                  <p className="text-sm text-gray-600 mt-1">Delete a dashboard</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
                   <code className="text-purple-600 font-mono">PUT /dashboards/{`{id}`}/config</code>
                   <p className="text-sm text-gray-600 mt-1">Update dashboard YAML configuration</p>
                 </li>
                 <li className="bg-gray-50 p-3 rounded-lg">
                   <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/add_data</code>
                   <p className="text-sm text-gray-600 mt-1">Upload data files (CSV/Excel)</p>
-                </li>
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/delete</code>
-                  <p className="text-sm text-gray-600 mt-1">Delete a dashboard</p>
                 </li>
               </ul>
 
@@ -499,6 +589,14 @@ export default function DocPage() {
                 <li className="bg-gray-50 p-3 rounded-lg">
                   <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}/dashboard.js</code>
                   <p className="text-sm text-gray-600 mt-1">Get generated JavaScript config</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}/data-info</code>
+                  <p className="text-sm text-gray-600 mt-1">Get data preview (rows, columns, sample)</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/export</code>
+                  <p className="text-sm text-gray-600 mt-1">Export filtered data as CSV</p>
                 </li>
               </ul>
             </section>
@@ -560,7 +658,7 @@ export default function DocPage() {
             {/* Footer */}
             <div className="border-t border-gray-200 pt-8 mt-12">
               <p className="text-sm text-gray-500 text-center">
-                Version 1.0.0 | Last updated: March 2025 | © 2025 Geo-Dashboard Platform
+                Version 1.1.0 | Last updated: March 2025 | © 2025 Geo-Dashboard Platform
               </p>
             </div>
           </div>

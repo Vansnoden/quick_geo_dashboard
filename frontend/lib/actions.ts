@@ -1,7 +1,8 @@
 'use server'
 
 import { AuthError } from 'next-auth';
-import { DASHBOARD_ADD_URL, DASHBOARD_CONFIG_URL, DASHBOARD_DELETE_URL, DASHBOARD_EDIT_URL, DASHBOARD_GET_URL, SIGNUP_URL, USER_DASH_DATA_ALL } from './constants';
+import { DASHBOARD_ADD_URL, DASHBOARD_CONFIG_URL, DASHBOARD_DELETE_URL, DASHBOARD_EDIT_URL,
+	DASHBOARD_GET_URL, SIGNUP_URL, USER_DASH_DATA_ALL, DASHBOARD_PUBLIC_GET_URL } from './constants';
 import { cookies } from 'next/headers'
 import { signIn, signOut, auth } from "@/auth";
 import { Dashboard, DashboardResponse, DashboardConfig } from "@/lib/definitions";
@@ -326,4 +327,49 @@ export async function getDashboardConfig(id: string): Promise<DashboardConfig> {
   const res = await fetch(DASHBOARD_CONFIG_URL(Number(id)));
   if (!res.ok) throw new Error('Dashboard not found');
   return res.json();
+}
+
+
+export async function renameDashboard(id: number, name: string) {
+  const session = await auth();
+  if (!session?.user?.accessToken) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(DASHBOARD_EDIT_URL(id), {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${session.user.accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name }),
+  });
+
+  if (!response.ok) {
+    let errorDetail = 'Failed to update dashboard';
+    try {
+      const errorData = await response.json();
+      errorDetail = errorData.detail || errorDetail;
+    } catch (e) {
+      // ignore
+    }
+    throw new Error(errorDetail);
+  }
+
+  revalidatePath('/admin/dashboards');
+  return { success: true };
+}
+
+
+export async function getDashboardById(id: number) {
+    const res = await fetch(DASHBOARD_GET_URL(id));
+    if (!res.ok) return null;
+    return res.json();
+}
+
+
+export async function getPublicDashboardById(id: number) {
+    const res = await fetch(DASHBOARD_PUBLIC_GET_URL(id));
+    if (!res.ok) return null;
+    return res.json();
 }

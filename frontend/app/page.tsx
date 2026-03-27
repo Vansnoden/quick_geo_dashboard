@@ -1,3 +1,5 @@
+"use client";
+
 import Image from "next/image";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -9,7 +11,7 @@ import { DocumentChartBarIcon } from "@heroicons/react/24/solid";
 
 export default function Home() {
   return (
-    <div>
+    <>
       <Header></Header>
       <div className="mx-auto mt-5 flex flex-col items-center justify-center mcontent">
         <div className="py-10">
@@ -54,6 +56,6 @@ export default function Home() {
           </div>
       </div>
       <Footer></Footer>
-    </div>
+    </>
   );
 }
