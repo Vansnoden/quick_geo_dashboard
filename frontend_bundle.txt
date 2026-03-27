@@ -490,6 +490,14 @@ export async function fetchFilteredMapPoints(
 }
 
 
+export function getAuthToken(): string | null {
+    const match = document.cookie.match(/(^| )auth-token=([^;]+)/);
+    if (match) {
+        return match[2].replace(/__/g, ' ');
+    }
+    return null;
+}
+
 
 
 =========================================
@@ -498,7 +506,8 @@ FILE: ./frontend/lib/actions.ts
 'use server'
 
 import { AuthError } from 'next-auth';
-import { DASHBOARD_ADD_URL, DASHBOARD_CONFIG_URL, DASHBOARD_DELETE_URL, DASHBOARD_EDIT_URL, DASHBOARD_GET_URL, SIGNUP_URL, USER_DASH_DATA_ALL } from './constants';
+import { DASHBOARD_ADD_URL, DASHBOARD_CONFIG_URL, DASHBOARD_DELETE_URL, DASHBOARD_EDIT_URL,
+	DASHBOARD_GET_URL, SIGNUP_URL, USER_DASH_DATA_ALL, DASHBOARD_PUBLIC_GET_URL } from './constants';
 import { cookies } from 'next/headers'
 import { signIn, signOut, auth } from "@/auth";
 import { Dashboard, DashboardResponse, DashboardConfig } from "@/lib/definitions";
@@ -826,6 +835,51 @@ export async function getDashboardConfig(id: string): Promise<DashboardConfig> {
 }
 
 
+export async function renameDashboard(id: number, name: string) {
+  const session = await auth();
+  if (!session?.user?.accessToken) {
+    throw new Error('Not authenticated');
+  }
+
+  const response = await fetch(DASHBOARD_EDIT_URL(id), {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${session.user.accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ name }),
+  });
+
+  if (!response.ok) {
+    let errorDetail = 'Failed to update dashboard';
+    try {
+      const errorData = await response.json();
+      errorDetail = errorData.detail || errorDetail;
+    } catch (e) {
+      // ignore
+    }
+    throw new Error(errorDetail);
+  }
+
+  revalidatePath('/admin/dashboards');
+  return { success: true };
+}
+
+
+export async function getDashboardById(id: number) {
+    const res = await fetch(DASHBOARD_GET_URL(id));
+    if (!res.ok) return null;
+    return res.json();
+}
+
+
+export async function getPublicDashboardById(id: number) {
+    const res = await fetch(DASHBOARD_PUBLIC_GET_URL(id));
+    if (!res.ok) return null;
+    return res.json();
+}
+
+
 
 =========================================
 FILE: ./frontend/lib/constants.ts
@@ -841,7 +895,7 @@ export const DASHBOARD_ADD_URL = BASE_API_URL + "/dashboards/add";
 export const DASHBOARD_GET_URL = (id: number) => BASE_API_URL + `/dashboards/${id}`;
 export const DASHBOARD_EDIT_URL = (id: number) => BASE_API_URL + `/dashboards/${id}/edit`;
 export const DASHBOARD_DELETE_URL = (id: number) => BASE_API_URL + `/dashboards/${id}/delete`;
-export const DASHBOARD_ADD_DATA_URL = (id: number) => BASE_API_URL + `/dashboards/${id}/add_data`;
+//export const DASHBOARD_ADD_DATA_URL = (id: number) => BASE_API_URL + `/dashboards/${id}/add_data`;
 // public endpoints
 export const DASHBOARD_CONFIG_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/config`;
 export const DASHBOARD_MAP_POINTS_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/points`;
@@ -850,6 +904,14 @@ export const DASHBOARD_FILTERED_MAP_POINTS_URL = (id: number) => BASE_PUBLIC_API
 export const DASHBOARD_CHART_DATA_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/chart-data`;
 export const DASHBOARD_CHART_DISTINCT_VALS = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/distinct-values`
 export const DASHBOARD_JS_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/dashboard.js`;
+export const DASHBOARD_ADD_DATA_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/add_data`;
+export const DASHBOARD_RANGE_BOUNDS = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/range-bounds`;
+export const DASHBOARD_EXPORT_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/export`;
+export const DASHBOARD_DATA_INFO_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/data-info`;
+export const DASHBOARD_PUBLISH_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/publish`;
+export const DASHBOARD_PUBLIC_LIST_URL = BASE_PUBLIC_API_URL + '/public/dashboards';
+export const DASHBOARD_PUBLIC_GET_URL = (id: number) => BASE_PUBLIC_API_URL + `/public/dashboards/${id}`;
+
 
 
 
@@ -885,6 +947,61 @@ export const dashboards = [
 
 
 =========================================
+FILE: ./frontend/lib/filter-helpers.ts
+=========================================
+import { FilterCondition } from '@/lib/definitions';
+
+
+export function filterValuesToConditions(filters: Record<string, any>): FilterCondition[] {
+    const conditions: FilterCondition[] = [];
+    const processedColumns = new Set<string>();
+
+    for (const [key, val] of Object.entries(filters)) {
+        if (val === '' || val === undefined || val === null) continue;
+
+        if (key.endsWith('_min')) {
+            const column = key.slice(0, -4);
+            const maxKey = `${column}_max`;
+            const maxVal = filters[maxKey];
+            if (maxVal !== undefined && maxVal !== '' && maxVal !== null) {
+                conditions.push({
+                    column,
+                    operator: 'between',
+                    value: [Number(val), Number(maxVal)]
+                });
+                processedColumns.add(column);
+            } else {
+                conditions.push({ column, operator: '>=', value: Number(val) });
+                processedColumns.add(column);
+            }
+        } else if (key.endsWith('_max')) {
+            const column = key.slice(0, -4);
+            if (!processedColumns.has(column)) {
+                conditions.push({ column, operator: '<=', value: Number(val) });
+                processedColumns.add(column);
+            }
+        } else {
+            if (Array.isArray(val) && val.length > 0) {
+                conditions.push({ column: key, operator: 'in', value: val });
+            } else if (typeof val === 'object' && val !== null) {
+                if ('min' in val && val.min !== undefined) {
+                    conditions.push({ column: key, operator: '>=', value: Number(val.min) });
+                }
+                if ('max' in val && val.max !== undefined) {
+                    conditions.push({ column: key, operator: '<=', value: Number(val.max) });
+                }
+            } else if (val !== '') {
+                conditions.push({ column: key, operator: '=', value: String(val) });
+            }
+        }
+    }
+
+    return conditions;
+}
+
+
+
+=========================================
 FILE: ./frontend/lib/definitions.ts
 =========================================
 
@@ -898,7 +1015,8 @@ export interface Dashboard {
     ui_yaml_script: string,
     ui_js_script: string,
     create_date: string,
-    last_update_date: string
+    last_update_date: string,
+    is_published: boolean
 }
 
 export interface DashboardResponse {
@@ -957,6 +1075,7 @@ export interface DashboardConfig {
   interactiveFilters?: InteractiveFilterDef[]; 
   map: MapDef;
   menus: MenusDef;
+  download?: boolean;
 }
 
 // For chart data API response
@@ -1058,12 +1177,82 @@ export default function ChartList({ charts, dashboardId, interactiveFilters }: P
 
 
 =========================================
+FILE: ./frontend/components/data-download-button.tsx
+=========================================
+'use client';
+
+import { useState } from 'react';
+import { DASHBOARD_EXPORT_URL } from '@/lib/constants';
+import { FilterCondition } from '@/lib/definitions';
+import { DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+
+interface Props {
+    dashboardId: string;
+    filters: FilterCondition[];
+    disabled?: boolean;
+}
+
+export default function DownloadButton({ dashboardId, filters, disabled }: Props) {
+    const [isDownloading, setIsDownloading] = useState(false);
+
+    const handleDownload = async () => {
+        setIsDownloading(true);
+        try {
+            const response = await fetch(DASHBOARD_EXPORT_URL(Number(dashboardId)), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ filters })
+            });
+            if (!response.ok) throw new Error('Export failed');
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `dashboard_${dashboardId}_data.csv`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        } catch (err) {
+            console.error('Download error:', err);
+            alert('Failed to download data');
+        } finally {
+            setIsDownloading(false);
+        }
+    };
+
+    return (
+        <button
+            onClick={handleDownload}
+            disabled={disabled || isDownloading}
+            className="w-full mt-4 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg text-sm font-medium hover:bg-purple-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+        >
+            {isDownloading ? (
+                <svg className="animate-spin h-4 w-4" />
+            ) : (
+                <DocumentArrowDownIcon className="w-4 h-4" />
+            )}
+            Download Data
+        </button>
+    );
+}
+
+
+
+=========================================
 FILE: ./frontend/components/buttons.tsx
 =========================================
+"use client";
+
 import clsx from 'clsx';
 import { EyeIcon, PencilIcon, PlusIcon, TrashIcon } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { deleteDashboard } from '@/lib/actions';
+import RenameDashboardModal from '@/components/dashboard-form-rename';
+import { useState } from 'react';
+import ConfirmDialog from '@/components/confirm-dialog';
+
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     children: React.ReactNode;
@@ -1102,31 +1291,72 @@ export function CreateDashboard() {
     );
 }
 
-export function UpdateDashboard({ id }: { id: string | number }) {
+
+export function UpdateDashboard({ id, name }: UpdateDashboardProps) {
+    const [isModalOpen, setIsModalOpen] = useState(false);
+
     return (
-        <Link
-            href={`/admin/dashboards/${id}/edit`}
-            className="rounded-md border p-2 hover:bg-gray-100">
-            <PencilIcon className="w-5" />
-        </Link>
+        <>
+            <button
+                onClick={() => setIsModalOpen(true)}
+                className="rounded-md border p-2 hover:bg-gray-100"
+            >
+                <PencilIcon className="w-5" />
+            </button>
+            {isModalOpen && (
+                <RenameDashboardModal
+                    dashboardId={id}
+                    currentName={name}
+                    onClose={() => setIsModalOpen(false)}
+                />
+            )}
+        </>
     );
 }
+
 
 export function DeleteDashboard({ id }: { id: string | number }) {
-    const deleteDashboardWithId = deleteDashboard.bind(null, id);
+    const [isOpen, setIsOpen] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleConfirm = async () => {
+        setIsDeleting(true);
+        try {
+            await deleteDashboard(id);
+            // The action will redirect, so we don't need to close the dialog manually
+            // But to prevent UI issues, we can let it close after redirect.
+            // We'll keep isOpen true until redirect happens.
+        } catch (error) {
+            console.error('Delete failed:', error);
+            setIsDeleting(false);
+            setIsOpen(false);
+            // Optionally show error toast
+        }
+    };
 
     return (
-        <form action={deleteDashboardWithId}>
-            <button className="rounded-md border p-2 hover:bg-gray-100 text-red-600">
-                <span className="sr-only">
-                    Delete
-                </span>
+        <>
+            <button
+                onClick={() => setIsOpen(true)}
+                className="rounded-md border p-2 hover:bg-gray-100 text-red-600"
+            >
+                <span className="sr-only">Delete</span>
                 <TrashIcon className="w-5" />
             </button>
-        </form>
+            <ConfirmDialog
+                isOpen={isOpen}
+                onClose={() => setIsOpen(false)}
+                onConfirm={handleConfirm}
+                title="Delete Dashboard"
+                message="Are you sure you want to delete this dashboard? This action cannot be undone."
+                confirmText="Delete"
+                cancelText="Cancel"
+                isConfirming={isDeleting}
+                variant="danger"
+            />
+        </>
     );
 }
-
 
 export function ViewDashboard({ id }: { id: string | number }) {
     return (
@@ -1151,6 +1381,8 @@ import MenuSection from "@/components/menu-section";
 import ChartList from "@/components/chart-list";
 import dynamic from 'next/dynamic';
 import InteractiveFilters from '@/components/interactive-filters';
+import { filterValuesToConditions } from '@/lib/filter-helpers';
+import DownloadButton from '@/components/data-download-button';
 
 // Dynamic import with a consistent height loader to prevent layout shift
 const MapView = dynamic(() => import('@/components/map-view'), { 
@@ -1274,6 +1506,12 @@ export default function SideContentLayout({ config, dashboardId }: Props) {
                     onFilterChange={handleInteractiveFilterChange}
                 />
                 )}
+		{config.download && (
+		    <DownloadButton
+			dashboardId={dashboardId}
+			filters={filterValuesToConditions(interactiveFilterValues)}
+		    />
+		)}
             </aside>
 
             {/* Main content */}
@@ -1404,10 +1642,10 @@ FILE: ./frontend/components/stacked-bar-chart.tsx
 =========================================
 'use client';
 
+import { useEffect, useState, useMemo } from 'react';
 import { fetchChartData } from '@/lib/client_actions';
 import { DASHBOARD_CHART_DISTINCT_VALS } from '@/lib/constants';
 import { ChartDef, FilterCondition } from '@/lib/definitions';
-import { useEffect, useState, useMemo } from 'react';
 import {
     BarChart as ReBarChart,
     Bar,
@@ -1425,7 +1663,6 @@ interface Props {
     interactiveFilters?: Record<string, any>;
 }
 
-// Color palette for stacked categories
 const STACK_COLORS = [
     '#ef4444', // Red
     '#3b82f6', // Blue  
@@ -1442,58 +1679,66 @@ interface StackedDataPoint {
     [key: string]: string | number;
 }
 
-// Helper to convert interactive filters to FilterCondition array
 const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
     return useMemo(() => {
         const conditions: FilterCondition[] = [];
         if (!interactiveFilters) return conditions;
 
-        Object.entries(interactiveFilters).forEach(([key, val]) => {
-            if (val === '' || val === undefined || val === null) return;
-      
-            // Handle range filters (they come as column_min and column_max)
+        const processedColumns = new Set<string>();
+
+        for (const [key, val] of Object.entries(interactiveFilters)) {
+            if (val === '' || val === undefined || val === null) continue;
+
             if (key.endsWith('_min')) {
-                const column = key.replace('_min', '');
-                const maxVal = interactiveFilters[`${column}_max`];
+                const column = key.slice(0, -4);
+                const maxKey = `${column}_max`;
+                const maxVal = interactiveFilters[maxKey];
                 if (maxVal !== undefined && maxVal !== '' && maxVal !== null) {
-                    conditions.push({ 
-                        column, 
-                        operator: 'between', 
-                        value: [Number(val), Number(maxVal)] 
+                    conditions.push({
+                        column,
+                        operator: 'between',
+                        value: [Number(val), Number(maxVal)]
                     });
+                    processedColumns.add(column);
                 } else {
-                    conditions.push({ column, operator: '>=', value: Number(val) });
+                    conditions.push({
+                        column,
+                        operator: '>=',
+                        value: Number(val)
+                    });
+                    processedColumns.add(column);
                 }
             } 
             else if (key.endsWith('_max')) {
-                // Skip - handled by _min
-                return;
-            }
-            else if (Array.isArray(val) && val.length > 0) {
-                conditions.push({ column: key, operator: 'in', value: val });
-            } 
-            else if (typeof val === 'object' && val !== null) {
-                // Handle case where range might still be an object (backward compatibility)
-                if ('min' in val && val.min !== undefined) {
-                    conditions.push({ column: key, operator: '>=', value: Number(val.min) });
-                }
-                if ('max' in val && val.max !== undefined) {
-                    conditions.push({ column: key, operator: '<=', value: Number(val.max) });
+                const column = key.slice(0, -4);
+                if (!processedColumns.has(column)) {
+                    conditions.push({
+                        column,
+                        operator: '<=',
+                        value: Number(val)
+                    });
+                    processedColumns.add(column);
                 }
             }
-            else if (val !== '') {
-                conditions.push({ column: key, operator: '=', value: String(val) });
+            else {
+                if (Array.isArray(val) && val.length > 0) {
+                    conditions.push({ column: key, operator: 'in', value: val });
+                } 
+                else if (typeof val === 'object' && val !== null) {
+                    if ('min' in val && val.min !== undefined) {
+                        conditions.push({ column: key, operator: '>=', value: Number(val.min) });
+                    }
+                    if ('max' in val && val.max !== undefined) {
+                        conditions.push({ column: key, operator: '<=', value: Number(val.max) });
+                    }
+                } 
+                else if (val !== '') {
+                    conditions.push({ column: key, operator: '=', value: String(val) });
+                }
             }
-        });
-    
-        // Remove duplicates (for between operator, we want just one condition)
-        return conditions.filter((f, index, self) => 
-            index === self.findIndex(t => 
-                t.column === f.column && 
-                t.operator === f.operator && 
-                JSON.stringify(t.value) === JSON.stringify(f.value)
-            )
-        );
+        }
+
+        return conditions;
     }, [interactiveFilters]);
 };
 
@@ -1503,98 +1748,92 @@ export default function StackedBarChart({ chart, dashboardId, interactiveFilters
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
   
-    // Convert interactive filters to FilterCondition array
     const filterConditions = useFilterConditions(interactiveFilters);
 
     useEffect(() => {
         const fetchStackedData = async () => {
-        if (!chart.stackBy) {
-            setError('stackBy is required for stacked bar charts');
-            setLoading(false);
-            return;
-        }
-
-        setLoading(true);
-        setError(null);
-      
-        try {
-            // Merge chart filters with interactive filters
-            const allBaseFilters = [
-                ...(chart.filters || []),
-                ...filterConditions
-            ];
-
-            // 1. Get unique categories to stack (with filters applied)
-            const catResponse = await fetch(DASHBOARD_CHART_DISTINCT_VALS(Number(dashboardId)), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    column: chart.stackBy,
-                    filters: allBaseFilters  // Apply filters to category query
-                })
-            });
-        
-            if (!catResponse.ok) {
-                throw new Error('Failed to fetch categories');
-            }
-        
-            const uniqueCategories = await catResponse.json();
-        
-            // Filter out any null/undefined categories
-            const validCategories = uniqueCategories.filter((cat: any) => cat != null);
-                setCategories(validCategories);
-
-            if (validCategories.length === 0) {
-                setData([]);
+            if (!chart.stackBy) {
+                setError('stackBy is required for stacked bar charts');
                 setLoading(false);
                 return;
             }
 
-            // 2. Fetch data for each category (with filters + category filter)
-            const allData: { [key: string]: any } = {};
-        
-            await Promise.all(validCategories.map(async (category: string) => {
-                // Create filter for the current category
-                const categoryFilter: FilterCondition = {
-                    column: chart.stackBy!,
-                    operator: '=',
-                    value: category
-                };
-          
-                // Combine all filters: chart filters + interactive filters + category filter
-                const allFilters = [
+            setLoading(true);
+            setError(null);
+      
+            try {
+                // Merge chart filters with interactive filters
+                const allBaseFilters = [
                     ...(chart.filters || []),
-                    ...filterConditions,
-                    categoryFilter
+                    ...filterConditions
                 ];
-          
-                const response = await fetchChartData(dashboardId, {
-                    ...chart,
-                    filters: allFilters
-                });
-          
-                response.labels.forEach((label: string, idx: number) => {
-                    if (!allData[label]) {
-                        allData[label] = { name: label };
-                    }
-                    allData[label][category] = response.data[idx];
-                });
-            }));
 
-            // Convert to array and sort if needed
-            const dataArray = Object.values(allData);
-            setData(dataArray);
+                // 1. Get unique categories to stack (with filters applied)
+                const catResponse = await fetch(DASHBOARD_CHART_DISTINCT_VALS(Number(dashboardId)), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        column: chart.stackBy,
+                        filters: allBaseFilters
+                    })
+                });
         
-        } catch (err: any) {
-            console.error('Stacked bar chart error:', err);
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
+                if (!catResponse.ok) {
+                    throw new Error('Failed to fetch categories');
+                }
+        
+                const uniqueCategories = await catResponse.json();
+                const validCategories = uniqueCategories.filter((cat: any) => cat != null);
+                setCategories(validCategories);
 
-    fetchStackedData();
-    }, [dashboardId, chart, filterConditions]); // Add filterConditions to dependencies
+                if (validCategories.length === 0) {
+                    setData([]);
+                    setLoading(false);
+                    return;
+                }
+
+                // 2. Fetch data for each category (with filters + category filter)
+                const allData: { [key: string]: any } = {};
+        
+                await Promise.all(validCategories.map(async (category: string) => {
+                    const categoryFilter: FilterCondition = {
+                        column: chart.stackBy!,
+                        operator: '=',
+                        value: category
+                    };
+          
+                    const allFilters = [
+                        ...(chart.filters || []),
+                        ...filterConditions,
+                        categoryFilter
+                    ];
+          
+                    const response = await fetchChartData(dashboardId, {
+                        ...chart,
+                        filters: allFilters
+                    });
+          
+                    response.labels.forEach((label: string, idx: number) => {
+                        if (!allData[label]) {
+                            allData[label] = { name: label };
+                        }
+                        allData[label][category] = response.data[idx];
+                    });
+                }));
+
+                const dataArray = Object.values(allData);
+                setData(dataArray);
+        
+            } catch (err: any) {
+                console.error('Stacked bar chart error:', err);
+                setError(err.message);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStackedData();
+    }, [dashboardId, chart, filterConditions]);
 
     if (loading) return <div className="h-64 bg-gray-200 animate-pulse rounded" />;
     if (error) return <div className="text-red-500">Error: {error}</div>;
@@ -1603,11 +1842,11 @@ export default function StackedBarChart({ chart, dashboardId, interactiveFilters
     return (
         <div className="bg-white p-4 rounded shadow">
             <h3 className="text-lg font-semibold mb-2">{chart.title}</h3>
-                <ResponsiveContainer width="100%" height={400}>
-                    <ReBarChart 
-                        data={data} 
-                        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                    >
+            <ResponsiveContainer width="100%" height={400}>
+                <ReBarChart 
+                    data={data} 
+                    margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+                >
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis 
                         dataKey="name" 
@@ -1631,18 +1870,18 @@ export default function StackedBarChart({ chart, dashboardId, interactiveFilters
                         wrapperStyle={{ paddingBottom: '20px' }}
                     />
                     {categories.map((category, index) => (
-                    <Bar
-                        key={category}
-                        dataKey={category}
-                        stackId="stack"
-                        fill={STACK_COLORS[index % STACK_COLORS.length]}
-                        name={category}
-                    />
+                        <Bar
+                            key={category}
+                            dataKey={category}
+                            stackId="stack"
+                            fill={STACK_COLORS[index % STACK_COLORS.length]}
+                            name={category}
+                        />
                     ))}
-                    </ReBarChart>
-                </ResponsiveContainer>
-            </div>
-        );
+                </ReBarChart>
+            </ResponsiveContainer>
+        </div>
+    );
 }
 
 
@@ -1650,7 +1889,7 @@ export default function StackedBarChart({ chart, dashboardId, interactiveFilters
 =========================================
 FILE: ./frontend/components/footer.tsx
 =========================================
-
+"use client";
 
 export default function Header(){
     return(
@@ -1661,14 +1900,17 @@ export default function Header(){
 }
 
 
+
 =========================================
 FILE: ./frontend/components/interactive-filters.tsx
 =========================================
 'use client';
 
+
+import { Slider } from '@mui/material';
 import { useEffect, useState, useRef } from 'react';
 import { InteractiveFilterDef } from '@/lib/definitions';
-import { DASHBOARD_CHART_DISTINCT_VALS } from '@/lib/constants';
+import { DASHBOARD_CHART_DISTINCT_VALS, DASHBOARD_RANGE_BOUNDS } from '@/lib/constants';
 import { 
     ChevronDownIcon, 
     XMarkIcon,
@@ -1839,77 +2081,68 @@ const RangeSlider = ({
     onChange: (min: number | undefined, max: number | undefined) => void;
     step?: number;
 }) => {
-    const [localMin, setLocalMin] = useState(value.min?.toString() || '');
-    const [localMax, setLocalMax] = useState(value.max?.toString() || '');
-
-    const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newMin = e.target.value === '' ? undefined : Number(e.target.value);
-        setLocalMin(e.target.value);
-        onChange(newMin, value.max);
-    };
-
-    const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newMax = e.target.value === '' ? undefined : Number(e.target.value);
-        setLocalMax(e.target.value);
-        onChange(value.min, newMax);
+    const handleSliderChange = (_event: Event, newValue: number | number[]) => {
+        if (Array.isArray(newValue)) {
+            const [newMin, newMax] = newValue;
+            onChange(newMin, newMax);
+        }
     };
 
     const handleClear = () => {
-        setLocalMin('');
-        setLocalMax('');
         onChange(undefined, undefined);
     };
 
+    // Determine the current range for the slider
+    const currentMin = value.min !== undefined ? value.min : min;
+    const currentMax = value.max !== undefined ? value.max : max;
+
     return (
         <div className="space-y-3">
-            <div className="flex items-center gap-3">
-                <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1">Min</label>
-                    <input
-                        type="number"
-                        value={localMin}
-                        onChange={handleMinChange}
-                        placeholder={`${min}`}
-                        step={step}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg 
-                            focus:outline-none focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
-                    />
+            <Slider
+                value={[currentMin, currentMax]}
+                onChange={handleSliderChange}
+                valueLabelDisplay="auto"
+                min={min}
+                max={max}
+                step={step}
+                disabled={min === max} // Disable if no range
+                disableSwap
+                getAriaLabel={() => 'Range filter'}
+                valueLabelFormat={(value) => value}
+                sx={{
+                    color: '#8b5cf6', // purple-600
+                    '& .MuiSlider-thumb': {
+                        width: 16,
+                        height: 16,
+                        backgroundColor: '#fff',
+                        border: '2px solid #8b5cf6',
+                        '&:hover, &.Mui-focusVisible': {
+                            boxShadow: '0 0 0 6px rgba(139,92,246,0.2)',
+                        },
+                    },
+                    '& .MuiSlider-track': {
+                        height: 4,
+                    },
+                    '& .MuiSlider-rail': {
+                        height: 4,
+                        backgroundColor: '#e2e8f0',
+                    },
+                }}
+            />
+            <div className="flex items-center justify-between gap-3">
+                <div className="text-xs text-gray-500">
+                    Range: {currentMin} – {currentMax}
                 </div>
-                <div className="flex-1">
-                    <label className="block text-xs text-gray-500 mb-1">Max</label>
-                    <input
-                        type="number"
-                        value={localMax}
-                        onChange={handleMaxChange}
-                        placeholder={`${max}`}
-                        step={step}
-                        className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none 
-                            focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
-                    />
-                </div>
-                {(localMin || localMax) && (
-                <button
-                    onClick={handleClear}
-                    className="self-end mb-1 p-2 text-gray-400 hover:text-gray-600 transition-colors"
-                    title="Clear range"
-                >
-                    <XMarkIcon className="w-4 h-4" />
-                </button>
+                {(value.min !== undefined || value.max !== undefined) && (
+                    <button
+                        onClick={handleClear}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                        title="Clear range"
+                    >
+                        <XMarkIcon className="w-4 h-4" />
+                    </button>
                 )}
             </div>
-      
-            {/* Visual range indicator */}
-            {(value.min !== undefined || value.max !== undefined) && (
-            <div className="relative h-1 bg-gray-200 rounded-full">
-                <div
-                    className="absolute h-full bg-purple-500 rounded-full"
-                    style={{
-                        left: value.min !== undefined ? `${((value.min - min) / (max - min)) * 100}%` : '0%',
-                        right: value.max !== undefined ? `${100 - ((value.max - min) / (max - min)) * 100}%` : '0%'
-                    }}
-                />
-                </div>
-            )}
         </div>
     );
 };
@@ -1951,49 +2184,30 @@ export default function InteractiveFilters({ dashboardId, filters, onFilterChang
                 setLoading(prev => ({ ...prev, [filter.column]: false }));
             }
         } else if (filter.type === 'range') {
-            // Fetch min/max for range filter
-            try {
-                setLoading(prev => ({ ...prev, [filter.column]: true }));
-          
-                // Fetch min value
-                const minResponse = await fetch(DASHBOARD_CHART_DISTINCT_VALS(Number(dashboardId)), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                     body: JSON.stringify({ 
-                        column: filter.column,
-                        sort: 'asc',
-                        limit: 1
-                    })
-                });
-          
-                // Fetch max value
-                const maxResponse = await fetch(DASHBOARD_CHART_DISTINCT_VALS(Number(dashboardId)), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        column: filter.column,
-                        sort: 'desc',
-                        limit: 1
-                    })
-                });
-          
-                if (minResponse.ok && maxResponse.ok) {
-                    const min = await minResponse.json();
-                    const max = await maxResponse.json();
-                    setRangeBounds(prev => ({
-                        ...prev,
-                        [filter.column]: { 
-                            min: min[0] || 0, 
-                            max: max[0] || 100 
-                        }
-                    }));
-                }
-            } catch (error) {
-                console.error(`Failed to fetch range bounds for ${filter.column}:`, error);
-            } finally {
-                setLoading(prev => ({ ...prev, [filter.column]: false }));
-            }
-        }
+        	try {
+       			setLoading(prev => ({ ...prev, [filter.column]: true }));
+        
+			const response = await fetch(DASHBOARD_RANGE_BOUNDS(Number(dashboardId)), {
+			    method: 'POST',
+			    headers: { 'Content-Type': 'application/json' },
+			    body: JSON.stringify({ column: filter.column })
+			});
+        
+        		if (response.ok) {
+			    const bounds = await response.json();
+			    setRangeBounds(prev => ({
+				...prev,
+				[filter.column]: { min: bounds.min, max: bounds.max }
+			    }));
+			} else {
+			    console.error(`Failed to fetch range bounds for ${filter.column}`);
+			}
+    		} catch (error) {
+        		console.error(`Failed to fetch range bounds for ${filter.column}:`, error);
+    		} finally {
+        		setLoading(prev => ({ ...prev, [filter.column]: false }));
+    		}
+	}
     });
     }, [dashboardId, filters]);
 
@@ -2108,8 +2322,250 @@ export default function InteractiveFilters({ dashboardId, filters, onFilterChang
 
 
 =========================================
+FILE: ./frontend/components/dashboard-form-upload-data.tsx
+=========================================
+'use client';
+
+import { useState, useRef } from 'react';
+import { XMarkIcon, DocumentArrowUpIcon, ExclamationCircleIcon } from '@heroicons/react/24/outline';
+import { Button } from '@/components/buttons';
+import { DASHBOARD_ADD_DATA_URL } from '@/lib/constants';
+import { useRouter } from 'next/navigation';
+
+interface UploadDataModalProps {
+  dashboardId: number;
+  onClose: () => void;
+}
+
+interface AddDataButtonProps {
+  dashboardId: number;
+}
+
+// Helper to get auth token from cookies
+function getAuthToken(): string | null {
+  const match = document.cookie.match(/(^| )auth-token=([^;]+)/);
+  if (match) {
+    // Replace double underscores with spaces (as stored in cookie)
+    return match[2].replace(/__/g, ' ');
+  }
+  return null;
+}
+
+export function UploadDataModal({ dashboardId, onClose }: UploadDataModalProps) {
+  const [files, setFiles] = useState<File[]>([]);
+  const [overrides, setOverrides] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const router = useRouter();
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles(Array.from(e.target.files));
+      setError(null);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (files.length === 0) {
+      setError('Please select at least one file.');
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+
+    const formData = new FormData();
+    files.forEach(file => {
+      formData.append('files', file);
+    });
+    if (overrides.trim()) {
+      try {
+        // Validate JSON
+        JSON.parse(overrides);
+        formData.append('column_type_overrides', overrides);
+      } catch (err) {
+        setError('Invalid JSON for column type overrides');
+        setUploading(false);
+        return;
+      }
+    }
+
+    // Get the auth token from cookies
+    const token = getAuthToken();
+    if (!token) {
+      setError('You are not logged in. Please log in again.');
+      setUploading(false);
+      return;
+    }
+
+    try {
+      const url = DASHBOARD_ADD_DATA_URL(dashboardId);
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: token, // token already includes "Bearer "
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || 'Upload failed');
+      }
+
+      // Success: refresh the page to show the new data
+      router.refresh();
+      onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/40 backdrop-blur-sm">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
+        {/* Header */}
+        <div className="bg-linear-to-r from-purple-600 to-violet-600 px-6 py-4 flex justify-between items-center">
+          <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+            <DocumentArrowUpIcon className="w-5 h-5" />
+            Upload Data
+          </h2>
+          <button
+            onClick={onClose}
+            className="text-white/80 hover:text-white transition-colors"
+            disabled={uploading}
+          >
+            <XMarkIcon className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* File Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Files (CSV or Excel)
+            </label>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              multiple
+              onChange={handleFileChange}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+              disabled={uploading}
+            />
+            {files.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {files.map((file, idx) => (
+                  <div key={idx} className="flex justify-between items-center text-sm bg-gray-50 p-2 rounded">
+                    <span className="truncate">{file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeFile(idx)}
+                      className="text-gray-500 hover:text-red-600"
+                    >
+                      <XMarkIcon className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Column Type Overrides */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Column Type Overrides (JSON, optional)
+            </label>
+            <textarea
+              rows={4}
+              value={overrides}
+              onChange={(e) => setOverrides(e.target.value)}
+              placeholder='{"column_name": "INTEGER", "date_col": "DATE"}'
+              className="w-full rounded-md border border-gray-300 p-2 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              disabled={uploading}
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Specify SQL types for specific columns (e.g., TEXT, INTEGER, FLOAT, DATE, TIMESTAMP).
+            </p>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2">
+              <ExclamationCircleIcon className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50"
+              disabled={uploading}
+            >
+              Cancel
+            </button>
+            <Button
+              type="submit"
+              disabled={files.length === 0 || uploading}
+              className="min-w-30"
+            >
+              {uploading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4"/>
+                  Uploading...
+                </span>
+              ) : (
+                'Upload'
+              )}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+export function AddDataButton({ dashboardId }: AddDataButtonProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        onClick={() => setIsOpen(true)}
+        className="px-4 py-2 bg-gray-100 rounded-md text-sm font-medium hover:bg-gray-200"
+      >
+        Add Data
+      </button>
+      {isOpen && (
+        <UploadDataModal
+          dashboardId={dashboardId}
+          onClose={() => setIsOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
+
+
+=========================================
 FILE: ./frontend/components/header.tsx
 =========================================
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/buttons";
 import { ArrowRightIcon } from "@heroicons/react/16/solid";
@@ -2132,6 +2588,11 @@ export default function Header(){
                         </span>
                     </Link>
                     <div className="flex md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse">
+		        <Link href="/dashboards" className="flex items-center mr-3 text-center text-sm text-gray-600 hover:text-purple-600">
+    				<span className="self-center text-center">
+					Public Dashboards
+				</span>
+			</Link>
                         <Link href="/login">
                             <Button> 
                                 Log In
@@ -2340,138 +2801,225 @@ export default function LoginForm() {
 
 
 =========================================
+FILE: ./frontend/components/dashboard-form-rename.tsx
+=========================================
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { renameDashboard } from '@/lib/actions';
+import { XMarkIcon, PencilIcon } from '@heroicons/react/24/outline';
+import { Button } from '@/components/buttons';
+
+interface Props {
+    dashboardId: number;
+    currentName: string;
+    onClose: () => void;
+}
+
+export default function RenameDashboardModal({ dashboardId, currentName, onClose }: Props) {
+    const [name, setName] = useState(currentName);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+    const [touched, setTouched] = useState(false);
+    const router = useRouter();
+
+    const isValid = name.trim().length >= 3 && name.trim() !== currentName;
+    const showNameUnchanged = touched && name.trim() === currentName && name !== '';
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!isValid) return;
+
+        setIsSubmitting(true);
+        setError(null);
+
+        try {
+            await renameDashboard(dashboardId, name.trim());
+            router.refresh();
+            onClose();
+        } catch (err) {
+            console.error(err);
+            const message = err instanceof Error ? err.message : 'Failed to rename dashboard';
+            setError(message);
+            setIsSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+                <div className="bg-linear-to-r from-purple-600 to-violet-600 px-6 py-4 flex justify-between items-center">
+                    <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                        <PencilIcon className="w-5 h-5" />
+                        Rename Dashboard
+                    </h2>
+                    <button onClick={onClose} className="text-white/80 hover:text-white">
+                        <XMarkIcon className="w-5 h-5" />
+                    </button>
+                </div>
+                <form onSubmit={handleSubmit} className="p-6">
+                    <div className="mb-6">
+                        <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                            Dashboard Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            id="name"
+                            value={name}
+                            onChange={(e) => {
+                                setName(e.target.value);
+                                setTouched(true);
+                            }}
+                            onBlur={() => setTouched(true)}
+                            className="block w-full rounded-lg border border-gray-300 py-3 px-4 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            required
+                            disabled={isSubmitting}
+                        />
+                        {touched && name.trim().length < 3 && name !== '' && (
+                            <p className="mt-2 text-sm text-red-600">Name must be at least 3 characters</p>
+                        )}
+                        {showNameUnchanged && (
+                            <p className="mt-2 text-sm text-yellow-600">Name unchanged</p>
+                        )}
+                    </div>
+                    {error && <div className="mb-4 text-sm text-red-600">{error}</div>}
+                    <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                            disabled={isSubmitting}
+                        >
+                            Cancel
+                        </button>
+                        <Button type="submit" disabled={!isValid || isSubmitting}>
+                            {isSubmitting ? 'Saving...' : 'Save'}
+                        </Button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+
+
+=========================================
 FILE: ./frontend/components/map-view.tsx
 =========================================
 'use client';
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-import 'leaflet.markercluster/dist/MarkerCluster.css';
-import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
-import 'leaflet.markercluster';
 import { fetchDashboardConfig } from '@/lib/client_actions';
 import { DashboardConfig, FilterCondition, MapStyleRule } from '@/lib/definitions';
 import { Feature, Point, GeoJsonProperties } from 'geojson';
 import { DASHBOARD_MAP_POINTS_IN_VIEW_URL, DASHBOARD_MAP_POINTS_URL, DASHBOARD_FILTERED_MAP_POINTS_URL } from '@/lib/constants';
-
-// Extend Leaflet types
-declare module 'leaflet' {
-    export function markerClusterGroup(options?: any): any;
-}
 
 interface Props {
     dashboardId: string;
     interactiveFilters?: Record<string, any>;
 }
 
-// Helper function to apply style rules
+// Helper functions (do not depend on Leaflet)
 const getColorFromRules = (properties: GeoJsonProperties, rules: MapStyleRule[], defaultColor: string): string => {
     if (!properties) return defaultColor;
-  
     for (const rule of rules) {
         const fieldValue = properties[rule.field];
         if (fieldValue === undefined || fieldValue === null) continue;
-    
         const operator = rule.operator || '=';
-    
         switch (operator) {
             case '=':
                 if (String(fieldValue) === String(rule.value)) return rule.color;
-            break;
+                break;
             case '!=':
                 if (String(fieldValue) !== String(rule.value)) return rule.color;
-            break;
+                break;
             case 'like':
                 if (typeof fieldValue === 'string' && typeof rule.value === 'string') {
                     const pattern = rule.value.replace(/%/g, '.*');
                     if (new RegExp(pattern, 'i').test(fieldValue)) return rule.color;
                 }
-            break;
+                break;
             case 'in':
                 if (Array.isArray(rule.value)) {
                     const stringValues = rule.value.map(v => String(v));
                     if (stringValues.includes(String(fieldValue))) return rule.color;
                 }
-            break;
+                break;
         }
     }
     return defaultColor;
 };
 
-// Helper to get size based on field
 const getSizeFromField = (properties: GeoJsonProperties, sizeBy: string | undefined, defaultSize: number, minSize: number, maxSize: number): number => {
     if (!sizeBy || !properties) return defaultSize;
-  
     const value = properties[sizeBy];
     if (!value || isNaN(Number(value))) return defaultSize;
-  
-    // Scale logarithmically to handle outliers
     const scaled = Math.log(Number(value) + 1) * 3;
     return Math.min(maxSize, Math.max(minSize, scaled));
 };
 
-// Type guard
 const isPointFeature = (feature: Feature): feature is Feature<Point> => {
     return feature.geometry?.type === 'Point';
 };
 
-// Helper to convert interactive filters to FilterCondition array
+// Improved filter hook (same as charts)
 const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
     return useMemo(() => {
         const conditions: FilterCondition[] = [];
         if (!interactiveFilters) return conditions;
 
-        Object.entries(interactiveFilters).forEach(([key, val]) => {
-        if (val === '' || val === undefined || val === null) return;
-      
-        // Handle range filters (they come as column_min and column_max)
-        if (key.endsWith('_min')) {
-            const column = key.replace('_min', '');
-            const maxVal = interactiveFilters[`${column}_max`];
-            if (maxVal !== undefined && maxVal !== '' && maxVal !== null) {
-                conditions.push({ 
-                    column, 
-                    operator: 'between', 
-                    value: [Number(val), Number(maxVal)] 
-                });
-            } else {
-                conditions.push({ column, operator: '>=', value: Number(val) });
+        const processedColumns = new Set<string>();
+
+        for (const [key, val] of Object.entries(interactiveFilters)) {
+            if (val === '' || val === undefined || val === null) continue;
+
+            if (key.endsWith('_min')) {
+                const column = key.slice(0, -4);
+                const maxKey = `${column}_max`;
+                const maxVal = interactiveFilters[maxKey];
+                if (maxVal !== undefined && maxVal !== '' && maxVal !== null) {
+                    conditions.push({
+                        column,
+                        operator: 'between',
+                        value: [Number(val), Number(maxVal)]
+                    });
+                    processedColumns.add(column);
+                } else {
+                    conditions.push({ column, operator: '>=', value: Number(val) });
+                    processedColumns.add(column);
+                }
+            } 
+            else if (key.endsWith('_max')) {
+                const column = key.slice(0, -4);
+                if (!processedColumns.has(column)) {
+                    conditions.push({ column, operator: '<=', value: Number(val) });
+                    processedColumns.add(column);
+                }
             }
-        } 
-        else if (key.endsWith('_max')) {
-            // Skip - handled by _min
-            return;
-        }
-        else if (Array.isArray(val) && val.length > 0) {
-            conditions.push({ column: key, operator: 'in', value: val });
-        } 
-        else if (typeof val === 'object' && val !== null) {
-            // Handle case where range might still be an object (backward compatibility)
-            if ('min' in val && val.min !== undefined) {
-                conditions.push({ column: key, operator: '>=', value: Number(val.min) });
+            else {
+                if (Array.isArray(val) && val.length > 0) {
+                    conditions.push({ column: key, operator: 'in', value: val });
+                } 
+                else if (typeof val === 'object' && val !== null) {
+                    if ('min' in val && val.min !== undefined) {
+                        conditions.push({ column: key, operator: '>=', value: Number(val.min) });
+                    }
+                    if ('max' in val && val.max !== undefined) {
+                        conditions.push({ column: key, operator: '<=', value: Number(val.max) });
+                    }
+                } 
+                else if (val !== '') {
+                    conditions.push({ column: key, operator: '=', value: String(val) });
+                }
             }
-            if ('max' in val && val.max !== undefined) {
-                conditions.push({ column: key, operator: '<=', value: Number(val.max) });
-            }
         }
-        else if (val !== '') {
-            conditions.push({ column: key, operator: '=', value: String(val) });
-        }
-    });
-    
-    // Remove duplicates (for between operator, we want just one condition)
-    return conditions.filter((f, index, self) => 
-        index === self.findIndex(t => 
-            t.column === f.column && 
-            t.operator === f.operator && 
-            JSON.stringify(t.value) === JSON.stringify(f.value)
-        )
-    );
+
+        return conditions;
     }, [interactiveFilters]);
 };
 
-// Legend component
+// Legend component (does not need Leaflet)
 const Legend = ({ style, position }: { style: any; position: string }) => {
     const positionClasses = {
         topleft: 'top-4 left-4',
@@ -2479,26 +3027,24 @@ const Legend = ({ style, position }: { style: any; position: string }) => {
         bottomleft: 'bottom-4 left-4',
         bottomright: 'bottom-4 right-4'
     };
-  
     const legendItems = style.rules
-    .filter((rule: MapStyleRule, index: number, self: MapStyleRule[]) => 
-        index === self.findIndex((r) => r.color === rule.color)
-    )
-    .map((rule: MapStyleRule) => ({
-        color: rule.color,
-        label: rule.label || `${rule.field}: ${rule.value}`
-    }));
-  
+        .filter((rule: MapStyleRule, index: number, self: MapStyleRule[]) => 
+            index === self.findIndex((r) => r.color === rule.color)
+        )
+        .map((rule: MapStyleRule) => ({
+            color: rule.color,
+            label: rule.label || `${rule.field}: ${rule.value}`
+        }));
     return (
         <div className={`absolute ${positionClasses[position as keyof typeof positionClasses] || 'bottom-4 right-4'} z-1000`}>
             <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
                 <h4 className="font-bold text-sm mb-2">{style.legend?.title || 'Legend'}</h4>
                 <div className="space-y-1.5">
                     {legendItems.map((item: any, idx: number) => (
-                    <div key={idx} className="flex items-center gap-2">
-                        <span className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }}></span>
-                        <span className="text-xs">{item.label}</span>
-                    </div>
+                        <div key={idx} className="flex items-center gap-2">
+                            <span className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }}></span>
+                            <span className="text-xs">{item.label}</span>
+                        </div>
                     ))}
                     {style.sizeBy && (
                         <div className="mt-3 pt-2 border-t border-gray-200">
@@ -2512,70 +3058,72 @@ const Legend = ({ style, position }: { style: any; position: string }) => {
 };
 
 export default function MapView({ dashboardId, interactiveFilters }: Props) {
-    const [map, setMap] = useState<L.Map | null>(null);
-    const [points, setPoints] = useState<GeoJSON.FeatureCollection | null>(null);
+    const [map, setMap] = useState<any>(null);
     const [config, setConfig] = useState<DashboardConfig | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [useClustering, setUseClustering] = useState(false);
-    const mapInstanceRef = useRef<L.Map | null>(null);
+    const [leafletLoaded, setLeafletLoaded] = useState(false);
+    const LRef = useRef<any>(null);
+    const MarkerClusterRef = useRef<any>(null);
+    const mapInstanceRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const markersRef = useRef<L.LayerGroup | null>(null);
+    const markersRef = useRef<any>(null);
     const clusterRef = useRef<any>(null);
-  
-    // Convert interactive filters to FilterCondition array
+    const initRef = useRef(false);
+
     const filterConditions = useFilterConditions(interactiveFilters);
 
-    // Fetch config and decide on clustering strategy
+    // Dynamically import Leaflet and markercluster on client
     useEffect(() => {
-        console.log('Fetching map config for dashboard:', dashboardId);
-        setIsLoading(true);
-        fetchDashboardConfig(dashboardId)
-        .then(configData => {
-            console.log('Config received:', configData);
-            setConfig(configData);
-        
-            // Determine if clustering should be enabled
-            const clusteringEnabled = configData.map?.clustering?.enabled ?? false;
-            setUseClustering(clusteringEnabled);
-        })
-        .catch(err => {
-            console.error('Error fetching map config:', err);
-        })
-        .finally(() => setIsLoading(false));
-    }, [dashboardId]);
-
-    // Initialize map
-    const mapRef = useCallback((node: HTMLDivElement | null) => {
-        if (node !== null && !mapInstanceRef.current) {
-            console.log('Initializing map');
-            const instance = L.map(node, {
-                center: [0, 0],
-                zoom: 2,
-                maxZoom: 18
-            });
-      
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                subdomains: 'abcd',
-                maxZoom: 20
-            }).addTo(instance);
-
-            mapInstanceRef.current = instance;
-            setMap(instance);
-      
-            setTimeout(() => {
-                if (mapInstanceRef.current) {
-                    mapInstanceRef.current.invalidateSize();
-                    console.log('Map invalidated after init');
-                }
-            }, 100);
-        }
+        if (typeof window === 'undefined') return;
+        Promise.all([
+            import('leaflet'),
+            import('leaflet.markercluster')
+        ]).then(([leaflet, markercluster]) => {
+            LRef.current = leaflet.default;
+            MarkerClusterRef.current = markercluster.default;
+            setLeafletLoaded(true);
+        }).catch(err => console.error('Failed to load Leaflet:', err));
     }, []);
 
-    // Fetch all points with filters (for small datasets without clustering)
+    // Fetch dashboard config
+    useEffect(() => {
+        fetchDashboardConfig(dashboardId)
+            .then(configData => {
+                setConfig(configData);
+                const clusteringEnabled = configData.map?.clustering?.enabled ?? false;
+                setUseClustering(clusteringEnabled);
+            })
+            .catch(err => console.error('Error fetching map config:', err))
+            .finally(() => setIsLoading(false));
+    }, [dashboardId]);
+
+    // Initialize map after Leaflet is loaded and container exists
+    useEffect(() => {
+        if (!leafletLoaded || !containerRef.current || initRef.current) return;
+        initRef.current = true;
+
+        const L = LRef.current;
+        const instance = L.map(containerRef.current, {
+            center: [0, 0],
+            zoom: 2,
+            maxZoom: 18
+        });
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(instance);
+        mapInstanceRef.current = instance;
+        setMap(instance);
+        setTimeout(() => {
+            if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
+        }, 100);
+    }, [leafletLoaded]);
+
+    // Fetch all points (no clustering)
     const fetchAllPoints = useCallback(async () => {
         try {
-            // Use filtered endpoint if we have filters, otherwise use regular points endpoint
             if (filterConditions.length > 0) {
                 const response = await fetch(DASHBOARD_FILTERED_MAP_POINTS_URL(Number(dashboardId)), {
                     method: 'POST',
@@ -2599,25 +3147,22 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
         }
     }, [dashboardId, filterConditions]);
 
-    // Fetch points in viewport with filters (for clustered datasets)
-    const fetchPointsInView = useCallback(async (bounds: L.LatLngBounds) => {
+    // Fetch points in view (clustering)
+    const fetchPointsInView = useCallback(async (bounds: any) => {
         if (!config?.map?.clustering) return null;
-
         try {
             const sw = bounds.getSouthWest();
             const ne = bounds.getNorthEast();
             const limit = config.map.clustering.limit ?? 10000;
-      
             const response = await fetch(DASHBOARD_MAP_POINTS_IN_VIEW_URL(Number(dashboardId)), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     bbox: [sw.lng, sw.lat, ne.lng, ne.lat],
                     limit: limit,
-                    filters: filterConditions  // Pass the filter conditions
+                    filters: filterConditions
                 })
             });
-      
             if (!response.ok) throw new Error('Failed to fetch points in view');
             const data = await response.json();
             console.log(`Fetched ${data.features?.length || 0} points in view with filters`);
@@ -2628,11 +3173,12 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
         }
     }, [dashboardId, config, filterConditions]);
 
-    // Render points based on clustering setting
+    // Render points (runs when config, clustering, filters, or leaflet is loaded)
     useEffect(() => {
-        if (!mapInstanceRef.current || !config) return;
+        if (!mapInstanceRef.current || !config || !leafletLoaded) return;
 
         const map = mapInstanceRef.current;
+        const L = LRef.current;
         const mapStyle = config.map.style || {
             defaultColor: '#6b7280',
             defaultSize: 6,
@@ -2641,7 +3187,7 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
             rules: []
         };
 
-        // Clear existing layers properly
+        // Clear existing layers
         if (clusterRef.current) {
             map.removeLayer(clusterRef.current);
             clusterRef.current = null;
@@ -2651,17 +3197,13 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
             markersRef.current = null;
         }
 
-        if (useClustering) {
-            // === CLUSTERED MODE (for large datasets) ===
+        if (useClustering && MarkerClusterRef.current) {
+            // Clustering mode
             const clusterConfig = config.map.clustering;
+            if (!clusterConfig) return;
 
-            // Only proceed if clustering is enabled and config exists
-            if (!clusterConfig) {
-                console.warn('Clustering enabled but no cluster config found');
-                return;
-            }
-
-            const clusterGroup = (L as any).markerClusterGroup({
+            const MarkerClusterGroup = MarkerClusterRef.current;
+            const clusterGroup = MarkerClusterGroup({
                 maxClusterRadius: clusterConfig.maxClusterRadius ?? 60,
                 spiderfyOnMaxZoom: clusterConfig.spiderfyOnMaxZoom ?? true,
                 showCoverageOnHover: clusterConfig.showCoverageOnHover ?? false,
@@ -2671,151 +3213,37 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
                 chunkInterval: clusterConfig.chunkInterval ?? 100,
                 chunkDelay: clusterConfig.chunkDelay ?? 50
             });
-
             clusterRef.current = clusterGroup;
             map.addLayer(clusterGroup);
 
-            // Function to load points for current view
             const loadViewportPoints = async () => {
                 const bounds = map.getBounds();
                 const pointsData = await fetchPointsInView(bounds);
-        
                 if (!pointsData?.features) return;
 
                 clusterGroup.clearLayers();
-
                 pointsData.features.forEach((feature: Feature) => {
                     if (!isPointFeature(feature)) return;
-          
                     const props = feature.properties;
-                    const coordinates = feature.geometry.coordinates;
-          
-                    if (coordinates.length < 2) return;
-          
-                    const [lon, lat] = coordinates;
-          
-                    if (typeof lat !== 'number' || typeof lon !== 'number') return;
-                    if (isNaN(lat) || isNaN(lon)) return;
-          
-                    const color = getColorFromRules(
-                        props, 
-                        mapStyle.rules || [], 
-                        mapStyle.defaultColor
-                    );
-          
-                    const size = getSizeFromField(
-                        props,
-                        mapStyle.sizeBy,
-                        mapStyle.defaultSize,
-                        mapStyle.minSize || 4,
-                        mapStyle.maxSize || 12
-                    );
-          
-                    const popupContent = `
-                    <div class="p-2 min-w-50">
-                        <h3 class="font-bold text-lg border-b pb-1 mb-2">${props?.plant_specie_name || props?.species || 'Unknown'}</h3>
-                        <table class="text-sm w-full">
-                            ${Object.entries(props || {})
-                            .filter(([key]) => !['lat', 'lon'].includes(key.toLowerCase()))
-                            .map(([key, value]) => `
-                                <tr>
-                                    <td class="font-semibold pr-3">${key}:</td>
-                                    <td>${value}</td>
-                                </tr>
-                            `).join('')}
-                        </table>
-                    </div>
-                    `;
-          
-                    const marker = L.circleMarker([lat, lon], {
-                        radius: size,
-                        fillColor: color,
-                        color: '#fff',
-                        weight: 1,
-                        fillOpacity: 0.8,
-                    }).bindPopup(popupContent);
-          
-                    clusterGroup.addLayer(marker);
-                });
-            };
-
-            // Load initial points
-            loadViewportPoints();
-
-            // Debounced update on map move
-            let timeoutId: NodeJS.Timeout;
-            const handleMoveEnd = () => {
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(loadViewportPoints, 300);
-            };
-
-            map.on('moveend', handleMoveEnd);
-            map.on('zoomend', handleMoveEnd);
-
-            return () => {
-                map.off('moveend', handleMoveEnd);
-                map.off('zoomend', handleMoveEnd);
-                if (clusterRef.current) {
-                    map.removeLayer(clusterRef.current);
-                }
-            };
-
-        } else {
-            // === SIMPLE MODE (for small datasets) ===
-            const loadAllPoints = async () => {
-                const pointsData = await fetchAllPoints();
-                if (!pointsData?.features) return;
-
-                // Create a layer group for all markers
-                const layerGroup = L.layerGroup();
-                markersRef.current = layerGroup;
-                map.addLayer(layerGroup);
-
-                let bounds = L.latLngBounds([]);
-
-                pointsData.features.forEach((feature: Feature) => {
-                    if (!isPointFeature(feature)) return;
-          
-                    const props = feature.properties;
-                    const coordinates = feature.geometry.coordinates;
-          
-                    if (coordinates.length < 2) return;
-          
-                    const [lon, lat] = coordinates;
-          
-                    if (typeof lat !== 'number' || typeof lon !== 'number') return;
-                    if (isNaN(lat) || isNaN(lon)) return;
-          
-                    const color = getColorFromRules(
-                        props, 
-                        mapStyle.rules || [], 
-                        mapStyle.defaultColor
-                    );
-          
-                    const size = getSizeFromField(
-                        props,
-                        mapStyle.sizeBy,
-                        mapStyle.defaultSize,
-                        mapStyle.minSize || 4,
-                        mapStyle.maxSize || 12
-                    );
-          
+                    const [lon, lat] = feature.geometry.coordinates;
+                    if (typeof lat !== 'number' || typeof lon !== 'number' || isNaN(lat) || isNaN(lon)) return;
+                    const color = getColorFromRules(props, mapStyle.rules || [], mapStyle.defaultColor);
+                    const size = getSizeFromField(props, mapStyle.sizeBy, mapStyle.defaultSize, mapStyle.minSize || 4, mapStyle.maxSize || 12);
                     const popupContent = `
                         <div class="p-2 min-w-50">
                             <h3 class="font-bold text-lg border-b pb-1 mb-2">${props?.plant_specie_name || props?.species || 'Unknown'}</h3>
                             <table class="text-sm w-full">
                                 ${Object.entries(props || {})
-                                .filter(([key]) => !['lat', 'lon'].includes(key.toLowerCase()))
-                                .map(([key, value]) => `
-                                <tr>
-                                    <td class="font-semibold pr-3">${key}:</td>
-                                    <td>${value}</td>
-                                </tr>
-                                `).join('')}
+                                    .filter(([key]) => !['lat', 'lon'].includes(key.toLowerCase()))
+                                    .map(([key, value]) => `
+                                        <tr>
+                                            <td class="font-semibold pr-3">${key}:</td>
+                                            <td>${value}</td>
+                                        </tr>
+                                    `).join('')}
                             </table>
                         </div>
                     `;
-          
                     const marker = L.circleMarker([lat, lon], {
                         radius: size,
                         fillColor: color,
@@ -2823,7 +3251,63 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
                         weight: 1,
                         fillOpacity: 0.8,
                     }).bindPopup(popupContent);
-          
+                    clusterGroup.addLayer(marker);
+                });
+            };
+
+            loadViewportPoints();
+            let timeoutId: NodeJS.Timeout;
+            const handleMoveEnd = () => {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(loadViewportPoints, 300);
+            };
+            map.on('moveend', handleMoveEnd);
+            map.on('zoomend', handleMoveEnd);
+            return () => {
+                map.off('moveend', handleMoveEnd);
+                map.off('zoomend', handleMoveEnd);
+                if (clusterRef.current) map.removeLayer(clusterRef.current);
+            };
+        } else {
+            // Simple mode
+            const loadAllPoints = async () => {
+                const pointsData = await fetchAllPoints();
+                if (!pointsData?.features) return;
+
+                const layerGroup = L.layerGroup();
+                markersRef.current = layerGroup;
+                map.addLayer(layerGroup);
+                let bounds = L.latLngBounds([]);
+
+                pointsData.features.forEach((feature: Feature) => {
+                    if (!isPointFeature(feature)) return;
+                    const props = feature.properties;
+                    const [lon, lat] = feature.geometry.coordinates;
+                    if (typeof lat !== 'number' || typeof lon !== 'number' || isNaN(lat) || isNaN(lon)) return;
+                    const color = getColorFromRules(props, mapStyle.rules || [], mapStyle.defaultColor);
+                    const size = getSizeFromField(props, mapStyle.sizeBy, mapStyle.defaultSize, mapStyle.minSize || 4, mapStyle.maxSize || 12);
+                    const popupContent = `
+                        <div class="p-2 min-w-50">
+                            <h3 class="font-bold text-lg border-b pb-1 mb-2">${props?.plant_specie_name || props?.species || 'Unknown'}</h3>
+                            <table class="text-sm w-full">
+                                ${Object.entries(props || {})
+                                    .filter(([key]) => !['lat', 'lon'].includes(key.toLowerCase()))
+                                    .map(([key, value]) => `
+                                        <tr>
+                                            <td class="font-semibold pr-3">${key}:</td>
+                                            <td>${value}</td>
+                                        </tr>
+                                    `).join('')}
+                            </table>
+                        </div>
+                    `;
+                    const marker = L.circleMarker([lat, lon], {
+                        radius: size,
+                        fillColor: color,
+                        color: '#fff',
+                        weight: 1,
+                        fillOpacity: 0.8,
+                    }).bindPopup(popupContent);
                     marker.addTo(layerGroup);
                     bounds.extend([lat, lon]);
                 });
@@ -2832,18 +3316,11 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
                     map.fitBounds(bounds, { padding: [20, 20] });
                 }
             };
-
             loadAllPoints();
-
-            return () => {
-                if (markersRef.current) {
-                    map.removeLayer(markersRef.current);
-                }
-            };
         }
-    }, [config, useClustering, fetchAllPoints, fetchPointsInView, filterConditions]);
+    }, [config, useClustering, fetchAllPoints, fetchPointsInView, filterConditions, leafletLoaded]);
 
-    // Clean up
+    // Cleanup on unmount
     useEffect(() => {
         return () => {
             if (mapInstanceRef.current) {
@@ -2859,18 +3336,15 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
 
     return (
         <div className="relative w-full h-full min-h-100">
-            <div 
-                ref={(node) => {
-                    containerRef.current = node;
-                    mapRef(node);
-                }}
+            <div
+                ref={containerRef}
                 className="w-full h-full bg-gray-50 rounded-xl"
-                style={{ isolation: 'isolate' }} 
+                style={{ isolation: 'isolate' }}
             />
             {config?.map?.style && map && (
-                <Legend 
-                    style={config.map.style} 
-                    position={config.map.style.legend?.position || 'bottomright'} 
+                <Legend
+                    style={config.map.style}
+                    position={config.map.style.legend?.position || 'bottomright'}
                 />
             )}
         </div>
@@ -3125,10 +3599,9 @@ FILE: ./frontend/components/line-chart.tsx
 =========================================
 'use client';
 
+import { useEffect, useState, useMemo } from 'react';
 import { fetchChartData } from '@/lib/client_actions';
 import { ChartDataResponse, ChartDef, FilterCondition } from '@/lib/definitions';
-import { useEffect, useState } from 'react';
-
 import {
     LineChart as ReLineChart,
     Line,
@@ -3142,37 +3615,85 @@ import {
 interface Props {
     chart: ChartDef;
     dashboardId: string;
-    interactiveFilters?: Record<string, any>; 
+    interactiveFilters?: Record<string, any>;
 }
+
+const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
+    return useMemo(() => {
+        const conditions: FilterCondition[] = [];
+        if (!interactiveFilters) return conditions;
+
+        const processedColumns = new Set<string>();
+
+        for (const [key, val] of Object.entries(interactiveFilters)) {
+            if (val === '' || val === undefined || val === null) continue;
+
+            if (key.endsWith('_min')) {
+                const column = key.slice(0, -4);
+                const maxKey = `${column}_max`;
+                const maxVal = interactiveFilters[maxKey];
+                if (maxVal !== undefined && maxVal !== '' && maxVal !== null) {
+                    conditions.push({
+                        column,
+                        operator: 'between',
+                        value: [Number(val), Number(maxVal)]
+                    });
+                    processedColumns.add(column);
+                } else {
+                    conditions.push({
+                        column,
+                        operator: '>=',
+                        value: Number(val)
+                    });
+                    processedColumns.add(column);
+                }
+            } 
+            else if (key.endsWith('_max')) {
+                const column = key.slice(0, -4);
+                if (!processedColumns.has(column)) {
+                    conditions.push({
+                        column,
+                        operator: '<=',
+                        value: Number(val)
+                    });
+                    processedColumns.add(column);
+                }
+            }
+            else {
+                if (Array.isArray(val) && val.length > 0) {
+                    conditions.push({ column: key, operator: 'in', value: val });
+                } 
+                else if (typeof val === 'object' && val !== null) {
+                    if ('min' in val && val.min !== undefined) {
+                        conditions.push({ column: key, operator: '>=', value: Number(val.min) });
+                    }
+                    if ('max' in val && val.max !== undefined) {
+                        conditions.push({ column: key, operator: '<=', value: Number(val.max) });
+                    }
+                } 
+                else if (val !== '') {
+                    conditions.push({ column: key, operator: '=', value: String(val) });
+                }
+            }
+        }
+
+        return conditions;
+    }, [interactiveFilters]);
+};
 
 export default function LineChart({ chart, dashboardId, interactiveFilters }: Props) {
     const [data, setData] = useState<ChartDataResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const filterConditions = useFilterConditions(interactiveFilters);
+
     useEffect(() => {
-        // Convert interactive filter values to FilterCondition array
-        const extraFilters: FilterCondition[] = [];
-        if (interactiveFilters) {
-            Object.entries(interactiveFilters).forEach(([col, val]) => {
-            if (val === '' || val === undefined || (Array.isArray(val) && val.length === 0)) return;
-            if (Array.isArray(val)) {
-                extraFilters.push({ column: col, operator: 'in', value: val });
-            } else if (typeof val === 'object' && val.min !== undefined && val.max !== undefined) {
-                extraFilters.push({ column: col, operator: '>=', value: val.min });
-                extraFilters.push({ column: col, operator: '<=', value: val.max });
-            } else {
-                extraFilters.push({ column: col, operator: '=', value: val });
-            }
-        });
-    }
-
-    fetchChartData(dashboardId, chart, extraFilters)
-        .then(setData)
-        .catch(err => setError(err.message))
-        .finally(() => setLoading(false));
-    }, [dashboardId, chart, interactiveFilters]);
-
+        fetchChartData(dashboardId, chart, filterConditions)
+            .then(setData)
+            .catch(err => setError(err.message))
+            .finally(() => setLoading(false));
+    }, [dashboardId, chart, filterConditions]);
 
     if (loading) return <div className="h-64 bg-gray-200 animate-pulse rounded" />;
     if (error) return <div className="text-red-500">Error: {error}</div>;
@@ -3201,35 +3722,93 @@ export default function LineChart({ chart, dashboardId, interactiveFilters }: Pr
 =========================================
 FILE: ./frontend/components/dashboard-breadcrumb.tsx
 =========================================
+'use client';
+
 import Link from 'next/link';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { AddDataButton } from '@/components/dashboard-form-upload-data';
+import { DASHBOARD_PUBLISH_URL, DASHBOARD_GET_URL } from '@/lib/constants';
+import { Dashboard } from '@/lib/definitions';
+import { useState } from 'react';
+import { getAuthToken } from '@/lib/client_actions';
 
-export default function DashboardHeader({ code }: { code: string }) {
+
+
+
+export default function DashboardHeader({ dashboard }: { dashboard: Dashboard }) {
+    
+    const [isPublished, setIsPublished] = useState(dashboard.is_published);
+    const [isPublishing, setIsPublishing] = useState(false);
+
+    const handleTogglePublish = async () => {
+        setIsPublishing(true);
+        try {
+            const token = getAuthToken();
+            const response = await fetch(DASHBOARD_PUBLISH_URL(dashboard.id), {
+                method: 'PATCH',
+                headers: {
+                    Authorization: token || '',
+                },
+            });
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to update publish status');
+            }
+            const data = await response.json();
+            setIsPublished(data.is_published);
+        } catch (err) {
+            console.error(err);
+            alert(err instanceof Error ? err.message : 'Failed to update publish status');
+        } finally {
+            setIsPublishing(false);
+        }
+    };
+
     return (
         <div className="mb-6">
             <nav className="flex text-sm text-gray-500 mb-2">
                 <Link href="/admin/dashboards" className="hover:text-violet-600">Dashboards</Link>
                 <span className="mx-2">/</span>
-                <span className="text-gray-900 font-medium">{code}</span>
+                <span className="text-gray-900 font-medium">{dashboard.name}</span>
             </nav>
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <Link href="/admin/dashboards">
                         <ArrowLeftIcon className="w-6 h-6 text-gray-600 hover:text-violet-600" />
                     </Link>
-                    <h1 className="text-2xl font-bold">Dashboard: {code}</h1>
+                    <h1 className="text-2xl font-bold">Dashboard: {dashboard.name}</h1>
                 </div>
                 <div className="flex gap-2">
-                    <button className="px-4 py-2 bg-gray-100 rounded-md text-sm font-medium hover:bg-gray-200">
-                        Add Data
-                    </button>
-                    <button type="submit" form="yaml-form" className="px-4 py-2 bg-violet-600 text-white rounded-md 
+                    <AddDataButton dashboardId={dashboard.id} />
+		    <button type="submit" form="yaml-form" className="px-4 py-2 bg-violet-600 text-white rounded-md 
                         text-sm font-medium hover:bg-violet-500">
                         Save Config
                     </button>
-                    <button type="submit" form="yaml-form" className="px-4 py-2 bg-violet-600 text-white rounded-md 
-                        text-sm font-medium hover:bg-violet-500">
-                        Render Dashboard
+		    <Link href={`/dashboards/${dashboard.id}/preview`} target="_blank" 
+		        className="px-4 py-2 bg-violet-600 text-white rounded-md text-sm font-medium hover:bg-violet-500">
+                        Preview Dashboard
+                    </Link>
+		   {/* Publish toggle button */}
+                    <button
+                        onClick={handleTogglePublish}
+                        disabled={isPublishing}
+                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                            isPublished
+                                ? 'bg-green-100 text-green-700 hover:bg-green-200'
+                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }`}
+                    >
+                        {isPublishing ? (
+                            <span className="flex items-center gap-1">
+                                <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                </svg>
+                                ...
+                            </span>
+                        ) : (
+                            isPublished ? 'Published' : 'Unpublished'
+                        )}
                     </button>
                 </div>
             </div>
@@ -3622,91 +4201,405 @@ FILE: ./frontend/components/bar-chart.tsx
 =========================================
 'use client';
 
-import { fetchChartData } from '@/lib/client_actions';
-import { ChartDataResponse, ChartDef, FilterCondition } from '@/lib/definitions';
-import { useEffect, useState } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+import 'leaflet.markercluster/dist/MarkerCluster.css';
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import 'leaflet.markercluster';
+import { fetchDashboardConfig } from '@/lib/client_actions';
+import { DashboardConfig, FilterCondition, MapStyleRule } from '@/lib/definitions';
+import { Feature, Point, GeoJsonProperties } from 'geojson';
+import { DASHBOARD_MAP_POINTS_IN_VIEW_URL, DASHBOARD_MAP_POINTS_URL, DASHBOARD_FILTERED_MAP_POINTS_URL } from '@/lib/constants';
 
-import {
-    BarChart as ReBarChart,
-    Bar,
-    XAxis,
-    YAxis,
-    CartesianGrid,
-    Tooltip,
-    ResponsiveContainer,
-    Cell
-} from 'recharts';
-
-interface Props {
-    chart: ChartDef;
-    dashboardId: string;
-    interactiveFilters?: Record<string, any>; 
+declare module 'leaflet' {
+    export function markerClusterGroup(options?: any): any;
 }
 
-// Color palette for bars (you can customize these colors)
-const COLORS = [
-    '#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088fe',
-    '#00c49f', '#ffbb28', '#ff6b6b', '#a05e8a', '#d0bb57',
-    '#8dd1e1', '#b0e57c', '#fe938c', '#7b6c8c', '#6b5b7c'
-];
+interface Props {
+    dashboardId: string;
+    interactiveFilters?: Record<string, any>;
+}
 
-export default function BarChart({ chart, dashboardId, interactiveFilters}: Props) {
-    const [data, setData] = useState<ChartDataResponse | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    useEffect(() => {
-        // Convert interactive filter values to FilterCondition array
-        const extraFilters: FilterCondition[] = [];
-        if (interactiveFilters) {
-            Object.entries(interactiveFilters).forEach(([col, val]) => {
-                if (val === '' || val === undefined || (Array.isArray(val) && val.length === 0)) return;
-                if (Array.isArray(val)) {
-                    extraFilters.push({ column: col, operator: 'in', value: val });
-                } else if (typeof val === 'object' && val.min !== undefined && val.max !== undefined) {
-                    extraFilters.push({ column: col, operator: '>=', value: val.min });
-                    extraFilters.push({ column: col, operator: '<=', value: val.max });
-                } else {
-                    extraFilters.push({ column: col, operator: '=', value: val });
+// ---------- Helper functions (unchanged) ----------
+const getColorFromRules = (properties: GeoJsonProperties, rules: MapStyleRule[], defaultColor: string): string => {
+    if (!properties) return defaultColor;
+    for (const rule of rules) {
+        const fieldValue = properties[rule.field];
+        if (fieldValue === undefined || fieldValue === null) continue;
+        const operator = rule.operator || '=';
+        switch (operator) {
+            case '=':
+                if (String(fieldValue) === String(rule.value)) return rule.color;
+                break;
+            case '!=':
+                if (String(fieldValue) !== String(rule.value)) return rule.color;
+                break;
+            case 'like':
+                if (typeof fieldValue === 'string' && typeof rule.value === 'string') {
+                    const pattern = rule.value.replace(/%/g, '.*');
+                    if (new RegExp(pattern, 'i').test(fieldValue)) return rule.color;
                 }
-            });
+                break;
+            case 'in':
+                if (Array.isArray(rule.value)) {
+                    const stringValues = rule.value.map(v => String(v));
+                    if (stringValues.includes(String(fieldValue))) return rule.color;
+                }
+                break;
+        }
+    }
+    return defaultColor;
+};
+
+const getSizeFromField = (properties: GeoJsonProperties, sizeBy: string | undefined, defaultSize: number, minSize: number, maxSize: number): number => {
+    if (!sizeBy || !properties) return defaultSize;
+    const value = properties[sizeBy];
+    if (!value || isNaN(Number(value))) return defaultSize;
+    const scaled = Math.log(Number(value) + 1) * 3;
+    return Math.min(maxSize, Math.max(minSize, scaled));
+};
+
+const isPointFeature = (feature: Feature): feature is Feature<Point> => {
+    return feature.geometry?.type === 'Point';
+};
+
+// ---------- Improved filter hook (same as charts) ----------
+const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
+    return useMemo(() => {
+        const conditions: FilterCondition[] = [];
+        if (!interactiveFilters) return conditions;
+
+        const processedColumns = new Set<string>();
+
+        for (const [key, val] of Object.entries(interactiveFilters)) {
+            if (val === '' || val === undefined || val === null) continue;
+
+            if (key.endsWith('_min')) {
+                const column = key.slice(0, -4); // remove '_min'
+                const maxKey = `${column}_max`;
+                const maxVal = interactiveFilters[maxKey];
+                if (maxVal !== undefined && maxVal !== '' && maxVal !== null) {
+                    conditions.push({
+                        column,
+                        operator: 'between',
+                        value: [Number(val), Number(maxVal)]
+                    });
+                    processedColumns.add(column);
+                } else {
+                    conditions.push({ column, operator: '>=', value: Number(val) });
+                    processedColumns.add(column);
+                }
+            } 
+            else if (key.endsWith('_max')) {
+                const column = key.slice(0, -4);
+                if (!processedColumns.has(column)) {
+                    conditions.push({ column, operator: '<=', value: Number(val) });
+                    processedColumns.add(column);
+                }
+            }
+            else {
+                if (Array.isArray(val) && val.length > 0) {
+                    conditions.push({ column: key, operator: 'in', value: val });
+                } 
+                else if (typeof val === 'object' && val !== null) {
+                    if ('min' in val && val.min !== undefined) {
+                        conditions.push({ column: key, operator: '>=', value: Number(val.min) });
+                    }
+                    if ('max' in val && val.max !== undefined) {
+                        conditions.push({ column: key, operator: '<=', value: Number(val.max) });
+                    }
+                } 
+                else if (val !== '') {
+                    conditions.push({ column: key, operator: '=', value: String(val) });
+                }
+            }
         }
 
-        fetchChartData(dashboardId, chart, extraFilters)
-        .then(setData)
-        .catch(err => setError(err.message))
-        .finally(() => setLoading(false));
-     }, [dashboardId, chart, interactiveFilters]);
+        return conditions;
+    }, [interactiveFilters]);
+};
 
-    if (loading) return <div className="h-64 bg-gray-200 animate-pulse rounded" />;
-    if (error) return <div className="text-red-500">Error: {error}</div>;
-    if (!data) return null;
-
-    const chartData = data.labels.map((label, i) => ({ name: label, value: data.data[i] }));
-
+// Legend component (unchanged)
+const Legend = ({ style, position }: { style: any; position: string }) => {
+    const positionClasses = {
+        topleft: 'top-4 left-4',
+        topright: 'top-4 right-4',
+        bottomleft: 'bottom-4 left-4',
+        bottomright: 'bottom-4 right-4'
+    };
+    const legendItems = style.rules
+        .filter((rule: MapStyleRule, index: number, self: MapStyleRule[]) => 
+            index === self.findIndex((r) => r.color === rule.color)
+        )
+        .map((rule: MapStyleRule) => ({
+            color: rule.color,
+            label: rule.label || `${rule.field}: ${rule.value}`
+        }));
     return (
-        <div className="bg-white p-4 rounded shadow">
-            <h3 className="text-lg font-semibold mb-2">{chart.title}</h3>
-            <ResponsiveContainer width="100%" height={350}> {/* Increased height for rotated labels */}
-                <ReBarChart data={chartData} margin={{ bottom: 60 }}> {/* Added bottom margin */}
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis 
-                        dataKey="name" 
-                        angle={45} 
-                        textAnchor="start" 
-                        height={80} 
-                        interval={0}
-                        tick={{ fontSize: 11 }}
-                    />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="value">
-                        {chartData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                    </Bar>
-                </ReBarChart>
-            </ResponsiveContainer>
+        <div className={`absolute ${positionClasses[position as keyof typeof positionClasses] || 'bottom-4 right-4'} z-1000`}>
+            <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+                <h4 className="font-bold text-sm mb-2">{style.legend?.title || 'Legend'}</h4>
+                <div className="space-y-1.5">
+                    {legendItems.map((item: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-2">
+                            <span className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }}></span>
+                            <span className="text-xs">{item.label}</span>
+                        </div>
+                    ))}
+                    {style.sizeBy && (
+                        <div className="mt-3 pt-2 border-t border-gray-200">
+                            <p className="text-xs text-gray-600">Size = {style.sizeBy}</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default function MapView({ dashboardId, interactiveFilters }: Props) {
+    const [map, setMap] = useState<L.Map | null>(null);
+    const [config, setConfig] = useState<DashboardConfig | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [useClustering, setUseClustering] = useState(false);
+    const mapInstanceRef = useRef<L.Map | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const markersRef = useRef<L.LayerGroup | null>(null);
+    const clusterRef = useRef<any>(null);
+
+    // Use the improved hook
+    const filterConditions = useFilterConditions(interactiveFilters);
+
+    // Fetch config
+    useEffect(() => {
+        console.log('Fetching map config for dashboard:', dashboardId);
+        setIsLoading(true);
+        fetchDashboardConfig(dashboardId)
+            .then(configData => {
+                setConfig(configData);
+                const clusteringEnabled = configData.map?.clustering?.enabled ?? false;
+                setUseClustering(clusteringEnabled);
+            })
+            .catch(err => console.error('Error fetching map config:', err))
+            .finally(() => setIsLoading(false));
+    }, [dashboardId]);
+
+    // Initialize map
+    const mapRef = useCallback((node: HTMLDivElement | null) => {
+        if (node !== null && !mapInstanceRef.current) {
+            const instance = L.map(node, { center: [0, 0], zoom: 2, maxZoom: 18 });
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 20
+            }).addTo(instance);
+            mapInstanceRef.current = instance;
+            setMap(instance);
+            setTimeout(() => {
+                if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
+            }, 100);
+        }
+    }, []);
+
+    // Fetch all points (no clustering)
+    const fetchAllPoints = useCallback(async () => {
+        try {
+            if (filterConditions.length > 0) {
+                const response = await fetch(DASHBOARD_FILTERED_MAP_POINTS_URL(Number(dashboardId)), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filters: filterConditions })
+                });
+                if (!response.ok) throw new Error('Failed to fetch filtered points');
+                const data = await response.json();
+                console.log(`Fetched ${data.features?.length || 0} filtered points`);
+                return data;
+            } else {
+                const response = await fetch(DASHBOARD_MAP_POINTS_URL(Number(dashboardId)));
+                if (!response.ok) throw new Error('Failed to fetch points');
+                const data = await response.json();
+                console.log(`Fetched ${data.features?.length || 0} points`);
+                return data;
+            }
+        } catch (err) {
+            console.error('Error fetching points:', err);
+            return null;
+        }
+    }, [dashboardId, filterConditions]);
+
+    // Fetch points in view (clustering)
+    const fetchPointsInView = useCallback(async (bounds: L.LatLngBounds) => {
+        if (!config?.map?.clustering) return null;
+        try {
+            const sw = bounds.getSouthWest();
+            const ne = bounds.getNorthEast();
+            const limit = config.map.clustering.limit ?? 10000;
+            const response = await fetch(DASHBOARD_MAP_POINTS_IN_VIEW_URL(Number(dashboardId)), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    bbox: [sw.lng, sw.lat, ne.lng, ne.lat],
+                    limit: limit,
+                    filters: filterConditions
+                })
+            });
+            if (!response.ok) throw new Error('Failed to fetch points in view');
+            const data = await response.json();
+            console.log(`Fetched ${data.features?.length || 0} points in view with filters`);
+            return data;
+        } catch (err) {
+            console.error('Error loading points in view:', err);
+            return null;
+        }
+    }, [dashboardId, config, filterConditions]);
+
+    // Render points
+    useEffect(() => {
+        if (!mapInstanceRef.current || !config) return;
+
+        const map = mapInstanceRef.current;
+        const mapStyle = config.map.style || {
+            defaultColor: '#6b7280',
+            defaultSize: 6,
+            minSize: 4,
+            maxSize: 12,
+            rules: []
+        };
+
+        // Clear old layers
+        if (clusterRef.current) {
+            map.removeLayer(clusterRef.current);
+            clusterRef.current = null;
+        }
+        if (markersRef.current) {
+            map.removeLayer(markersRef.current);
+            markersRef.current = null;
+        }
+
+        if (useClustering) {
+            // Clustering mode
+            const clusterConfig = config.map.clustering;
+            if (!clusterConfig) return;
+
+            const clusterGroup = (L as any).markerClusterGroup({
+                maxClusterRadius: clusterConfig.maxClusterRadius ?? 60,
+                spiderfyOnMaxZoom: clusterConfig.spiderfyOnMaxZoom ?? true,
+                showCoverageOnHover: clusterConfig.showCoverageOnHover ?? false,
+                zoomToBoundsOnClick: clusterConfig.zoomToBoundsOnClick ?? true,
+                disableClusteringAtZoom: clusterConfig.disableClusteringAtZoom ?? 16,
+                chunkedLoading: clusterConfig.chunkedLoading ?? true,
+                chunkInterval: clusterConfig.chunkInterval ?? 100,
+                chunkDelay: clusterConfig.chunkDelay ?? 50
+            });
+            clusterRef.current = clusterGroup;
+            map.addLayer(clusterGroup);
+
+            const loadViewportPoints = async () => {
+                const bounds = map.getBounds();
+                const pointsData = await fetchPointsInView(bounds);
+                if (!pointsData?.features) return;
+
+                clusterGroup.clearLayers();
+                pointsData.features.forEach((feature: Feature) => {
+                    if (!isPointFeature(feature)) return;
+                    const props = feature.properties;
+                    const [lon, lat] = feature.geometry.coordinates;
+                    if (typeof lat !== 'number' || typeof lon !== 'number' || isNaN(lat) || isNaN(lon)) return;
+                    const color = getColorFromRules(props, mapStyle.rules || [], mapStyle.defaultColor);
+                    const size = getSizeFromField(props, mapStyle.sizeBy, mapStyle.defaultSize, mapStyle.minSize || 4, mapStyle.maxSize || 12);
+                    const popupContent = `<div class="p-2 min-w-50">...</div>`; // (keep same)
+                    const marker = L.circleMarker([lat, lon], {
+                        radius: size,
+                        fillColor: color,
+                        color: '#fff',
+                        weight: 1,
+                        fillOpacity: 0.8,
+                    }).bindPopup(popupContent);
+                    clusterGroup.addLayer(marker);
+                });
+            };
+
+            loadViewportPoints();
+            let timeoutId: NodeJS.Timeout;
+            const handleMoveEnd = () => {
+                clearTimeout(timeoutId);
+                timeoutId = setTimeout(loadViewportPoints, 300);
+            };
+            map.on('moveend', handleMoveEnd);
+            map.on('zoomend', handleMoveEnd);
+            return () => {
+                map.off('moveend', handleMoveEnd);
+                map.off('zoomend', handleMoveEnd);
+                if (clusterRef.current) map.removeLayer(clusterRef.current);
+            };
+        } else {
+            // Simple mode
+            const loadAllPoints = async () => {
+                const pointsData = await fetchAllPoints();
+                if (!pointsData?.features) return;
+                const layerGroup = L.layerGroup();
+                markersRef.current = layerGroup;
+                map.addLayer(layerGroup);
+                let bounds = L.latLngBounds([]);
+                pointsData.features.forEach((feature: Feature) => {
+                    if (!isPointFeature(feature)) return;
+                    const props = feature.properties;
+                    const [lon, lat] = feature.geometry.coordinates;
+                    if (typeof lat !== 'number' || typeof lon !== 'number' || isNaN(lat) || isNaN(lon)) return;
+                    const color = getColorFromRules(props, mapStyle.rules || [], mapStyle.defaultColor);
+                    const size = getSizeFromField(props, mapStyle.sizeBy, mapStyle.defaultSize, mapStyle.minSize || 4, mapStyle.maxSize || 12);
+                    const popupContent = `<div class="p-2 min-w-50">...</div>`; // (same)
+                    const marker = L.circleMarker([lat, lon], {
+                        radius: size,
+                        fillColor: color,
+                        color: '#fff',
+                        weight: 1,
+                        fillOpacity: 0.8,
+                    }).bindPopup(popupContent);
+                    marker.addTo(layerGroup);
+                    bounds.extend([lat, lon]);
+                });
+                if (bounds.isValid()) map.fitBounds(bounds, { padding: [20, 20] });
+            };
+            loadAllPoints();
+            return () => {
+                if (markersRef.current) map.removeLayer(markersRef.current);
+            };
+        }
+    }, [config, useClustering, fetchAllPoints, fetchPointsInView, filterConditions]);
+
+    // Cleanup map on unmount
+    useEffect(() => {
+        return () => {
+            if (mapInstanceRef.current) {
+                mapInstanceRef.current.remove();
+                mapInstanceRef.current = null;
+            }
+        };
+    }, []);
+
+    if (isLoading) {
+        return <div className="w-full h-full min-h-100 bg-gray-100 animate-pulse rounded-xl" />;
+    }
+
+    // Force remount when filters change – ensures fresh data load
+    return (
+        <div key={JSON.stringify(filterConditions)} className="relative w-full h-full min-h-100">
+            <div
+                ref={(node) => {
+                    containerRef.current = node;
+                    mapRef(node);
+                }}
+                className="w-full h-full bg-gray-50 rounded-xl"
+                style={{ isolation: 'isolate' }}
+            />
+            {config?.map?.style && map && (
+                <Legend
+                    style={config.map.style}
+                    position={config.map.style.legend?.position || 'bottomright'}
+                />
+            )}
         </div>
     );
 }
@@ -3759,6 +4652,110 @@ export default function Search({ placeholder }: { placeholder: string }) {
 
 
 =========================================
+FILE: ./frontend/components/confirm-dialog.tsx
+=========================================
+'use client';
+
+import { XMarkIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { Button } from '@/components/buttons';
+
+interface ConfirmDialogProps {
+    isOpen: boolean;
+    onClose: () => void;
+    onConfirm: () => void;
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    isConfirming?: boolean;
+    variant?: 'danger' | 'warning' | 'info';
+}
+
+export default function ConfirmDialog({
+    isOpen,
+    onClose,
+    onConfirm,
+    title,
+    message,
+    confirmText = 'Confirm',
+    cancelText = 'Cancel',
+    isConfirming = false,
+    variant = 'danger'
+}: ConfirmDialogProps) {
+    if (!isOpen) return null;
+
+    const variantClasses = {
+        danger: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
+        warning: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500',
+        info: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+    };
+
+    const iconColors = {
+        danger: 'text-red-600',
+        warning: 'text-yellow-600',
+        info: 'text-blue-600'
+    };
+
+    return (
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 bg-black/40 backdrop-blur-sm">
+            <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                {/* Header */}
+                <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                        <ExclamationTriangleIcon className={`w-6 h-6 ${iconColors[variant]}`} />
+                        <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                        disabled={isConfirming}
+                    >
+                        <XMarkIcon className="w-5 h-5" />
+                    </button>
+                </div>
+
+                {/* Body */}
+                <div className="p-6">
+                    <p className="text-gray-700 break-words whitespace-normal">{message}</p>
+                </div>
+
+                {/* Footer */}
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end gap-3">
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                        disabled={isConfirming}
+                    >
+                        {cancelText}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={onConfirm}
+                        disabled={isConfirming}
+                        className={`px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${variantClasses[variant]} disabled:opacity-50`}
+                    >
+                        {isConfirming ? (
+                            <span className="flex items-center gap-2">
+                                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                Deleting...
+                            </span>
+                        ) : (
+                            confirmText
+                        )}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+
+
+=========================================
 FILE: ./frontend/components/menu-section.tsx
 =========================================
 'use client';
@@ -3788,45 +4785,43 @@ FILE: ./frontend/components/pie-chart.tsx
 =========================================
 'use client';
 
+import { useEffect, useState, useMemo } from 'react';
 import { fetchChartData } from '@/lib/client_actions';
 import { ChartDataResponse, ChartDef, FilterCondition } from '@/lib/definitions';
-import { useEffect, useState } from 'react';
 import {
     PieChart as RePieChart,
     Pie,
     Tooltip,
     ResponsiveContainer,
-    Cell,
-    Legend
+    Cell
 } from 'recharts';
 
 interface Props {
     chart: ChartDef;
     dashboardId: string;
-    interactiveFilters?: Record<string, any>; 
+    interactiveFilters?: Record<string, any>;
 }
 
-// Extended color palette for better variety
+// Extended color palette
 const COLORS = [
     '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D',
     '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFE194', '#B4A5FF',
     '#E6B0AA', '#A8E6CF', '#FFD3B6', '#D4A5A5', '#9B7EDE', '#F7C978'
 ];
 
-// Custom tooltip formatter
 const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
+        const total = payload[0].payload.total;
+        const percent = ((data.value / total) * 100).toFixed(1);
         return (
             <div className="bg-white p-3 shadow-lg rounded-lg border border-gray-200">
                 <p className="font-semibold text-gray-900">{data.name}</p>
                 <p className="text-sm text-gray-600">
-                    Value: 
-                    <span className="font-medium text-purple-600">{data.value}</span>
+                    Value: <span className="font-medium text-purple-600">{data.value}</span>
                 </p>
                 <p className="text-xs text-gray-500">
-                    Percentage: 
-                    <span className="font-medium">{((data.value / payload[0].total) * 100).toFixed(1)}%</span>
+                    Percentage: <span className="font-medium">{percent}%</span>
                 </p>
             </div>
         );
@@ -3834,120 +4829,169 @@ const CustomTooltip = ({ active, payload }: any) => {
     return null;
 };
 
-// Custom legend content to show percentages
-const renderLegend = (props: any) => {
-    const { payload } = props;
-    const total = payload.reduce((sum: number, entry: any) => sum + entry.payload.value, 0);
-  
+// Custom legend that wraps and scrolls if needed
+const CustomLegend = ({ data }: { data: Array<{ name: string; value: number; color: string }> }) => {
+    const total = data.reduce((sum, item) => sum + item.value, 0);
     return (
-        <ul className="flex flex-wrap justify-center gap-4 mt-4 text-sm">
-            {payload.map((entry: any, index: number) => (
-            <li key={`legend-${index}`} className="flex items-center gap-2">
-                <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: entry.color }}
-                />
-                <span className="text-gray-700">
-                    {entry.value}: <span className="font-medium">{entry.payload.value}</span>
-                    <span className="text-gray-500 ml-1">
-                        ({((entry.payload.value / total) * 100).toFixed(1)}%)
-                    </span>
-                </span>
-            </li>
-            ))}
-        </ul>
+        <div className="mt-4 max-h-48 overflow-y-auto border-t border-gray-100 pt-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                {data.map((entry, index) => {
+                    const percent = ((entry.value / total) * 100).toFixed(1);
+                    return (
+                        <div key={index} className="flex items-center gap-2">
+                            <div
+                                className="w-3 h-3 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: entry.color }}
+                            />
+                            <span className="text-gray-700 truncate" title={entry.name}>
+                                {entry.name}
+                            </span>
+                            <span className="text-gray-500 ml-auto text-xs">
+                                {percent}%
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
     );
 };
 
-export default function PieChart({ chart, dashboardId, interactiveFilters}: Props) {
+// Hook to convert interactive filters to FilterCondition[]
+const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
+    return useMemo(() => {
+        const conditions: FilterCondition[] = [];
+        if (!interactiveFilters) return conditions;
+
+        const processedColumns = new Set<string>();
+
+        for (const [key, val] of Object.entries(interactiveFilters)) {
+            if (val === '' || val === undefined || val === null) continue;
+
+            if (key.endsWith('_min')) {
+                const column = key.slice(0, -4);
+                const maxKey = `${column}_max`;
+                const maxVal = interactiveFilters[maxKey];
+                if (maxVal !== undefined && maxVal !== '' && maxVal !== null) {
+                    conditions.push({
+                        column,
+                        operator: 'between',
+                        value: [Number(val), Number(maxVal)]
+                    });
+                    processedColumns.add(column);
+                } else {
+                    conditions.push({ column, operator: '>=', value: Number(val) });
+                    processedColumns.add(column);
+                }
+            } else if (key.endsWith('_max')) {
+                const column = key.slice(0, -4);
+                if (!processedColumns.has(column)) {
+                    conditions.push({ column, operator: '<=', value: Number(val) });
+                    processedColumns.add(column);
+                }
+            } else {
+                if (Array.isArray(val) && val.length > 0) {
+                    conditions.push({ column: key, operator: 'in', value: val });
+                } else if (typeof val === 'object' && val !== null) {
+                    if ('min' in val && val.min !== undefined) {
+                        conditions.push({ column: key, operator: '>=', value: Number(val.min) });
+                    }
+                    if ('max' in val && val.max !== undefined) {
+                        conditions.push({ column: key, operator: '<=', value: Number(val.max) });
+                    }
+                } else if (val !== '') {
+                    conditions.push({ column: key, operator: '=', value: String(val) });
+                }
+            }
+        }
+
+        return conditions;
+    }, [interactiveFilters]);
+};
+
+export default function PieChart({ chart, dashboardId, interactiveFilters }: Props) {
     const [data, setData] = useState<ChartDataResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        // Convert interactive filter values to FilterCondition array
-        const extraFilters: FilterCondition[] = [];
-        if (interactiveFilters) {
-            Object.entries(interactiveFilters).forEach(([col, val]) => {
-                if (val === '' || val === undefined || (Array.isArray(val) && val.length === 0)) return;
-                if (Array.isArray(val)) {
-                    extraFilters.push({ column: col, operator: 'in', value: val });
-                } else if (typeof val === 'object' && val.min !== undefined && val.max !== undefined) {
-                    extraFilters.push({ column: col, operator: '>=', value: val.min });
-                    extraFilters.push({ column: col, operator: '<=', value: val.max });
-                } else {
-                    extraFilters.push({ column: col, operator: '=', value: val });
-                }
-            });
-        }
+    const filterConditions = useFilterConditions(interactiveFilters);
 
-        fetchChartData(dashboardId, chart, extraFilters)
-        .then(setData)
-        .catch(err => setError(err.message))
-        .finally(() => setLoading(false));
-    }, [dashboardId, chart, interactiveFilters]);
+    useEffect(() => {
+        fetchChartData(dashboardId, chart, filterConditions)
+            .then(setData)
+            .catch(err => setError(err.message))
+            .finally(() => setLoading(false));
+    }, [dashboardId, chart, filterConditions]);
 
     if (loading) return <div className="h-80 bg-gray-200 animate-pulse rounded" />;
     if (error) return <div className="text-red-500">Error: {error}</div>;
     if (!data) return null;
 
-    const chartData = data.labels.map((label, i) => ({
-        name: label,
-        value: data.data[i]
-    })).filter(item => item.value > 0); // Filter out zero values
+    const chartData = data.labels
+        .map((label, i) => ({
+            name: label,
+            value: data.data[i]
+        }))
+        .filter(item => item.value > 0);
 
-    // Calculate total for percentage display
-    const total = chartData.reduce((sum, item) => sum + item.value, 0);
+    if (chartData.length === 0) {
+        return (
+            <div className="bg-white p-4 rounded shadow">
+                <h3 className="text-lg font-semibold mb-2">{chart.title}</h3>
+                <div className="h-80 flex items-center justify-center text-gray-500">
+                    No data available
+                </div>
+            </div>
+        );
+    }
+
+    // Prepare legend data with colors
+    const legendData = chartData.map((item, idx) => ({
+        ...item,
+        color: COLORS[idx % COLORS.length]
+    }));
 
     return (
         <div className="bg-white p-4 rounded shadow">
             <h3 className="text-lg font-semibold mb-2">{chart.title}</h3>
-            {chartData.length === 0 ? (
-            <div className="h-80 flex items-center justify-center text-gray-500">
-                No data available for this chart
-            </div>
-            ) : (
-            <>
-                <ResponsiveContainer width="100%" height={400}>
-                    <RePieChart>
-                        <Pie
-                            data={chartData}
-                            dataKey="value"
-                            nameKey="name"
-                            cx="50%"
-                            cy="50%"
-                            outerRadius={120}  // Increased from 80 to 140
-                            innerRadius={60}    // Added inner radius for donut effect (optional - remove if you want solid pie)
-                            fill="#8884d8"
-                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                            labelLine={false}
-                            paddingAngle={2}    // Small gap between slices
-                        >
-                            {chartData.map((entry, index) => (
-                            <Cell 
-                                key={`cell-${index}`} 
-                                fill={COLORS[index % COLORS.length]}
-                                stroke="#fff"
-                                strokeWidth={2}
-                            />
-                            ))}
-                        </Pie>
-                        <Tooltip content={<CustomTooltip />} />
-                        <Legend 
-                            content={renderLegend}
-                            verticalAlign="bottom"
-                            height={80}
-                        />
-                    </RePieChart>
-                </ResponsiveContainer>
-          
-                {/* Summary stats below chart */}
-                <div className="mt-4 pt-4 border-t border-gray-100 text-sm text-gray-600 flex justify-between">
-                    <span>Total: <span className="font-semibold text-purple-600">{total}</span></span>
-                    <span>Categories: <span className="font-semibold text-purple-600">{chartData.length}</span></span>
+            <div className="flex flex-col lg:flex-row gap-4">
+                {/* Chart container */}
+                <div className="w-full lg:w-2/3 h-80">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <RePieChart>
+                            <Pie
+                                data={chartData}
+                                dataKey="value"
+                                nameKey="name"
+                                cx="50%"
+                                cy="50%"
+                                outerRadius="70%"
+                                fill="#8884d8"
+                                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                                labelLine={false}
+                                paddingAngle={2}
+                            >
+                                {chartData.map((entry, index) => (
+                                    <Cell
+                                        key={`cell-${index}`}
+                                        fill={COLORS[index % COLORS.length]}
+                                        stroke="#fff"
+                                        strokeWidth={2}
+                                    />
+                                ))}
+                            </Pie>
+                            <Tooltip content={<CustomTooltip />} />
+                        </RePieChart>
+                    </ResponsiveContainer>
                 </div>
-            </>
-        )}
+                {/* Legend container */}
+                <div className="w-full lg:w-1/3">
+                    <CustomLegend data={legendData} />
+                </div>
+            </div>
+            <div className="mt-2 text-xs text-gray-500 text-center">
+                Total: {chartData.reduce((sum, item) => sum + item.value, 0).toLocaleString()} records
+            </div>
         </div>
     );
 }
@@ -3961,11 +5005,13 @@ import { Dashboard } from "@/lib/definitions";
 import DashboardHeader from "@/components/dashboard-breadcrumb";
 import YamlEditor from "@/components/yaml_editor";
 import yaml from 'js-yaml';
+import DataPreview from '@/components/dashboard-data-preview';
+
 
 export default function DashBoardDetails(props:{dashboard: Dashboard}){
 
     const dashboard = props.dashboard;
-
+    
     let beautifiedYaml = "";
     try {
         // Parse the string and dump it back out with 2-space indentation
@@ -3980,20 +5026,16 @@ export default function DashBoardDetails(props:{dashboard: Dashboard}){
         <div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-200px)]">
                 {/* Left Column: Data Table Info */}
-                <div className="rounded-xl border bg-gray-50 p-4 overflow-auto">
-                    <h2 className="text-lg font-semibold mb-4 text-gray-700">Data Preview</h2>
-                    {dashboard.data_table_name ? (
-                        <div className="p-4 bg-white rounded border shadow-sm">
-                            <p className="text-sm font-mono text-violet-600">Table: {dashboard.data_table_name}</p>
-                            {/* Future: Add a mini table preview here */}
-                        </div>
-                    ) : (
-                        <div className="flex items-center justify-center h-40 border-2 border-dashed rounded-lg border-gray-300">
-                            <p className="text-gray-400 italic">No data table defined.</p>
-                        </div>
-                    )}
-                </div>
-
+		<div className="rounded-xl border bg-gray-50 p-4 overflow-auto">
+		    <h2 className="text-lg font-semibold mb-4 text-gray-700">Data Preview</h2>
+		    {dashboard.data_table_name ? (
+			<DataPreview dashboardId={dashboard.id} />
+		    ) : (
+			<div className="flex items-center justify-center h-40 border-2 border-dashed rounded-lg border-gray-300">
+			    <p className="text-gray-400 italic">No data table defined.</p>
+			</div>
+		    )}
+		</div>
                 {/* Right Column: YAML Editor */}
                 <div className="flex flex-col rounded-xl border bg-gray-900 overflow-hidden">
                     <div className="px-4 py-2 bg-gray-800 text-gray-300 text-xs font-mono flex justify-between">
@@ -4088,7 +5130,7 @@ export default async function DataTable({
                     <td className="whitespace-nowrap py-3 pl-6 pr-3">
                       <div className="flex justify-end gap-3">
                         <ViewDashboard id={item_data.id} />
-                        <UpdateDashboard id={item_data.id} />
+                        <UpdateDashboard id={item_data.id} name={item_data.name} />
                         <DeleteDashboard id={item_data.id} />
                       </div>
                     </td>
@@ -4133,6 +5175,123 @@ export default function CreateDashboardTrigger() {
                 </div>
             )}
         </>
+    );
+}
+
+
+
+=========================================
+FILE: ./frontend/components/dashboard-data-preview.tsx
+=========================================
+'use client';
+
+import { useEffect, useState } from 'react';
+import { DASHBOARD_DATA_INFO_URL } from '@/lib/constants';
+
+interface ColumnInfo {
+    name: string;
+    type: string;
+}
+
+interface DataInfo {
+    total_rows: number;
+    columns: ColumnInfo[];
+    sample: Record<string, any>[];
+    table_name: string;
+}
+
+function getAuthToken(): string | null {
+    const match = document.cookie.match(/(^| )auth-token=([^;]+)/);
+    if (match) {
+        return match[2].replace(/__/g, ' ');
+    }
+    return null;
+}
+
+export default function DataPreview({ dashboardId }: { dashboardId: number }) {
+    const [data, setData] = useState<DataInfo | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const token = getAuthToken();
+        const headers: HeadersInit = token ? { Authorization: token } : {};
+
+        fetch(DASHBOARD_DATA_INFO_URL(dashboardId), { headers })
+            .then(res => {
+                if (!res.ok) throw new Error('Failed to fetch data info');
+                return res.json();
+            })
+            .then(setData)
+            .catch(err => setError(err.message))
+            .finally(() => setLoading(false));
+    }, [dashboardId]);
+
+    if (loading) return <div className="animate-pulse bg-gray-100 h-40 rounded" />;
+    if (error) return <div className="text-red-500">Error: {error}</div>;
+    if (!data) return <div className="text-gray-500">No data available</div>;
+
+    return (
+        <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+                <div className="bg-white p-4 rounded-lg shadow-sm border">
+                    <h3 className="text-sm font-medium text-gray-500">Total Records</h3>
+                    <p className="text-2xl font-bold text-gray-900">{data.total_rows.toLocaleString()}</p>
+                </div>
+                <div className="bg-white p-4 rounded-lg shadow-sm border">
+                    <h3 className="text-sm font-medium text-gray-500">Table Name</h3>
+                    <p className="text-sm font-mono text-gray-700 break-all">{data.table_name}</p>
+                </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                <div className="px-4 py-3 bg-gray-50 border-b">
+                    <h3 className="font-medium text-gray-700">Columns ({data.columns.length})</h3>
+                </div>
+                <div className="p-4 max-h-64 overflow-y-auto">
+                    <div className="grid grid-cols-2 gap-2">
+                        {data.columns.map(col => (
+                            <div key={col.name} className="flex justify-between text-sm">
+                                <span className="font-mono text-gray-700">{col.name}</span>
+                                <span className="text-gray-500">{col.type}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {data.sample && data.sample.length > 0 && (
+                <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
+                    <div className="px-4 py-3 bg-gray-50 border-b">
+                        <h3 className="font-medium text-gray-700">Sample Rows (first {data.sample.length})</h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    {data.sample.length > 0 && Object.keys(data.sample[0]).map(key => (
+                                        <th key={key} className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                            {key}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {data.sample.map((row, idx) => (
+                                    <tr key={idx}>
+                                        {Object.values(row).map((val, i) => (
+                                            <td key={i} className="px-4 py-2 text-sm text-gray-700">
+                                                {String(val).length > 50 ? `${String(val).substring(0, 50)}...` : String(val)}
+                                            </td>
+                                        ))}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }
 
@@ -4294,11 +5453,127 @@ body {
 
 
 =========================================
+FILE: ./frontend/app/dashboards/page.tsx
+=========================================
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { useDebouncedCallback } from 'use-debounce';
+import { DASHBOARD_PUBLIC_LIST_URL } from '@/lib/constants';
+import Header from "@/components/header";
+import Footer from "@/components/footer";
+
+interface Dashboard {
+    id: number;
+    name: string;
+    code: string;
+    create_date: string;
+}
+
+export default function PublicDashboardsPage() {
+    const [dashboards, setDashboards] = useState<Dashboard[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+    const [total, setTotal] = useState(0);
+
+    const fetchDashboards = useDebouncedCallback(async (searchTerm: string) => {
+        setLoading(true);
+        const url = new URL(DASHBOARD_PUBLIC_LIST_URL);
+        if (searchTerm) url.searchParams.append('query', searchTerm);
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            setDashboards(data.data);
+            setTotal(data.total);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLoading(false);
+        }
+    }, 300);
+
+    useEffect(() => {
+        fetchDashboards(search);
+    }, [search, fetchDashboards]);
+
+    return (
+    <>
+    	<Header></Header>
+        <div className="max-w-7xl mx-auto px-4 py-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-6">Public Dashboards</h1>
+
+            {/* Search */}
+            <div className="relative mb-8">
+                <label htmlFor="search" className="sr-only">Search dashboards</label>
+                <input
+                    id="search"
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search by name or code..."
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-purple-500 focus:border-purple-500"
+                />
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            </div>
+
+            {loading && <p className="text-gray-500">Loading...</p>}
+
+            {!loading && dashboards.length === 0 && (
+                <p className="text-gray-500">No published dashboards found.</p>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {dashboards.map((dashboard) => (
+                    <Link
+                        key={dashboard.id}
+                        href={`/dashboards/${dashboard.id}`}
+                        className="block bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow border border-gray-200 overflow-hidden"
+                    >
+                        <div className="p-5">
+                            <h3 className="text-lg font-semibold text-gray-900 truncate">
+                                {dashboard.name}
+                            </h3>
+                            {/*<p className="text-sm text-gray-500 mt-1">Code: {dashboard.code}</p>*/}
+                            <p className="text-xs text-gray-400 mt-2">
+                                Created: {new Date(dashboard.create_date).toLocaleDateString()}
+                            </p>
+			    <p className="text-xs text-gray-400 mt-2">
+                                Updated: {new Date(dashboard.last_update_date).toLocaleDateString()}
+                            </p>
+                        </div>
+                    </Link>
+                ))}
+            </div>
+
+            {total > dashboards.length && (
+                <div className="mt-8 text-center">
+                    <button
+                        onClick={() => {
+                            // Implement load more if needed
+                        }}
+                        className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+                    >
+                        Load more
+                    </button>
+                </div>
+            )}
+        </div>
+	{/*<Footer></Footer>*/}
+	</>
+    );
+}
+
+
+
+=========================================
 FILE: ./frontend/app/dashboards/[id]/page.tsx
 =========================================
 import { getDashboardConfig } from '@/lib/actions';
 import DashboardRenderer from '@/components/dashboard-renderer';
 import { notFound } from 'next/navigation';
+import { getPublicDashboardById } from '@/lib/actions';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -4307,6 +5582,9 @@ interface PageProps {
 export default async function DashboardPage({ params }: PageProps) {
   const resolvedParams = await params;
   const id = resolvedParams.id;
+  const dashboard = await getPublicDashboardById(id);
+
+  if (!dashboard || !dashboard.is_published) notFound();
 
   const config = await getDashboardConfig(id).catch(() => null);
 
@@ -4319,6 +5597,47 @@ export default async function DashboardPage({ params }: PageProps) {
       <DashboardRenderer 
         config={config} 
         dashboardId={id} 
+      />
+    </div>
+  );
+}
+
+
+
+=========================================
+FILE: ./frontend/app/dashboards/[id]/preview/page.tsx
+=========================================
+import { fetchDashboardById } from '@/lib/actions';
+import { getDashboardConfig } from '@/lib/actions';
+import DashboardRenderer from '@/components/dashboard-renderer';
+import { notFound } from 'next/navigation';
+
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default async function DashboardPreviewPage({ params }: PageProps) {
+  const resolvedParams = await params;
+  const id = Number(resolvedParams.id);
+
+  // Fetch the dashboard using the authenticated endpoint – this will 404 if the user
+  // does not own the dashboard or is not logged in.
+  const dashboard = await fetchDashboardById(id);
+  if (!dashboard) {
+    notFound();
+  }
+
+  // Fetch the public configuration (which is the same as the one used for the live view)
+  const config = await getDashboardConfig(String(id)).catch(() => null);
+  if (!config) {
+    notFound();
+  }
+
+  return (
+    <div className="h-screen w-full bg-white">
+      <DashboardRenderer
+        config={config}
+        dashboardId={String(id)}
       />
     </div>
   );
@@ -4449,25 +5768,12 @@ export default async function Page({
 
   return (
     <main className="p-4">
-      <DashboardHeader code={dashboard.name} />
+      <DashboardHeader dashboard={dashboard}/>
       <DashBoardDetails dashboard={dashboard}/>
     </main>
   );
 }
 
-
-
-=========================================
-FILE: ./frontend/app/admin/dashboards/[id]/edit/page.tsx
-=========================================
-
-export default function DashboardEdit(){
-    return (
-        <div>
-            Dashboard edit page
-        </div>
-    )
-}
 
 
 =========================================
@@ -4519,6 +5825,15 @@ export default function DocPage() {
               <a href="#filters" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
                 🔍 Filters
               </a>
+              <a href="#interactive-filters" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                🎛️ Interactive Filters
+              </a>
+              <a href="#data-download" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                💾 Data Download
+              </a>
+              <a href="#data-preview" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                👁️ Data Preview
+              </a>
               <a href="#examples" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
                 📋 Examples
               </a>
@@ -4561,7 +5876,7 @@ export default function DocPage() {
               <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Creating an Account</h3>
               <ul className="list-disc pl-6 space-y-2 text-gray-700">
                 <li>Navigate to the <Link href="/login" className="text-purple-600 hover:underline">login page</Link></li>
-                <li>Click on "Register" to create a new account</li>
+                <li>Click on "Sign up here" to create a new account</li>
                 <li>Provide a username, email, and password</li>
                 <li>Once registered, you can log in with your credentials</li>
               </ul>
@@ -4580,15 +5895,15 @@ export default function DocPage() {
               <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Creating a Dashboard</h3>
               <ol className="list-decimal pl-6 space-y-2 text-gray-700">
                 <li>From the admin panel, click "New Dashboard"</li>
-                <li>Give your dashboard a meaningful name</li>
+                <li>Give your dashboard a meaningful name (at least 3 characters)</li>
                 <li>A unique dashboard ID and sharing URL will be generated</li>
               </ol>
 
               <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Managing Dashboards</h3>
               <ul className="list-disc pl-6 space-y-2 text-gray-700">
                 <li><strong>View:</strong> Click on any dashboard in the list to see its public view</li>
-                <li><strong>Edit:</strong> Use the edit button to modify the dashboard configuration</li>
-                <li><strong>Delete:</strong> Remove dashboards you no longer need</li>
+                <li><strong>Edit:</strong> Click the pencil icon to open a modal and rename the dashboard</li>
+                <li><strong>Delete:</strong> Click the trash icon, confirm deletion in the modal</li>
                 <li><strong>Share:</strong> Each dashboard has a unique URL that you can share with anyone</li>
               </ul>
             </section>
@@ -4606,7 +5921,7 @@ export default function DocPage() {
               <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Upload Process</h3>
               <ol className="list-decimal pl-6 space-y-2 text-gray-700">
                 <li>Navigate to your dashboard's edit page</li>
-                <li>Click on "Upload Data"</li>
+                <li>Click on "Add Data" button</li>
                 <li>Select one or more files (CSV or Excel)</li>
                 <li>Optionally, provide column type overrides in JSON format:
                   <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg mt-2 text-sm">
@@ -4642,6 +5957,7 @@ export default function DocPage() {
 {`geo-dashboard:
   name: "My Dashboard Name"
   template: side_content
+  download: false  # Set to true to enable data download button
   filters:
     - column: Year
       operator: ">="
@@ -4651,6 +5967,13 @@ export default function DocPage() {
       title: "My Chart Title"
       x: category_column
       y: count
+  interactiveFilters:
+    - column: Year
+      label: Year Range
+      type: range
+    - column: Country
+      label: Country
+      type: multiselect
   map:
     lat: latitude_column
     lon: longitude_column
@@ -4662,11 +5985,17 @@ export default function DocPage() {
 
               <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Available Templates</h3>
               <ul className="list-disc pl-6 space-y-2 text-gray-700">
-                <li><code>side_content</code> - Sidebar on the left, main content on the right</li>
+                <li><code>side_content</code> - Sidebar on the left, main content on the right (recommended)</li>
                 <li><code>top_content</code> - Menus on top, charts below</li>
                 <li><code>content_side</code> - Main content on the left, sidebar on the right</li>
                 <li><code>content_bottom</code> - Menus on top, charts in the middle, map at bottom</li>
               </ul>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Data Download</h3>
+              <p className="text-gray-700 mb-2">
+                Set <code>download: true</code> in the root of the config to display a "Download Data" button in the sidebar. 
+                When clicked, it exports the currently filtered dataset (respecting global and interactive filters) as a CSV file.
+              </p>
             </section>
 
             {/* Chart Types */}
@@ -4826,6 +6155,74 @@ export default function DocPage() {
               </pre>
             </section>
 
+            {/* Interactive Filters */}
+            <section id="interactive-filters" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">🎛️ Interactive Filters</h2>
+              <p className="text-gray-700 mb-4">
+                Interactive filters appear in the sidebar and allow users to dynamically filter the dashboard without editing YAML. They are defined in the YAML under <code>interactiveFilters</code>.
+              </p>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Types</h3>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                <li><code>dropdown</code> - Single-select dropdown</li>
+                <li><code>multiselect</code> - Multi-select dropdown with search</li>
+                <li><code>range</code> - Range slider for numeric columns</li>
+              </ul>
+
+              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Example</h3>
+              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+{`interactiveFilters:
+  - column: Year
+    label: Year Range
+    type: range
+  - column: Country
+    label: Country
+    type: multiselect
+  - column: Form
+    label: Disease Form
+    type: dropdown`}
+              </pre>
+
+              <div className="bg-green-50 border-l-4 border-green-500 p-4 mt-4">
+                <p className="text-green-800 text-sm">
+                  <strong>💡 Tip:</strong> The range filter automatically fetches the minimum and maximum values from your data (respecting global filters) and displays a slider. Adjusting it instantly updates all charts and the map.
+                </p>
+              </div>
+            </section>
+
+            {/* Data Download */}
+            <section id="data-download" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">💾 Data Download</h2>
+              <p className="text-gray-700 mb-4">
+                If you set <code>download: true</code> in the YAML, a "Download Data" button appears in the sidebar. When clicked, it exports the currently filtered dataset (including all applied global and interactive filters) as a CSV file.
+              </p>
+              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+{`geo-dashboard:
+  download: true
+  # ... rest of config`}
+              </pre>
+              <p className="text-gray-700 mt-2">
+                The download respects all active filters, so users can export exactly the subset they're viewing.
+              </p>
+            </section>
+
+            {/* Data Preview */}
+            <section id="data-preview" className="mb-12">
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">👁️ Data Preview</h2>
+              <p className="text-gray-700 mb-4">
+                On the dashboard edit page, a rich preview shows information about the uploaded data:
+              </p>
+              <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                <li>Total number of records</li>
+                <li>Table name</li>
+                <li>Column names and their SQL types</li>
+                <li>First 5 sample rows</li>
+              </ul>
+              <p className="text-gray-700 mt-2">
+                This helps you understand the structure of your data before building charts and maps.
+              </p>
+            </section>
+
             {/* Examples */}
             <section id="examples" className="mb-12">
               <h2 className="text-2xl font-bold text-gray-900 mb-4">📋 Examples</h2>
@@ -4833,16 +6230,37 @@ export default function DocPage() {
               <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Leishmaniasis Vector Dashboard</h3>
               <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm overflow-x-auto">
 {`geo-dashboard:
-  name: "Leishmaniasis Vector Dashboard"
+  name: "Leishmaniasis Vector Surveillance Dashboard"
   template: side_content
+  download: true
   filters:
     - column: Year
       operator: ">="
       value: 2000
+  interactiveFilters:
+    - column: Year
+      label: Year Range
+      type: range
+    - column: Country
+      label: Country
+      type: multiselect
+    - column: Form
+      label: Disease Form
+      type: dropdown
   stats:
     - type: pie
-      title: "Top 10 VL Vectors"
+      title: "Top 10 VL Vectors by Abundance"
       x: species
+      y:
+        column: "Specie counts"
+        aggregation: sum
+      filters:
+        - column: Form
+          operator: "="
+          value: VL
+    - type: bar
+      title: "VL Vector Abundance by Country"
+      x: Country
       y:
         column: "Specie counts"
         aggregation: sum
@@ -4868,40 +6286,14 @@ export default function DocPage() {
           operator: "="
           value: CL
           color: "#3b82f6"
-          label: "CL Vectors"`}
-              </pre>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Bee-Plant Interactions Dashboard</h3>
-              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm overflow-x-auto">
-{`geo-dashboard:
-  name: "Bee-Plant Interactions"
-  template: side_content
-  filters:
-    - column: continent
-      operator: like
-      value: "%Africa%"
-  stats:
-    - type: bar
-      title: "Top 10 Plant Species"
-      x: plant_specie_name
-      y: count
-  map:
-    lat: lat
-    lon: lon
-    clustering:
-      enabled: true
-      maxClusterRadius: 80
-      disableClusteringAtZoom: 14
-      limit: 15000
-    style:
-      colorBy: family_name
-      sizeBy: id
-      rules:
-        - field: family_name
-          operator: "="
-          value: "Fabaceae"
-          color: "#fbbf24"
-          label: "Fabaceae"`}
+          label: "CL Vectors"
+    legend:
+      title: "Vector Types"
+      position: "bottomright"
+  menus:
+    about: |
+      ## 🦟 Leishmaniasis Vector Surveillance Dashboard
+      A comprehensive visualization platform for sand fly vector surveillance data...`}
               </pre>
             </section>
 
@@ -4936,16 +6328,20 @@ export default function DocPage() {
                   <p className="text-sm text-gray-600 mt-1">Get dashboard details</p>
                 </li>
                 <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">PUT /dashboards/{`{id}`}/edit</code>
+                  <p className="text-sm text-gray-600 mt-1">Rename dashboard</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/delete</code>
+                  <p className="text-sm text-gray-600 mt-1">Delete a dashboard</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
                   <code className="text-purple-600 font-mono">PUT /dashboards/{`{id}`}/config</code>
                   <p className="text-sm text-gray-600 mt-1">Update dashboard YAML configuration</p>
                 </li>
                 <li className="bg-gray-50 p-3 rounded-lg">
                   <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/add_data</code>
                   <p className="text-sm text-gray-600 mt-1">Upload data files (CSV/Excel)</p>
-                </li>
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/delete</code>
-                  <p className="text-sm text-gray-600 mt-1">Delete a dashboard</p>
                 </li>
               </ul>
 
@@ -4974,6 +6370,14 @@ export default function DocPage() {
                 <li className="bg-gray-50 p-3 rounded-lg">
                   <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}/dashboard.js</code>
                   <p className="text-sm text-gray-600 mt-1">Get generated JavaScript config</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}/data-info</code>
+                  <p className="text-sm text-gray-600 mt-1">Get data preview (rows, columns, sample)</p>
+                </li>
+                <li className="bg-gray-50 p-3 rounded-lg">
+                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/export</code>
+                  <p className="text-sm text-gray-600 mt-1">Export filtered data as CSV</p>
                 </li>
               </ul>
             </section>
@@ -5035,7 +6439,7 @@ export default function DocPage() {
             {/* Footer */}
             <div className="border-t border-gray-200 pt-8 mt-12">
               <p className="text-sm text-gray-500 text-center">
-                Version 1.0.0 | Last updated: March 2025 | © 2025 Geo-Dashboard Platform
+                Version 1.1.0 | Last updated: March 2025 | © 2025 Geo-Dashboard Platform
               </p>
             </div>
           </div>
@@ -5044,6 +6448,7 @@ export default function DocPage() {
     </div>
   );
 }
+
 
 
 =========================================
@@ -5085,6 +6490,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 =========================================
 FILE: ./frontend/app/page.tsx
 =========================================
+"use client";
+
 import Image from "next/image";
 import Header from "@/components/header";
 import Footer from "@/components/footer";
@@ -5096,7 +6503,7 @@ import { DocumentChartBarIcon } from "@heroicons/react/24/solid";
 
 export default function Home() {
   return (
-    <div>
+    <>
       <Header></Header>
       <div className="mx-auto mt-5 flex flex-col items-center justify-center mcontent">
         <div className="py-10">
@@ -5141,7 +6548,7 @@ export default function Home() {
           </div>
       </div>
       <Footer></Footer>
-    </div>
+    </>
   );
 }
 
