@@ -8,7 +8,7 @@ import DataPreview from '@/components/dashboard-data-preview';
 export default function DashBoardDetails(props:{dashboard: Dashboard}){
 
     const dashboard = props.dashboard;
-
+    
     let beautifiedYaml = "";
     try {
         // Parse the string and dump it back out with 2-space indentation

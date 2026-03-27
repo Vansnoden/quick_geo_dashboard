@@ -1,7 +1,8 @@
 'use server'
 
 import { AuthError } from 'next-auth';
-import { DASHBOARD_ADD_URL, DASHBOARD_CONFIG_URL, DASHBOARD_DELETE_URL, DASHBOARD_EDIT_URL, DASHBOARD_GET_URL, SIGNUP_URL, USER_DASH_DATA_ALL } from './constants';
+import { DASHBOARD_ADD_URL, DASHBOARD_CONFIG_URL, DASHBOARD_DELETE_URL, DASHBOARD_EDIT_URL,
+	DASHBOARD_GET_URL, SIGNUP_URL, USER_DASH_DATA_ALL, DASHBOARD_PUBLIC_GET_URL } from './constants';
 import { cookies } from 'next/headers'
 import { signIn, signOut, auth } from "@/auth";
 import { Dashboard, DashboardResponse, DashboardConfig } from "@/lib/definitions";
@@ -357,4 +358,18 @@ export async function renameDashboard(id: number, name: string) {
 
   revalidatePath('/admin/dashboards');
   return { success: true };
+}
+
+
+export async function getDashboardById(id: number) {
+    const res = await fetch(DASHBOARD_GET_URL(id));
+    if (!res.ok) return null;
+    return res.json();
+}
+
+
+export async function getPublicDashboardById(id: number) {
+    const res = await fetch(DASHBOARD_PUBLIC_GET_URL(id));
+    if (!res.ok) return null;
+    return res.json();
 }

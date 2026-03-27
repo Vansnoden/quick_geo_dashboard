@@ -40,6 +40,7 @@ class Dashboard(BaseModel):
     ui_js_script: str
     create_date: datetime
     last_update_date: datetime
+    is_published: bool
 
     class Config:
         from_attributes = True

@@ -9,7 +9,8 @@ export interface Dashboard {
     ui_yaml_script: string,
     ui_js_script: string,
     create_date: string,
-    last_update_date: string
+    last_update_date: string,
+    is_published: boolean
 }
 
 export interface DashboardResponse {

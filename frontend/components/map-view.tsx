@@ -187,7 +187,7 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
         setIsLoading(true);
         fetchDashboardConfig(dashboardId)
         .then(configData => {
-            console.log('Config received:', configData);
+            // console.log('Config received:', configData);
             setConfig(configData);
         
             // Determine if clustering should be enabled

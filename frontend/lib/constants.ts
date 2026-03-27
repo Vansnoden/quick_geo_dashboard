@@ -22,3 +22,7 @@ export const DASHBOARD_ADD_DATA_URL = (id: number) => BASE_PUBLIC_API_URL + `/da
 export const DASHBOARD_RANGE_BOUNDS = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/range-bounds`;
 export const DASHBOARD_EXPORT_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/export`;
 export const DASHBOARD_DATA_INFO_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/data-info`;
+export const DASHBOARD_PUBLISH_URL = (id: number) => BASE_PUBLIC_API_URL + `/dashboards/${id}/publish`;
+export const DASHBOARD_PUBLIC_LIST_URL = BASE_PUBLIC_API_URL + '/public/dashboards';
+export const DASHBOARD_PUBLIC_GET_URL = (id: number) => BASE_PUBLIC_API_URL + `/public/dashboards/${id}`;
+

@@ -19,7 +19,7 @@ export default async function Page({
 
   return (
     <main className="p-4">
-      <DashboardHeader code={dashboard.name} dashboardId={dashboard.id} />
+      <DashboardHeader dashboard={dashboard}/>
       <DashBoardDetails dashboard={dashboard}/>
     </main>
   );

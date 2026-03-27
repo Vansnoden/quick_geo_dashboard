@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from database import crud, models, schemas
 from database.session import SessionLocal, engine
 from sqlalchemy.orm import Session
-from sqlalchemy import inspect
+from sqlalchemy import inspect, desc, or_, cast, String, Integer
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.encoders import jsonable_encoder
 from slugify import slugify
@@ -967,3 +967,56 @@ def get_data_info(
         "sample": sample_rows,
         "table_name": dashboard.data_table_name
     }
+
+
+@app.patch("/dashboards/{dashboard_id}/publish")
+def toggle_publish(
+    dashboard_id: int,
+    user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db)
+):
+    dashboard = crud.get_user_dashboard(db, dashboard_id, user.id)
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+    
+    dashboard.is_published = not dashboard.is_published
+    db.commit()
+    db.refresh(dashboard)
+    return {"id": dashboard.id, "is_published": dashboard.is_published}
+
+
+@app.get("/public/dashboards")
+def list_public_dashboards(
+    query: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 20,
+    db: Session = Depends(get_db)
+):
+    db_query = db.query(models.Dashboard).filter(models.Dashboard.is_published == True)
+    if query:
+        search = f"%{query}%"
+        db_query = db_query.filter(
+            or_(
+                models.Dashboard.name.ilike(search),
+                cast(models.Dashboard.code, String).ilike(search)
+            )
+        )
+    total = db_query.count()
+    dashboards = db_query.order_by(desc(models.Dashboard.create_date)).offset(skip).limit(limit).all()
+    return {
+        "data": dashboards,
+        "total": total,
+        "skip": skip,
+        "limit": limit
+    }
+
+
+@app.get("/public/dashboards/{dashboard_id}")
+def get_public_dashboard(dashboard_id: int, db: Session = Depends(get_db)):
+    dashboard = db.query(models.Dashboard).filter(
+        models.Dashboard.id == dashboard_id,
+        models.Dashboard.is_published == True
+    ).first()
+    if not dashboard:
+        raise HTTPException(status_code=404, detail="Dashboard not found")
+    return dashboard
