@@ -53,7 +53,7 @@ export default function DashboardHeader({ dashboard }: { dashboard: Dashboard })
                         <ArrowLeftIcon className="w-6 h-6 text-gray-600 hover:text-violet-600" />
                     </Link>
                     <h1 className="text-2xl font-bold">Dashboard: {dashboard.name}</h1>
-                </div>i
+                </div>
                 <div className="flex gap-2">
                     <AddDataButton dashboardId={dashboard.id} />
 		    <button type="submit" form="yaml-form" className="px-4 py-2 bg-violet-600 text-white rounded-md 
