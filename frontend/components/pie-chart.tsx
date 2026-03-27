@@ -44,24 +44,24 @@ const CustomTooltip = ({ active, payload }: any) => {
     return null;
 };
 
-// Custom legend that wraps and scrolls if needed
+// Improved custom legend – wraps text, scrolls, shows full labels
 const CustomLegend = ({ data }: { data: Array<{ name: string; value: number; color: string }> }) => {
     const total = data.reduce((sum, item) => sum + item.value, 0);
     return (
         <div className="mt-4 max-h-48 overflow-y-auto border-t border-gray-100 pt-3">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+            <div className="grid grid-cols-1 gap-2 text-sm">
                 {data.map((entry, index) => {
                     const percent = ((entry.value / total) * 100).toFixed(1);
                     return (
-                        <div key={index} className="flex items-center gap-2">
+                        <div key={index} className="flex items-start gap-2">
                             <div
-                                className="w-3 h-3 rounded-full flex-shrink-0"
+                                className="w-3 h-3 rounded-full flex-shrink-0 mt-1"
                                 style={{ backgroundColor: entry.color }}
                             />
-                            <span className="text-gray-700 truncate" title={entry.name}>
+                            <span className="text-gray-700 break-words whitespace-normal flex-1">
                                 {entry.name}
                             </span>
-                            <span className="text-gray-500 ml-auto text-xs">
+                            <span className="text-gray-500 text-xs flex-shrink-0 ml-1">
                                 {percent}%
                             </span>
                         </div>
@@ -166,6 +166,10 @@ export default function PieChart({ chart, dashboardId, interactiveFilters }: Pro
         color: COLORS[idx % COLORS.length]
     }));
 
+    // Add total to each data item for tooltip (optional)
+    const total = chartData.reduce((sum, item) => sum + item.value, 0);
+    const enrichedChartData = chartData.map(item => ({ ...item, total }));
+
     return (
         <div className="bg-white p-4 rounded shadow">
             <h3 className="text-lg font-semibold mb-2">{chart.title}</h3>
@@ -175,18 +179,19 @@ export default function PieChart({ chart, dashboardId, interactiveFilters }: Pro
                     <ResponsiveContainer width="100%" height="100%">
                         <RePieChart>
                             <Pie
-                                data={chartData}
+                                data={enrichedChartData}
                                 dataKey="value"
                                 nameKey="name"
                                 cx="50%"
                                 cy="50%"
+                                innerRadius="40%"
                                 outerRadius="70%"
                                 fill="#8884d8"
                                 label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                                 labelLine={false}
                                 paddingAngle={2}
                             >
-                                {chartData.map((entry, index) => (
+                                {enrichedChartData.map((entry, index) => (
                                     <Cell
                                         key={`cell-${index}`}
                                         fill={COLORS[index % COLORS.length]}
@@ -203,9 +208,6 @@ export default function PieChart({ chart, dashboardId, interactiveFilters }: Pro
                 <div className="w-full lg:w-1/3">
                     <CustomLegend data={legendData} />
                 </div>
-            </div>
-            <div className="mt-2 text-xs text-gray-500 text-center">
-                Total: {chartData.reduce((sum, item) => sum + item.value, 0).toLocaleString()} records
             </div>
         </div>
     );
