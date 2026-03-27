@@ -8,8 +8,7 @@ import {
     Pie,
     Tooltip,
     ResponsiveContainer,
-    Cell,
-    Legend
+    Cell
 } from 'recharts';
 
 interface Props {
@@ -18,6 +17,7 @@ interface Props {
     interactiveFilters?: Record<string, any>;
 }
 
+// Extended color palette
 const COLORS = [
     '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D',
     '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFE194', '#B4A5FF',
@@ -27,16 +27,16 @@ const COLORS = [
 const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
         const data = payload[0].payload;
+        const total = payload[0].payload.total;
+        const percent = ((data.value / total) * 100).toFixed(1);
         return (
             <div className="bg-white p-3 shadow-lg rounded-lg border border-gray-200">
                 <p className="font-semibold text-gray-900">{data.name}</p>
                 <p className="text-sm text-gray-600">
-                    Value: 
-                    <span className="font-medium text-purple-600">{data.value}</span>
+                    Value: <span className="font-medium text-purple-600">{data.value}</span>
                 </p>
                 <p className="text-xs text-gray-500">
-                    Percentage: 
-                    <span className="font-medium">{((data.value / payload[0].total) * 100).toFixed(1)}%</span>
+                    Percentage: <span className="font-medium">{percent}%</span>
                 </p>
             </div>
         );
@@ -44,29 +44,35 @@ const CustomTooltip = ({ active, payload }: any) => {
     return null;
 };
 
-const renderLegend = (props: any) => {
-    const { payload } = props;
-    const total = payload.reduce((sum: number, entry: any) => sum + entry.payload.value, 0);
+// Custom legend that wraps and scrolls if needed
+const CustomLegend = ({ data }: { data: Array<{ name: string; value: number; color: string }> }) => {
+    const total = data.reduce((sum, item) => sum + item.value, 0);
     return (
-        <ul className="flex flex-wrap justify-center gap-4 mt-4 text-sm">
-            {payload.map((entry: any, index: number) => (
-                <li key={`legend-${index}`} className="flex items-center gap-2">
-                    <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: entry.color }}
-                    />
-                    <span className="text-gray-700">
-                        {entry.value}: <span className="font-medium">{entry.payload.value}</span>
-                        <span className="text-gray-500 ml-1">
-                            ({((entry.payload.value / total) * 100).toFixed(1)}%)
-                        </span>
-                    </span>
-                </li>
-            ))}
-        </ul>
+        <div className="mt-4 max-h-48 overflow-y-auto border-t border-gray-100 pt-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 text-sm">
+                {data.map((entry, index) => {
+                    const percent = ((entry.value / total) * 100).toFixed(1);
+                    return (
+                        <div key={index} className="flex items-center gap-2">
+                            <div
+                                className="w-3 h-3 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: entry.color }}
+                            />
+                            <span className="text-gray-700 truncate" title={entry.name}>
+                                {entry.name}
+                            </span>
+                            <span className="text-gray-500 ml-auto text-xs">
+                                {percent}%
+                            </span>
+                        </div>
+                    );
+                })}
+            </div>
+        </div>
     );
 };
 
+// Hook to convert interactive filters to FilterCondition[]
 const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
     return useMemo(() => {
         const conditions: FilterCondition[] = [];
@@ -89,38 +95,26 @@ const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
                     });
                     processedColumns.add(column);
                 } else {
-                    conditions.push({
-                        column,
-                        operator: '>=',
-                        value: Number(val)
-                    });
+                    conditions.push({ column, operator: '>=', value: Number(val) });
                     processedColumns.add(column);
                 }
-            } 
-            else if (key.endsWith('_max')) {
+            } else if (key.endsWith('_max')) {
                 const column = key.slice(0, -4);
                 if (!processedColumns.has(column)) {
-                    conditions.push({
-                        column,
-                        operator: '<=',
-                        value: Number(val)
-                    });
+                    conditions.push({ column, operator: '<=', value: Number(val) });
                     processedColumns.add(column);
                 }
-            }
-            else {
+            } else {
                 if (Array.isArray(val) && val.length > 0) {
                     conditions.push({ column: key, operator: 'in', value: val });
-                } 
-                else if (typeof val === 'object' && val !== null) {
+                } else if (typeof val === 'object' && val !== null) {
                     if ('min' in val && val.min !== undefined) {
                         conditions.push({ column: key, operator: '>=', value: Number(val.min) });
                     }
                     if ('max' in val && val.max !== undefined) {
                         conditions.push({ column: key, operator: '<=', value: Number(val.max) });
                     }
-                } 
-                else if (val !== '') {
+                } else if (val !== '') {
                     conditions.push({ column: key, operator: '=', value: String(val) });
                 }
             }
@@ -148,23 +142,37 @@ export default function PieChart({ chart, dashboardId, interactiveFilters }: Pro
     if (error) return <div className="text-red-500">Error: {error}</div>;
     if (!data) return null;
 
-    const chartData = data.labels.map((label, i) => ({
-        name: label,
-        value: data.data[i]
-    })).filter(item => item.value > 0);
+    const chartData = data.labels
+        .map((label, i) => ({
+            name: label,
+            value: data.data[i]
+        }))
+        .filter(item => item.value > 0);
 
-    const total = chartData.reduce((sum, item) => sum + item.value, 0);
+    if (chartData.length === 0) {
+        return (
+            <div className="bg-white p-4 rounded shadow">
+                <h3 className="text-lg font-semibold mb-2">{chart.title}</h3>
+                <div className="h-80 flex items-center justify-center text-gray-500">
+                    No data available
+                </div>
+            </div>
+        );
+    }
+
+    // Prepare legend data with colors
+    const legendData = chartData.map((item, idx) => ({
+        ...item,
+        color: COLORS[idx % COLORS.length]
+    }));
 
     return (
         <div className="bg-white p-4 rounded shadow">
             <h3 className="text-lg font-semibold mb-2">{chart.title}</h3>
-            {chartData.length === 0 ? (
-                <div className="h-80 flex items-center justify-center text-gray-500">
-                    No data available for this chart
-                </div>
-            ) : (
-                <>
-                    <ResponsiveContainer width="100%" height={400}>
+            <div className="flex flex-col lg:flex-row gap-4">
+                {/* Chart container */}
+                <div className="w-full lg:w-2/3 h-80">
+                    <ResponsiveContainer width="100%" height="100%">
                         <RePieChart>
                             <Pie
                                 data={chartData}
@@ -172,16 +180,15 @@ export default function PieChart({ chart, dashboardId, interactiveFilters }: Pro
                                 nameKey="name"
                                 cx="50%"
                                 cy="50%"
-                                outerRadius={120}
-                                innerRadius={60}
+                                outerRadius="70%"
                                 fill="#8884d8"
                                 label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
                                 labelLine={false}
                                 paddingAngle={2}
                             >
                                 {chartData.map((entry, index) => (
-                                    <Cell 
-                                        key={`cell-${index}`} 
+                                    <Cell
+                                        key={`cell-${index}`}
                                         fill={COLORS[index % COLORS.length]}
                                         stroke="#fff"
                                         strokeWidth={2}
@@ -189,19 +196,17 @@ export default function PieChart({ chart, dashboardId, interactiveFilters }: Pro
                                 ))}
                             </Pie>
                             <Tooltip content={<CustomTooltip />} />
-                            <Legend 
-                                content={renderLegend}
-                                verticalAlign="bottom"
-                                height={80}
-                            />
                         </RePieChart>
                     </ResponsiveContainer>
-                    <div className="mt-4 pt-4 border-t border-gray-100 text-sm text-gray-600 flex justify-between">
-                        <span>Total: <span className="font-semibold text-purple-600">{total}</span></span>
-                        <span>Categories: <span className="font-semibold text-purple-600">{chartData.length}</span></span>
-                    </div>
-                </>
-            )}
+                </div>
+                {/* Legend container */}
+                <div className="w-full lg:w-1/3">
+                    <CustomLegend data={legendData} />
+                </div>
+            </div>
+            <div className="mt-2 text-xs text-gray-500 text-center">
+                Total: {chartData.reduce((sum, item) => sum + item.value, 0).toLocaleString()} records
+            </div>
         </div>
     );
 }
