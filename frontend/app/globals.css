@@ -122,3 +122,54 @@ body {
 .mcontent{
   min-height: 90vh;
 }
+
+
+/* Scrollable popup styles for Leaflet */
+.scrollable-popup .leaflet-popup-content-wrapper {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.scrollable-popup .leaflet-popup-content {
+    margin: 0;
+    padding: 0;
+    min-width: 200px;
+    max-width: 350px;
+}
+
+.scrollable-popup .leaflet-popup-content-wrapper .leaflet-popup-content {
+    max-height: 320px;
+}
+
+/* Custom scrollbar for popups */
+.scrollable-popup .leaflet-popup-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scrollable-popup .leaflet-popup-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.scrollable-popup .leaflet-popup-content::-webkit-scrollbar-thumb {
+    background: #c4c4c4;
+    border-radius: 3px;
+}
+
+.scrollable-popup .leaflet-popup-content::-webkit-scrollbar-thumb:hover {
+    background: #a3a3a3;
+}
+
+/* For Firefox */
+.scrollable-popup .leaflet-popup-content {
+    scrollbar-width: thin;
+    scrollbar-color: #c4c4c4 #f1f1f1;
+}
+
+/* Sticky header inside popup */
+.scrollable-popup .leaflet-popup-content h3 {
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 1;
+}
