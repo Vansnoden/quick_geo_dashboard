@@ -64,7 +64,7 @@ const isPointFeature = (feature: Feature): feature is Feature<Point> => {
     return feature.geometry?.type === 'Point';
 };
 
-// ****** IMPROVED FILTER HOOK (same as charts) ******
+// ****** IMPROVED FILTER HOOK ******
 const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
     return useMemo(() => {
         const conditions: FilterCondition[] = [];
@@ -76,7 +76,7 @@ const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
             if (val === '' || val === undefined || val === null) continue;
 
             if (key.endsWith('_min')) {
-                const column = key.slice(0, -4); // remove '_min'
+                const column = key.slice(0, -4);
                 const maxKey = `${column}_max`;
                 const maxVal = interactiveFilters[maxKey];
                 if (maxVal !== undefined && maxVal !== '' && maxVal !== null) {
@@ -120,7 +120,34 @@ const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
     }, [interactiveFilters]);
 };
 
-// Legend component (unchanged)
+// Scrollable Popup Component - Creates a scrollable popup content
+const createScrollablePopupContent = (properties: GeoJsonProperties, title: string = 'Unknown') => {
+    // Filter out null/undefined values and format nicely
+    const entries = Object.entries(properties || {})
+        .filter(([key, value]) => value !== null && value !== undefined && value !== '')
+        .sort(([a], [b]) => a.localeCompare(b));
+
+    // Build popup HTML with scrolling
+    return `
+        <div style="max-height: 300px; overflow-y: auto; padding: 8px; min-width: 200px; max-width: 350px;">
+            <h3 style="font-weight: bold; font-size: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 8px; position: sticky; top: 0; background: white; z-index: 1;">
+                ${title}
+            </h3>
+            <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
+                ${entries.map(([key, value]) => `
+                    <tr style="border-bottom: 1px solid #f3f4f6;">
+                        <td style="font-weight: 600; padding: 4px 8px 4px 0; color: #4b5563; white-space: nowrap;">${key}:</td>
+                        <td style="padding: 4px 0 4px 8px; word-break: break-word; color: #111827;">${String(value)}</td>
+                    </tr>
+                `).join('')}
+            </table>
+            ${entries.length === 0 ? '<p style="color: #9ca3af; text-align: center; padding: 8px;">No data available</p>' : ''}
+            <div style="position: sticky; bottom: 0; height: 4px; background: linear-gradient(to bottom, transparent, white);"></div>
+        </div>
+    `;
+};
+
+// Legend component
 const Legend = ({ style, position }: { style: any; position: string }) => {
     const positionClasses = {
         topleft: 'top-4 left-4',
@@ -138,13 +165,13 @@ const Legend = ({ style, position }: { style: any; position: string }) => {
         }));
     return (
         <div className={`absolute ${positionClasses[position as keyof typeof positionClasses] || 'bottom-4 right-4'} z-1000`}>
-            <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200">
+            <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200 max-h-60 overflow-y-auto">
                 <h4 className="font-bold text-sm mb-2">{style.legend?.title || 'Legend'}</h4>
                 <div className="space-y-1.5">
                     {legendItems.map((item: any, idx: number) => (
                         <div key={idx} className="flex items-center gap-2">
-                            <span className="w-4 h-4 rounded-full" style={{ backgroundColor: item.color }}></span>
-                            <span className="text-xs">{item.label}</span>
+                            <span className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }}></span>
+                            <span className="text-xs break-words">{item.label}</span>
                         </div>
                     ))}
                     {style.sizeBy && (
@@ -168,7 +195,6 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
     const markersRef = useRef<L.LayerGroup | null>(null);
     const clusterRef = useRef<any>(null);
   
-    // Convert interactive filters using the improved hook
     const filterConditions = useFilterConditions(interactiveFilters);
 
     // Fetch config and decide on clustering strategy
@@ -310,28 +336,23 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
                     if (typeof lat !== 'number' || typeof lon !== 'number' || isNaN(lat) || isNaN(lon)) return;
                     const color = getColorFromRules(props, mapStyle.rules || [], mapStyle.defaultColor);
                     const size = getSizeFromField(props, mapStyle.sizeBy, mapStyle.defaultSize, mapStyle.minSize || 4, mapStyle.maxSize || 12);
-                    const popupContent = `
-                        <div class="p-2 min-w-50">
-                            <h3 class="font-bold text-lg border-b pb-1 mb-2">${props?.plant_specie_name || props?.species || 'Unknown'}</h3>
-                            <table class="text-sm w-full">
-                                ${Object.entries(props || {})
-                                    .filter(([key]) => !['lat', 'lon'].includes(key.toLowerCase()))
-                                    .map(([key, value]) => `
-                                        <tr>
-                                            <td class="font-semibold pr-3">${key}:</td>
-                                            <td>${value}</td>
-                                        </tr>
-                                    `).join('')}
-                            </table>
-                        </div>
-                    `;
+                    
+                    // Get title for popup
+                    const title = props?.plant_specie_name || props?.species || 'Unknown';
+                    
+                    // Create scrollable popup content
+                    const popupContent = createScrollablePopupContent(props, title);
+                    
                     const marker = L.circleMarker([lat, lon], {
                         radius: size,
                         fillColor: color,
                         color: '#fff',
                         weight: 1,
                         fillOpacity: 0.8,
-                    }).bindPopup(popupContent);
+                    }).bindPopup(popupContent, {
+                        maxWidth: 400,
+                        className: 'scrollable-popup'
+                    });
                     clusterGroup.addLayer(marker);
                 });
             };
@@ -367,28 +388,23 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
                     if (typeof lat !== 'number' || typeof lon !== 'number' || isNaN(lat) || isNaN(lon)) return;
                     const color = getColorFromRules(props, mapStyle.rules || [], mapStyle.defaultColor);
                     const size = getSizeFromField(props, mapStyle.sizeBy, mapStyle.defaultSize, mapStyle.minSize || 4, mapStyle.maxSize || 12);
-                    const popupContent = `
-                        <div class="p-2 min-w-50">
-                            <h3 class="font-bold text-lg border-b pb-1 mb-2">${props?.plant_specie_name || props?.species || 'Unknown'}</h3>
-                            <table class="text-sm w-full">
-                                ${Object.entries(props || {})
-                                    .filter(([key]) => !['lat', 'lon'].includes(key.toLowerCase()))
-                                    .map(([key, value]) => `
-                                        <tr>
-                                            <td class="font-semibold pr-3">${key}:</td>
-                                            <td>${value}</td>
-                                        </tr>
-                                    `).join('')}
-                            </table>
-                        </div>
-                    `;
+                    
+                    // Get title for popup
+                    const title = props?.plant_specie_name || props?.species || 'Unknown';
+                    
+                    // Create scrollable popup content
+                    const popupContent = createScrollablePopupContent(props, title);
+                    
                     const marker = L.circleMarker([lat, lon], {
                         radius: size,
                         fillColor: color,
                         color: '#fff',
                         weight: 1,
                         fillOpacity: 0.8,
-                    }).bindPopup(popupContent);
+                    }).bindPopup(popupContent, {
+                        maxWidth: 400,
+                        className: 'scrollable-popup'
+                    });
                     marker.addTo(layerGroup);
                     bounds.extend([lat, lon]);
                 });

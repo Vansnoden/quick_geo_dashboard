@@ -67,7 +67,7 @@ class DashboardPagination(BaseModel):
 # charts
 class FilterCondition(BaseModel):
     column: str
-    operator: str
+    operator: str # '=', '!=', '>', '>=', '<', '<=', 'like', 'in', 'between', 'is null', 'is not null'
     value: Union[str, int, float, List[Union[str, int, float]]]
     # 'value2' is only needed for 'between' operator
     value2: Optional[Union[str, int, float]] = None
