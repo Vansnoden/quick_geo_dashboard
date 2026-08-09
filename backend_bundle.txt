@@ -489,6 +489,10 @@ from shapely.geometry import Point
 import jsmin
 from sqlalchemy.orm import Session
 from . import models
+import logging
+
+
+logger = logging.getLogger('uvicorn.error')
 
 
 DATE_FORMATS = [
@@ -715,7 +719,7 @@ def validate_columns_against_data(config: Dict, db: Session, dashboard_id: int) 
 
 def validate_filters(filters: List[Dict], context: str = ""):
     """Validate filter conditions"""
-    valid_operators = ['=', '!=', '>', '>=', '<', '<=', 'like', 'in', 'between']
+    valid_operators = ['=', '!=', '>', '>=', '<', '<=', 'like', 'in', 'between', 'is null', 'is not null']
     
     for idx, f in enumerate(filters):
         if not isinstance(f, dict):
@@ -730,15 +734,17 @@ def validate_filters(filters: List[Dict], context: str = ""):
         if f['operator'] not in valid_operators:
             raise ValueError(f"Filter at {context} index {idx} has invalid operator '{f['operator']}'")
         
-        if 'value' not in f and f['operator'] != 'between':
-            raise ValueError(f"Filter at {context} index {idx} missing 'value'")
-        
-        # Additional validation for specific operators
-        if f['operator'] == 'in' and not isinstance(f['value'], list):
-            raise ValueError(f"Filter at {context} index {idx} 'in' operator requires array value")
-        
-        if f['operator'] == 'between' and (not isinstance(f['value'], list) or len(f['value']) != 2):
-            raise ValueError(f"Filter at {context} index {idx} 'between' operator requires array of two values")
+        # 'is null' and 'is not null' don't need a value
+        if f['operator'] not in ['is null', 'is not null']:
+            if 'value' not in f:
+                raise ValueError(f"Filter at {context} index {idx} missing 'value'")
+            
+            # Additional validation for specific operators
+            if f['operator'] == 'in' and not isinstance(f['value'], list):
+                raise ValueError(f"Filter at {context} index {idx} 'in' operator requires array value")
+            
+            if f['operator'] == 'between' and (not isinstance(f['value'], list) or len(f['value']) != 2):
+                raise ValueError(f"Filter at {context} index {idx} 'between' operator requires array of two values")
 
 
 def validate_map_style(style: dict, context: str = "map style"):
@@ -984,7 +990,7 @@ def yaml_to_dashboard_js(yaml_text: str) -> str:
 
 
 def build_where_clause(
-    filters: Optional[List],  # Can be List[Dict] or List[FilterCondition]
+    filters: Optional[List],
     table_name: str,
     param_prefix: str = "f"
 ) -> tuple[str, Dict[str, Any]]:
@@ -1001,17 +1007,33 @@ def build_where_clause(
     for idx, f in enumerate(filters):
         # Handle both dict and object access
         if isinstance(f, dict):
-            col = f['column']
-            op = f['operator']
-            value = f['value']
+            col = f.get('column')
+            op = f.get('operator')
+            value = f.get('value')
         else:
             # Assume it's a FilterCondition object
-            col = f.column
-            op = f.operator
-            value = f.value
+            col = getattr(f, 'column', None)
+            op = getattr(f, 'operator', None)
+            value = getattr(f, 'value', None)
         
+        if not col or not op:
+            continue
+            
         col_quoted = f'"{col}"'
         param_name = f"{param_prefix}_{idx}"
+        
+        # Handle NULL operators - these don't need a value
+        if op == 'is null':
+            conditions.append(f"{col_quoted} IS NULL")
+            continue
+        elif op == 'is not null':
+            conditions.append(f"{col_quoted} IS NOT NULL")
+            continue
+        
+        # For other operators, we need a value
+        if value is None or value == '':
+            # Skip filters with empty values
+            continue
         
         if op == '=':
             conditions.append(f"{col_quoted} = :{param_name}")
@@ -1042,7 +1064,7 @@ def build_where_clause(
             for i, v in enumerate(value):
                 params[f"{param_name}_{i}"] = v
         elif op == 'between':
-            if len(value) != 2:
+            if not isinstance(value, list) or len(value) != 2:
                 raise ValueError("BETWEEN operator requires two values")
             conditions.append(f"{col_quoted} BETWEEN :{param_name}_1 AND :{param_name}_2")
             params[f"{param_name}_1"] = value[0]
@@ -1138,7 +1160,7 @@ class DashboardPagination(BaseModel):
 # charts
 class FilterCondition(BaseModel):
     column: str
-    operator: str
+    operator: str # '=', '!=', '>', '>=', '<', '<=', 'like', 'in', 'between', 'is null', 'is not null'
     value: Union[str, int, float, List[Union[str, int, float]]]
     # 'value2' is only needed for 'between' operator
     value2: Optional[Union[str, int, float]] = None

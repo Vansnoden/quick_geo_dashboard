@@ -64,7 +64,6 @@ const isPointFeature = (feature: Feature): feature is Feature<Point> => {
     return feature.geometry?.type === 'Point';
 };
 
-// ****** IMPROVED FILTER HOOK ******
 const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
     return useMemo(() => {
         const conditions: FilterCondition[] = [];
@@ -73,7 +72,11 @@ const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
         const processedColumns = new Set<string>();
 
         for (const [key, val] of Object.entries(interactiveFilters)) {
+            // Skip empty values
             if (val === '' || val === undefined || val === null) continue;
+            
+            // For arrays (multiselect), skip empty arrays
+            if (Array.isArray(val) && val.length === 0) continue;
 
             if (key.endsWith('_min')) {
                 const column = key.slice(0, -4);
@@ -110,7 +113,7 @@ const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
                         conditions.push({ column: key, operator: '<=', value: Number(val.max) });
                     }
                 } 
-                else if (val !== '') {
+                else if (val !== '' && val !== undefined && val !== null) {
                     conditions.push({ column: key, operator: '=', value: String(val) });
                 }
             }
