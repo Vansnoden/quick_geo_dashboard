@@ -3,7 +3,7 @@ WORKDIR /app
 RUN npm i -g pnpm
 COPY package.json pnpm-lock.yaml ./
 
-RUN pnpm config set ignore-scripts false && pnpm install
+RUN pnpm install --ignore-scripts
 
 COPY . .
 RUN pnpm build
