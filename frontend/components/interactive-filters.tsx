@@ -50,15 +50,19 @@ const CustomSelect = ({
     }, []);
 
     const filteredOptions = options.filter(opt => 
-        opt.toLowerCase().includes(searchTerm.toLowerCase())
+        // opt.toLowerCase().includes(searchTerm.toLowerCase())
+        String(opt).toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const selectedOptions = multiple ? (value as string[]).map(v => ({ value: v, label: v }))
-    : value ? [{ value: value as string, label: value as string }] : [];
+    const selectedOptions = multiple
+    ? (value as string[]).map(v => ({ value: String(v), label: String(v) }))
+    : value !== undefined && value !== null && value !== ''
+        ? [{ value: String(value), label: String(value) }]
+        : [];
 
     const removeOption = (optionToRemove: string) => {
         if (multiple) {
-            const newValue = (value as string[]).filter(v => v !== optionToRemove);
+            const newValue = (value as string[]).filter(v => String(v) !== String(optionToRemove));
             onChange(newValue);
         }
     };
@@ -123,8 +127,8 @@ const CustomSelect = ({
                     {filteredOptions.length > 0 ? (
                         filteredOptions.map(option => {
                         const isSelected = multiple 
-                        ? (value as string[]).includes(option)
-                        : value === option;
+                        ? (value as string[]).map(String).includes(String(option))
+                        : String(value) === String(option);
                 
                          return (
                             <div
@@ -133,19 +137,20 @@ const CustomSelect = ({
                                     isSelected ? 'bg-purple-100 text-purple-700' : ''
                                 }`}
                                 onClick={() => {
+                                    const optStr = String(option);
                                     if (multiple) {
                                         const newValue = isSelected
-                                        ? (value as string[]).filter(v => v !== option)
-                                        : [...(value as string[]), option];
+                                            ? (value as string[]).filter(v => String(v) !== optStr)
+                                            : [...((value as string[]) || []), optStr];
                                         onChange(newValue);
                                     } else {
-                                        onChange(option);
+                                        onChange(optStr);
                                         setIsOpen(false);
                                         setSearchTerm('');
                                     }
                                 }}
                             >
-                                <span className="text-sm">{option}</span>
+                                <span className="text-sm">{String(option)}</span>
                             </div>
                         );
                     })

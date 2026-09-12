@@ -2973,7 +2973,6 @@ const isPointFeature = (feature: Feature): feature is Feature<Point> => {
     return feature.geometry?.type === 'Point';
 };
 
-// ****** IMPROVED FILTER HOOK ******
 const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
     return useMemo(() => {
         const conditions: FilterCondition[] = [];
@@ -2982,7 +2981,11 @@ const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
         const processedColumns = new Set<string>();
 
         for (const [key, val] of Object.entries(interactiveFilters)) {
+            // Skip empty values
             if (val === '' || val === undefined || val === null) continue;
+            
+            // For arrays (multiselect), skip empty arrays
+            if (Array.isArray(val) && val.length === 0) continue;
 
             if (key.endsWith('_min')) {
                 const column = key.slice(0, -4);
@@ -3019,7 +3022,7 @@ const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
                         conditions.push({ column: key, operator: '<=', value: Number(val.max) });
                     }
                 } 
-                else if (val !== '') {
+                else if (val !== '' && val !== undefined && val !== null) {
                     conditions.push({ column: key, operator: '=', value: String(val) });
                 }
             }
@@ -3126,7 +3129,7 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
                 zoom: 2,
                 maxZoom: 18
             });
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2u0c_1_b25b10c1633c2853d7bdce86', {
                 attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
                 subdomains: 'abcd',
                 maxZoom: 20
@@ -6326,7 +6329,7 @@ export default function Home() {
                   </p>
                   <p className="mt-3">
                     You can consult our documentation using the link bellow:
-                    <Link href="/admin/documentation">
+                    <Link href="/admin/doc">
                       <Button> 
                         Go to Documentation
                         <DocumentIcon className="ml-auto h-5 w-5 text-gray-50" />
