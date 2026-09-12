@@ -6329,7 +6329,7 @@ export default function Home() {
                   </p>
                   <p className="mt-3">
                     You can consult our documentation using the link bellow:
-                    <Link href="/admin/documentation">
+                    <Link href="/admin/doc">
                       <Button> 
                         Go to Documentation
                         <DocumentIcon className="ml-auto h-5 w-5 text-gray-50" />
