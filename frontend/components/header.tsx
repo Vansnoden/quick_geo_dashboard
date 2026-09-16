@@ -5,11 +5,18 @@ import { Button } from "@/components/buttons";
 import { ArrowRightIcon } from "@heroicons/react/16/solid";
 import Image from "next/image";
 import { getAuthToken } from "@/lib/client_actions";
+import { useEffect } from "react";
 
 export default function Header(){
 
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    useEffect(() => {
+        setIsLoggedIn(!!getAuthToken());
+    }, []);
+
     const getUserHeader = () => {
-        if (getAuthToken()){
+        if (isLoggedIn){
             // user is connected
             return <>
                 <nav className="bg-white fixed w-full z-20 top-0 inset-s-0 border-b border-gray-200 dark:border-gray-600">
