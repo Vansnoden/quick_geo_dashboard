@@ -28,6 +28,9 @@ interface Props {
 const VIEWPORT_DEBOUNCE_MS = 400;
 // Full-world bbox used for the very first viewport request.
 const WORLD_BBOX: [number, number, number, number] = [-180, -90, 180, 90];
+// How many markers to build before yielding back to the event loop.
+// Keeps the map responsive during large marker builds.
+const MARKER_CHUNK_SIZE = 1000;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -257,6 +260,9 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
                 zoom: 2,
                 maxZoom: 18,
                 worldCopyJump: true,
+                // Render circleMarkers onto a single <canvas> instead of one
+                // SVG node per marker. Big win for thousands of points.
+                preferCanvas: true,
             });
             L.tileLayer(
                 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2u0c_1_b25b10c1633c2853d7bdce86',
@@ -331,19 +337,28 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
     );
 
     // ------------------------------------------------------------------
-    // Build markers into a Leaflet layer/cluster group
+    // Build markers into a Leaflet layer/cluster group.
+    //
+    // - Popups are built lazily via a function passed to bindPopup, so no
+    //   HTML is generated until a user actually clicks a marker.
+    // - The loop yields to the event loop every MARKER_CHUNK_SIZE markers
+    //   so the map stays responsive during large builds.
+    // - The AbortSignal is checked between chunks so we bail promptly if
+    //   the effect that spawned this call is cleaned up.
     // ------------------------------------------------------------------
     const addMarkersToLayer = useCallback(
-        (
+        async (
             features: Feature[],
             target: any,
             mapStyle: any,
             map: L.Map,
             fitBounds: boolean,
+            signal: AbortSignal,
         ) => {
             const bounds = L.latLngBounds([]);
 
-            for (const feature of features) {
+            for (let i = 0; i < features.length; i++) {
+                const feature = features[i];
                 if (!isPointFeature(feature)) continue;
                 const props = feature.properties;
                 const [lon, lat] = feature.geometry.coordinates;
@@ -372,9 +387,6 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
                     mapStyle.minSize || 4,
                     mapStyle.maxSize || 12,
                 );
-                const title =
-                    (props as any)?.species || (props as any)?.name || 'Details';
-                const popupContent = createScrollablePopupContent(props, title);
 
                 const marker = L.circleMarker([lat, lon], {
                     radius: size,
@@ -382,13 +394,34 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
                     color: '#fff',
                     weight: 1,
                     fillOpacity: 0.85,
-                }).bindPopup(popupContent, {
-                    maxWidth: 400,
-                    className: 'scrollable-popup',
                 });
+
+                // Lazy popup: the function is only invoked when the popup is
+                // about to open, so we skip generating HTML for markers the
+                // user never interacts with.
+                marker.bindPopup(
+                    () => {
+                        const title =
+                            (props as any)?.species ||
+                            (props as any)?.name ||
+                            'Details';
+                        return createScrollablePopupContent(props, title);
+                    },
+                    {
+                        maxWidth: 400,
+                        className: 'scrollable-popup',
+                    },
+                );
 
                 target.addLayer(marker);
                 bounds.extend([lat, lon]);
+
+                // Yield to the event loop so the browser can paint and
+                // handle input while we keep building markers.
+                if ((i + 1) % MARKER_CHUNK_SIZE === 0) {
+                    await new Promise((r) => setTimeout(r, 0));
+                    if (signal.aborted) return;
+                }
             }
 
             if (fitBounds && bounds.isValid()) {
@@ -461,13 +494,15 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
                 if (!data?.features || controller.signal.aborted) return;
 
                 clusterGroup.clearLayers();
-                addMarkersToLayer(
+                await addMarkersToLayer(
                     data.features,
                     clusterGroup,
                     mapStyle,
                     map,
                     !hasFitBoundsRef.current,
+                    controller.signal,
                 );
+                if (controller.signal.aborted) return;
                 hasFitBoundsRef.current = true;
 
                 // If we hit the API limit, more data exists off-screen.
@@ -496,12 +531,13 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
                             if (!inView?.features || controller.signal.aborted) return;
 
                             clusterGroup.clearLayers();
-                            addMarkersToLayer(
+                            await addMarkersToLayer(
                                 inView.features,
                                 clusterGroup,
                                 mapStyle,
                                 map,
                                 false,
+                                controller.signal,
                             );
                         }, VIEWPORT_DEBOUNCE_MS);
                     };
@@ -524,13 +560,15 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
                 if (!data?.features || controller.signal.aborted) return;
 
                 layerGroup.clearLayers();
-                addMarkersToLayer(
+                await addMarkersToLayer(
                     data.features,
                     layerGroup,
                     mapStyle,
                     map,
                     !hasFitBoundsRef.current,
+                    controller.signal,
                 );
+                if (controller.signal.aborted) return;
                 hasFitBoundsRef.current = true;
             })();
         }

@@ -121,5 +121,6 @@ export interface MapDef {
   style?: MapStyle;
   clustering?: MapClustering;
   filters?: FilterCondition[];
+  fields?: string[];
 }
 
