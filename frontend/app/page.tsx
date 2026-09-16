@@ -6,7 +6,7 @@ import Footer from "@/components/footer";
 import { lusitana } from "@/components/fonts";
 import Link from "next/link";
 import { Button } from "@/components/buttons";
-import { DocumentArrowDownIcon, DocumentIcon } from "@heroicons/react/24/outline";
+import { DocumentArrowDownIcon, DocumentIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { DocumentChartBarIcon } from "@heroicons/react/24/solid";
 
 export default function Home() {
@@ -34,7 +34,7 @@ export default function Home() {
                   </p>
                   <p className="mt-3">
                     You can consult our documentation using the link bellow:
-                    <Link href="/admin/doc">
+                    <Link href="/doc">
                       <Button> 
                         Go to Documentation
                         <DocumentIcon className="ml-auto h-5 w-5 text-gray-50" />
@@ -45,8 +45,17 @@ export default function Home() {
                     You can consult free dashboard examples using the link bellow
                     <Link href="#">
                       <Button> 
-                        See examples of dashboards
+                        See published dashboards
                         <DocumentChartBarIcon className="ml-auto h-5 w-5 text-gray-50" />
+                      </Button>
+                    </Link>
+                  </p>
+                  <p className="mt-3">
+                    Join the platform.
+                    <Link href="/signup">
+                      <Button> 
+                        Create Account
+                        <UserCircleIcon className="ml-auto h-5 w-5 text-gray-50" />
                       </Button>
                     </Link>
                   </p>
