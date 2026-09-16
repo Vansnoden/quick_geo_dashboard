@@ -1090,6 +1090,55 @@ def merge_filters(global_filters: Optional[List], specific_filters: Optional[Lis
         result.extend([to_dict(f) for f in specific_filters])
     
     return result
+
+
+def resolve_map_columns(
+    map_config: dict,
+    inspector,
+    table_name: str,
+) -> list:
+    """
+    Decide which columns to SELECT for map endpoints.
+
+    - If 'fields' is absent: return all columns (backward compatible).
+    - If 'fields' is present: return those columns, always augmented with
+      lat, lon, style.sizeBy, style.colorBy, and every style.rules[].field
+      (the frontend needs them to compute geometry / colour / size).
+    Order: declared fields first, then auto-added ones. The internal 'id'
+    column is always excluded.
+    """
+    all_cols = [c['name'] for c in inspector.get_columns(table_name) if c['name'] != 'id']
+    all_cols_set = set(all_cols)
+
+    explicit = map_config.get('fields')
+    if not explicit:
+        return all_cols
+
+    lat_col = map_config.get('lat')
+    lon_col = map_config.get('lon')
+    style = map_config.get('style') or {}
+    rule_fields = [r.get('field') for r in (style.get('rules') or []) if r.get('field')]
+
+    required = set(explicit) | {lat_col, lon_col}
+    for c in [style.get('sizeBy'), style.get('colorBy')] + rule_fields:
+        if c:
+            required.add(c)
+
+    unknown = required - all_cols_set
+    if unknown:
+        logger.warning(
+            "Map 'fields' reference columns not present in table %s: %s",
+            table_name, sorted(unknown),
+        )
+
+    ordered: list = []
+    seen: set = set()
+    for c in list(explicit) + [lat_col, lon_col, style.get('sizeBy'), style.get('colorBy')] + rule_fields:
+        if c and c in all_cols_set and c not in seen:
+            ordered.append(c)
+            seen.add(c)
+
+    return ordered
 # ./backend/database/schemas.py
 # -*- coding: utf-8 -*-
 
@@ -1225,6 +1274,7 @@ class MapDef(BaseModel):
     layer: Optional[str] = None
     style: Optional[MapStyle] = None
     filters: Optional[List[FilterCondition]] = []
+    fields: Optional[List[str]] = None
 
 
 class InteractiveFilterDef(BaseModel):
@@ -1472,8 +1522,12 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, BeforeValidator
 import yaml
-from database.utils import build_where_clause, excel_to_csv, get_uuid, merge_filters, yaml_to_dashboard_js
-from database.schemas import ChartDataRequest, ChartDataResponse, DashboardConfigUpdate, User, FileBase
+from database.utils import (
+    build_where_clause, excel_to_csv, get_uuid, merge_filters, 
+    yaml_to_dashboard_js, resolve_map_columns )
+from database.schemas import ( 
+    ChartDataRequest, ChartDataResponse, DashboardConfigUpdate, 
+    User, FileBase )
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from fastapi.middleware.cors import CORSMiddleware
@@ -1928,10 +1982,13 @@ def get_map_points(
     # Get all columns for richer popup data
     # First, get all column names from the table
     inspector = inspect(db.bind)
-    columns = [col['name'] for col in inspector.get_columns(dashboard.data_table_name)]
-    
-    # Build query to select all columns
-    quoted_columns = [f'"{col}"' for col in columns]
+    columns = resolve_map_columns(map_config, inspector, dashboard.data_table_name)
+    if not columns:
+        raise HTTPException(
+            status_code=400,
+            detail="No usable map columns found — check map.fields and map.lat/map.lon",
+        )
+    quoted_columns = [f'"{c}"' for c in columns]
     select_clause = ", ".join(quoted_columns)
     
     table = dashboard.data_table_name
@@ -2036,8 +2093,13 @@ def get_points_in_view(
     
     # Get all columns
     inspector = inspect(db.bind)
-    columns = [col['name'] for col in inspector.get_columns(dashboard.data_table_name)]
-    quoted_columns = [f'"{col}"' for col in columns]
+    columns = resolve_map_columns(map_config, inspector, dashboard.data_table_name)
+    if not columns:
+        raise HTTPException(
+            status_code=400,
+            detail="No usable map columns found — check map.fields and map.lat/map.lon",
+        )
+    quoted_columns = [f'"{c}"' for c in columns]
     select_clause = ", ".join(quoted_columns)
     
     query = f"""
@@ -2267,8 +2329,13 @@ def get_filtered_map_points(
     
     # Get all columns for popups
     inspector = inspect(db.bind)
-    columns = [col['name'] for col in inspector.get_columns(table)]
-    quoted_columns = [f'"{col}"' for col in columns]
+    columns = resolve_map_columns(map_config, inspector, dashboard.data_table_name)
+    if not columns:
+        raise HTTPException(
+            status_code=400,
+            detail="No usable map columns found — check map.fields and map.lat/map.lon",
+        )
+    quoted_columns = [f'"{c}"' for c in columns]
     select_clause = ", ".join(quoted_columns)
     
     query = f"SELECT {select_clause} FROM {table}"

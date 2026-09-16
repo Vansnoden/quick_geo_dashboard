@@ -507,6 +507,13 @@ def yaml_to_dashboard_js(yaml_text: str) -> str:
     # Map must have lat and lon
     if 'lat' not in config['map'] or 'lon' not in config['map']:
         raise ValueError("'map' section must contain 'lat' and 'lon' keys")
+    
+    if 'fields' in config['map']:
+        if not isinstance(config['map']['fields'], list):
+            raise ValueError("'map.fields' must be a list of column names")
+        for i, f in enumerate(config['map']['fields']):
+            if not isinstance(f, str) or not f.strip():
+                raise ValueError(f"'map.fields[{i}]' must be a non-empty string")
 
     # Menus must be a mapping
     if not isinstance(config['menus'], dict):
@@ -619,3 +626,52 @@ def merge_filters(global_filters: Optional[List], specific_filters: Optional[Lis
         result.extend([to_dict(f) for f in specific_filters])
     
     return result
+
+
+def resolve_map_columns(
+    map_config: dict,
+    inspector,
+    table_name: str,
+) -> list:
+    """
+    Decide which columns to SELECT for map endpoints.
+
+    - If 'fields' is absent: return all columns (backward compatible).
+    - If 'fields' is present: return those columns, always augmented with
+      lat, lon, style.sizeBy, style.colorBy, and every style.rules[].field
+      (the frontend needs them to compute geometry / colour / size).
+    Order: declared fields first, then auto-added ones. The internal 'id'
+    column is always excluded.
+    """
+    all_cols = [c['name'] for c in inspector.get_columns(table_name) if c['name'] != 'id']
+    all_cols_set = set(all_cols)
+
+    explicit = map_config.get('fields')
+    if not explicit:
+        return all_cols
+
+    lat_col = map_config.get('lat')
+    lon_col = map_config.get('lon')
+    style = map_config.get('style') or {}
+    rule_fields = [r.get('field') for r in (style.get('rules') or []) if r.get('field')]
+
+    required = set(explicit) | {lat_col, lon_col}
+    for c in [style.get('sizeBy'), style.get('colorBy')] + rule_fields:
+        if c:
+            required.add(c)
+
+    unknown = required - all_cols_set
+    if unknown:
+        logger.warning(
+            "Map 'fields' reference columns not present in table %s: %s",
+            table_name, sorted(unknown),
+        )
+
+    ordered: list = []
+    seen: set = set()
+    for c in list(explicit) + [lat_col, lon_col, style.get('sizeBy'), style.get('colorBy')] + rule_fields:
+        if c and c in all_cols_set and c not in seen:
+            ordered.append(c)
+            seen.add(c)
+
+    return ordered

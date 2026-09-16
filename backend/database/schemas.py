@@ -132,6 +132,7 @@ class MapDef(BaseModel):
     layer: Optional[str] = None
     style: Optional[MapStyle] = None
     filters: Optional[List[FilterCondition]] = []
+    fields: Optional[List[str]] = None
 
 
 class InteractiveFilterDef(BaseModel):

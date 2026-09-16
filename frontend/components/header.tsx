@@ -5,13 +5,20 @@ import { Button } from "@/components/buttons";
 import { ArrowRightIcon } from "@heroicons/react/16/solid";
 import Image from "next/image";
 import { getAuthToken } from "@/lib/client_actions";
+import { useEffect, useState } from "react";
 
 export default function Header(){
 
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    useEffect(() => {
+        setIsLoggedIn(!!getAuthToken());
+    }, []);
+
     const getUserHeader = () => {
-        if (getAuthToken()){
+        if (isLoggedIn){
             // user is connected
-            return <>
+            return (<>
                 <nav className="bg-white fixed w-full z-20 top-0 inset-s-0 border-b border-gray-200 dark:border-gray-600">
                     <div className="max-w-7xl flex flex-wrap items-center justify-between mx-auto p-4">
                         <Link href="/" className="flex items-center space-x-3 rtl:space-x-reverse">
@@ -40,10 +47,10 @@ export default function Header(){
                         </div>
                     </div>
                 </nav>
-            </>
+            </>)
         }else{
             // return public header
-            <>
+            return (<>
                 <nav className="bg-white fixed w-full z-20 top-0 inset-s-0 border-b border-gray-200 dark:border-gray-600">
                     <div className="max-w-7xl flex flex-wrap items-center justify-between mx-auto p-4">
                         <Link href="/" className="flex items-center space-x-3 rtl:space-x-reverse">
@@ -72,7 +79,7 @@ export default function Header(){
                         </div>
                     </div>
                 </nav>
-            </>
+            </>)
         }
     }
 

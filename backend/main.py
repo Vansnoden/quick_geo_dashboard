@@ -12,8 +12,12 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel, BeforeValidator
 import yaml
-from database.utils import build_where_clause, excel_to_csv, get_uuid, merge_filters, yaml_to_dashboard_js
-from database.schemas import ChartDataRequest, ChartDataResponse, DashboardConfigUpdate, User, FileBase
+from database.utils import (
+    build_where_clause, excel_to_csv, get_uuid, merge_filters, 
+    yaml_to_dashboard_js, resolve_map_columns )
+from database.schemas import ( 
+    ChartDataRequest, ChartDataResponse, DashboardConfigUpdate, 
+    User, FileBase )
 from passlib.context import CryptContext
 from jose import JWTError, jwt
 from fastapi.middleware.cors import CORSMiddleware
@@ -468,10 +472,13 @@ def get_map_points(
     # Get all columns for richer popup data
     # First, get all column names from the table
     inspector = inspect(db.bind)
-    columns = [col['name'] for col in inspector.get_columns(dashboard.data_table_name)]
-    
-    # Build query to select all columns
-    quoted_columns = [f'"{col}"' for col in columns]
+    columns = resolve_map_columns(map_config, inspector, dashboard.data_table_name)
+    if not columns:
+        raise HTTPException(
+            status_code=400,
+            detail="No usable map columns found — check map.fields and map.lat/map.lon",
+        )
+    quoted_columns = [f'"{c}"' for c in columns]
     select_clause = ", ".join(quoted_columns)
     
     table = dashboard.data_table_name
@@ -576,8 +583,13 @@ def get_points_in_view(
     
     # Get all columns
     inspector = inspect(db.bind)
-    columns = [col['name'] for col in inspector.get_columns(dashboard.data_table_name)]
-    quoted_columns = [f'"{col}"' for col in columns]
+    columns = resolve_map_columns(map_config, inspector, dashboard.data_table_name)
+    if not columns:
+        raise HTTPException(
+            status_code=400,
+            detail="No usable map columns found — check map.fields and map.lat/map.lon",
+        )
+    quoted_columns = [f'"{c}"' for c in columns]
     select_clause = ", ".join(quoted_columns)
     
     query = f"""
@@ -807,8 +819,13 @@ def get_filtered_map_points(
     
     # Get all columns for popups
     inspector = inspect(db.bind)
-    columns = [col['name'] for col in inspector.get_columns(table)]
-    quoted_columns = [f'"{col}"' for col in columns]
+    columns = resolve_map_columns(map_config, inspector, dashboard.data_table_name)
+    if not columns:
+        raise HTTPException(
+            status_code=400,
+            detail="No usable map columns found — check map.fields and map.lat/map.lon",
+        )
+    quoted_columns = [f'"{c}"' for c in columns]
     select_clause = ", ".join(quoted_columns)
     
     query = f"SELECT {select_clause} FROM {table}"

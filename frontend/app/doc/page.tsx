@@ -320,6 +320,61 @@ export default function DocPage() {
         position: "bottomright"`}
                 </pre>
 
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Reducing Map Payload with <code>fields</code></h3>
+                <p className="text-gray-700 mb-2">
+                  By default, the map endpoints return <strong>every column of your table for every point</strong>.
+                  For wide tables (dozens of columns) this dominates both network transfer and browser rendering time,
+                  even with clustering enabled. Add a <code>fields</code> list under <code>map</code> to ship only the columns
+                  the popup actually needs.
+                </p>
+                <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+  {`map:
+    lat: common_latitude
+    lon: common_longitude
+    fields:
+      - source
+      - countryCode
+      - common_year
+      - common_month
+      - individualCount
+    clustering:
+      enabled: true
+      limit: 3000
+    style:
+      sizeBy: individualCount
+      rules:
+        - field: common_year
+          operator: ">="
+          value: 2020
+          color: "#00ff00"
+          label: "2020–2026"`}
+                </pre>
+
+                <div className="bg-green-50 border-l-4 border-green-500 p-4 mt-4">
+                  <p className="text-green-800 text-sm">
+                    <strong>💡 How <code>fields</code> works:</strong> The backend always augments the list you provide with:
+                  </p>
+                  <ul className="list-disc pl-6 mt-2 text-sm text-green-800 space-y-1">
+                    <li><code>lat</code> and <code>lon</code> — required to build the point geometry</li>
+                    <li><code>style.sizeBy</code> — required to compute marker radius</li>
+                    <li><code>style.colorBy</code> — reserved for future colour-by support</li>
+                    <li>every <code>style.rules[].field</code> — required for colour rule matching</li>
+                  </ul>
+                  <p className="text-green-800 text-sm mt-2">
+                    So you don't need to list those yourself. If a listed column doesn't exist in the data table, it's
+                    silently skipped and a warning is logged — no need to update every dashboard when you rename a column.
+                  </p>
+                </div>
+
+                <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mt-4">
+                  <p className="text-yellow-800 text-sm">
+                    <strong>⚠️ Performance tip:</strong> For tables with many columns (20+), setting <code>fields</code> 
+                    typically reduces the map payload by 5–10×. Combine it with a modest <code>clustering.limit</code> 
+                    (3000–5000) for best results. If <code>fields</code> is omitted entirely, all columns are returned — 
+                    same behaviour as before, so existing dashboards keep working.
+                  </p>
+                </div>
+
                 <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Clustering Options</h3>
                 <ul className="list-disc pl-6 space-y-2 text-gray-700">
                   <li><code>enabled</code> - Enable/disable clustering (boolean)</li>
@@ -495,8 +550,15 @@ export default function DocPage() {
     map:
       lat: Lat
       lon: Lon
+      fields:
+        - species
+        - Country
+        - Form
+        - "Specie counts"
+        - Year
       clustering:
-        enabled: false
+        enabled: true
+        limit: 3000
       style:
         colorBy: Form
         sizeBy: "Specie counts"
@@ -617,6 +679,7 @@ export default function DocPage() {
                       <li>Verify that your data has valid latitude/longitude columns</li>
                       <li>Check that column names in YAML match exactly (case-sensitive)</li>
                       <li>Ensure lat/lon values are within valid ranges (-90 to 90, -180 to 180)</li>
+                      <li>If you used <code>map.fields</code>, confirm <code>lat</code> and <code>lon</code> still point to real columns</li>
                       <li>For large datasets, enable clustering in map configuration</li>
                     </ul>
                   </div>
@@ -638,6 +701,7 @@ export default function DocPage() {
                       <li>Ensure proper indentation (2 spaces per level)</li>
                       <li>Quote strings containing special characters</li>
                       <li>Check that all required fields are present (name, template, stats, map, menus)</li>
+                      <li><code>map.fields</code> must be a list of column names, not a comma-separated string</li>
                     </ul>
                   </div>
 
@@ -645,9 +709,12 @@ export default function DocPage() {
                     <h3 className="font-semibold text-gray-900">Performance issues with large datasets</h3>
                     <ul className="list-disc pl-6 mt-2 text-sm text-gray-700">
                       <li>Enable clustering on the map for millions of points</li>
+                      <li>Use <code>map.fields</code> to ship only the popup columns (biggest single win for wide tables)</li>
+                      <li>Lower <code>clustering.limit</code> to 3000–5000 per viewport request</li>
                       <li>Use TOP 10 aggregations in charts to limit data processed</li>
                       <li>Add global filters to focus on relevant subsets</li>
                       <li>Consider using count distinct instead of listing all values</li>
+                      <li>Prefer numeric <code>&gt;=</code>/<code>&lt;=</code> style rules over <code>in</code> with long arrays</li>
                     </ul>
                   </div>
                 </div>

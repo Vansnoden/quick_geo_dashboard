@@ -1127,6 +1127,7 @@ export interface MapDef {
   style?: MapStyle;
   clustering?: MapClustering;
   filters?: FilterCondition[];
+  fields?: string[];
 }
 
 
@@ -1383,6 +1384,8 @@ import dynamic from 'next/dynamic';
 import InteractiveFilters from '@/components/interactive-filters';
 import { filterValuesToConditions } from '@/lib/filter-helpers';
 import DownloadButton from '@/components/data-download-button';
+import Link from 'next/link';
+import { ArrowLeftIcon, BackwardIcon, HomeIcon } from '@heroicons/react/24/outline';
 
 // Dynamic import with a consistent height loader to prevent layout shift
 const MapView = dynamic(() => import('@/components/map-view'), { 
@@ -1476,7 +1479,14 @@ export default function SideContentLayout({ config, dashboardId }: Props) {
 
                 {/* Menu navigation items */}
                 <nav className="mb-6 pb-4 border-b border-gray-200">
-                    <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Jump to</h2>
+                    <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                        <Link href="/" className='flex'>
+                            <ArrowLeftIcon className='w-4 h-4'/>
+                            <span className="ml-2">
+                                Go to Homepage
+                            </span>
+                        </Link>
+                    </h2>
                     <div className="space-y-2">
                         <button
                             onClick={() => handleMenuItemClick('about-section')}
@@ -2575,40 +2585,86 @@ import Link from "next/link";
 import { Button } from "@/components/buttons";
 import { ArrowRightIcon } from "@heroicons/react/16/solid";
 import Image from "next/image";
+import { getAuthToken } from "@/lib/client_actions";
+import { useEffect, useState } from "react";
 
 export default function Header(){
-    return(
-        <div className="">
-            <nav className="bg-white fixed w-full z-20 top-0 inset-s-0 border-b border-gray-200 dark:border-gray-600">
-                <div className="max-w-7xl flex flex-wrap items-center justify-between mx-auto p-4">
-                    <Link href="/" className="flex items-center space-x-3 rtl:space-x-reverse">
-                        <Image src="/qgd_logo.svg" className="h-8" width="50" height="50" alt="QGD Logo"></Image>
-                        <span className="flex flex-col">
-                            <span className="self-left text-sm font-semibold whitespace-nowrap dark:text-white">
-                                Quick
-                            </span><br/>
-                            <span className="self-left text-sm font-semibold whitespace-nowrap dark:text-white">
-                                Geo-Dashboard
+
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    useEffect(() => {
+        setIsLoggedIn(!!getAuthToken());
+    }, []);
+
+    const getUserHeader = () => {
+        if (isLoggedIn){
+            // user is connected
+            return (<>
+                <nav className="bg-white fixed w-full z-20 top-0 inset-s-0 border-b border-gray-200 dark:border-gray-600">
+                    <div className="max-w-7xl flex flex-wrap items-center justify-between mx-auto p-4">
+                        <Link href="/" className="flex items-center space-x-3 rtl:space-x-reverse">
+                            <Image src="/qgd_logo.svg" className="h-8" width="50" height="50" alt="QGD Logo"></Image>
+                            <span className="flex flex-col">
+                                <span className="self-left text-sm font-semibold whitespace-nowrap dark:text-white">
+                                    Quick
+                                </span><br/>
+                                <span className="self-left text-sm font-semibold whitespace-nowrap dark:text-white">
+                                    Geo-Dashboard
+                                </span>
                             </span>
-                        </span>
-                    </Link>
-                    <div className="flex md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse">
-		        <Link href="/dashboards" className="flex items-center mr-3 text-center text-sm text-gray-600 hover:text-purple-600">
-    				<span className="self-center text-center">
-					Public Dashboards
-				</span>
-			</Link>
-                        <Link href="/login">
-                            <Button> 
-                                Log In
-                                <ArrowRightIcon className="ml-auto h-5 w-5 text-gray-50" />
-                            </Button>
                         </Link>
+                        <div className="flex md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse">
+                            <Link href="/dashboards" className="flex items-center mr-3 text-center text-sm text-gray-600 hover:text-purple-600">
+                                <span className="self-center text-center">
+                                    Public Dashboards
+                                </span>
+                            </Link>
+                            <Link href="/admin/dashboards">
+                                <Button> 
+                                    My Dashboards
+                                    <ArrowRightIcon className="ml-auto h-5 w-5 text-gray-50" />
+                                </Button>
+                            </Link>
+                        </div>
                     </div>
-                </div>
-            </nav>
-        </div>
-    )
+                </nav>
+            </>)
+        }else{
+            // return public header
+            return (<>
+                <nav className="bg-white fixed w-full z-20 top-0 inset-s-0 border-b border-gray-200 dark:border-gray-600">
+                    <div className="max-w-7xl flex flex-wrap items-center justify-between mx-auto p-4">
+                        <Link href="/" className="flex items-center space-x-3 rtl:space-x-reverse">
+                            <Image src="/qgd_logo.svg" className="h-8" width="50" height="50" alt="QGD Logo"></Image>
+                            <span className="flex flex-col">
+                                <span className="self-left text-sm font-semibold whitespace-nowrap dark:text-white">
+                                    Quick
+                                </span><br/>
+                                <span className="self-left text-sm font-semibold whitespace-nowrap dark:text-white">
+                                    Geo-Dashboard
+                                </span>
+                            </span>
+                        </Link>
+                        <div className="flex md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse">
+                            <Link href="/dashboards" className="flex items-center mr-3 text-center text-sm text-gray-600 hover:text-purple-600">
+                                <span className="self-center text-center">
+                                    Public Dashboards
+                                </span>
+                            </Link>
+                            <Link href="/login">
+                                <Button> 
+                                    Log In
+                                    <ArrowRightIcon className="ml-auto h-5 w-5 text-gray-50" />
+                                </Button>
+                            </Link>
+                        </div>
+                    </div>
+                </nav>
+            </>)
+        }
+    }
+
+    return getUserHeader();
 }
 
 
@@ -2667,7 +2723,8 @@ FILE: frontend/components/nav-links.tsx
 'use client';
 
 import {
-    MapIcon, ChartBarIcon, CircleStackIcon, DocumentIcon
+    MapIcon, ChartBarIcon, CircleStackIcon, DocumentIcon,
+    HomeIcon
 } from '@heroicons/react/24/outline';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -2677,7 +2734,8 @@ import clsx from 'clsx';
 // Depending on the size of the application, this would be stored in a database.
 const links = [
     { name: 'Dashboards', href: '/admin/dashboards', icon: CircleStackIcon },
-    { name: 'Documentation', href: '/admin/doc', icon: DocumentIcon }
+    { name: 'Documentation', href: '/doc', icon: DocumentIcon },
+    { name: 'Homepage', href: '/', icon: HomeIcon }
 ];
 
 export default function NavLinks() {
@@ -2923,9 +2981,12 @@ import 'leaflet.markercluster';
 import { fetchDashboardConfig } from '@/lib/client_actions';
 import { DashboardConfig, FilterCondition, MapStyleRule } from '@/lib/definitions';
 import { Feature, Point, GeoJsonProperties } from 'geojson';
-import { DASHBOARD_MAP_POINTS_IN_VIEW_URL, DASHBOARD_MAP_POINTS_URL, DASHBOARD_FILTERED_MAP_POINTS_URL } from '@/lib/constants';
+import {
+    DASHBOARD_MAP_POINTS_URL,
+    DASHBOARD_FILTERED_MAP_POINTS_URL,
+    DASHBOARD_MAP_POINTS_IN_VIEW_URL,
+} from '@/lib/constants';
 
-// Extend Leaflet types
 declare module 'leaflet' {
     export function markerClusterGroup(options?: any): any;
 }
@@ -2935,11 +2996,23 @@ interface Props {
     interactiveFilters?: Record<string, any>;
 }
 
-// Helper functions (unchanged)
-const getColorFromRules = (properties: GeoJsonProperties, rules: MapStyleRule[], defaultColor: string): string => {
+// How long to wait after a pan/zoom before firing a viewport request.
+const VIEWPORT_DEBOUNCE_MS = 400;
+// Full-world bbox used for the very first viewport request.
+const WORLD_BBOX: [number, number, number, number] = [-180, -90, 180, 90];
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const getColorFromRules = (
+    properties: GeoJsonProperties,
+    rules: MapStyleRule[],
+    defaultColor: string,
+): string => {
     if (!properties) return defaultColor;
     for (const rule of rules) {
-        const fieldValue = properties[rule.field];
+        const fieldValue = (properties as any)[rule.field];
         if (fieldValue === undefined || fieldValue === null) continue;
         const operator = rule.operator || '=';
         switch (operator) {
@@ -2957,7 +3030,7 @@ const getColorFromRules = (properties: GeoJsonProperties, rules: MapStyleRule[],
                 break;
             case 'in':
                 if (Array.isArray(rule.value)) {
-                    const stringValues = rule.value.map(v => String(v));
+                    const stringValues = rule.value.map((v) => String(v));
                     if (stringValues.includes(String(fieldValue))) return rule.color;
                 }
                 break;
@@ -2966,128 +3039,135 @@ const getColorFromRules = (properties: GeoJsonProperties, rules: MapStyleRule[],
     return defaultColor;
 };
 
-const getSizeFromField = (properties: GeoJsonProperties, sizeBy: string | undefined, defaultSize: number, minSize: number, maxSize: number): number => {
+const getSizeFromField = (
+    properties: GeoJsonProperties,
+    sizeBy: string | undefined,
+    defaultSize: number,
+    minSize: number,
+    maxSize: number,
+): number => {
     if (!sizeBy || !properties) return defaultSize;
-    const value = properties[sizeBy];
+    const value = (properties as any)[sizeBy];
     if (!value || isNaN(Number(value))) return defaultSize;
     const scaled = Math.log(Number(value) + 1) * 3;
     return Math.min(maxSize, Math.max(minSize, scaled));
 };
 
-const isPointFeature = (feature: Feature): feature is Feature<Point> => {
-    return feature.geometry?.type === 'Point';
-};
+const isPointFeature = (feature: Feature): feature is Feature<Point> =>
+    feature.geometry?.type === 'Point';
 
-const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
-    return useMemo(() => {
-        const conditions: FilterCondition[] = [];
-        if (!interactiveFilters) return conditions;
-
-        const processedColumns = new Set<string>();
-
-        for (const [key, val] of Object.entries(interactiveFilters)) {
-            // Skip empty values
-            if (val === '' || val === undefined || val === null) continue;
-            
-            // For arrays (multiselect), skip empty arrays
-            if (Array.isArray(val) && val.length === 0) continue;
-
-            if (key.endsWith('_min')) {
-                const column = key.slice(0, -4);
-                const maxKey = `${column}_max`;
-                const maxVal = interactiveFilters[maxKey];
-                if (maxVal !== undefined && maxVal !== '' && maxVal !== null) {
-                    conditions.push({
-                        column,
-                        operator: 'between',
-                        value: [Number(val), Number(maxVal)]
-                    });
-                    processedColumns.add(column);
-                } else {
-                    conditions.push({ column, operator: '>=', value: Number(val) });
-                    processedColumns.add(column);
-                }
-            } 
-            else if (key.endsWith('_max')) {
-                const column = key.slice(0, -4);
-                if (!processedColumns.has(column)) {
-                    conditions.push({ column, operator: '<=', value: Number(val) });
-                    processedColumns.add(column);
-                }
-            }
-            else {
-                if (Array.isArray(val) && val.length > 0) {
-                    conditions.push({ column: key, operator: 'in', value: val });
-                } 
-                else if (typeof val === 'object' && val !== null) {
-                    if ('min' in val && val.min !== undefined) {
-                        conditions.push({ column: key, operator: '>=', value: Number(val.min) });
-                    }
-                    if ('max' in val && val.max !== undefined) {
-                        conditions.push({ column: key, operator: '<=', value: Number(val.max) });
-                    }
-                } 
-                else if (val !== '' && val !== undefined && val !== null) {
-                    conditions.push({ column: key, operator: '=', value: String(val) });
-                }
-            }
-        }
-
-        return conditions;
-    }, [interactiveFilters]);
-};
-
-// Scrollable Popup Component - Creates a scrollable popup content
-const createScrollablePopupContent = (properties: GeoJsonProperties, title: string = 'Unknown') => {
-    // Filter out null/undefined values and format nicely
+const createScrollablePopupContent = (
+    properties: GeoJsonProperties,
+    title: string = 'Unknown',
+): string => {
     const entries = Object.entries(properties || {})
-        .filter(([key, value]) => value !== null && value !== undefined && value !== '')
+        .filter(([, value]) => value !== null && value !== undefined && value !== '')
         .sort(([a], [b]) => a.localeCompare(b));
 
-    // Build popup HTML with scrolling
     return `
         <div style="max-height: 300px; overflow-y: auto; padding: 8px; min-width: 200px; max-width: 350px;">
             <h3 style="font-weight: bold; font-size: 16px; border-bottom: 1px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 8px; position: sticky; top: 0; background: white; z-index: 1;">
                 ${title}
             </h3>
             <table style="width: 100%; font-size: 12px; border-collapse: collapse;">
-                ${entries.map(([key, value]) => `
+                ${entries
+                    .map(
+                        ([key, value]) => `
                     <tr style="border-bottom: 1px solid #f3f4f6;">
                         <td style="font-weight: 600; padding: 4px 8px 4px 0; color: #4b5563; white-space: nowrap;">${key}:</td>
                         <td style="padding: 4px 0 4px 8px; word-break: break-word; color: #111827;">${String(value)}</td>
                     </tr>
-                `).join('')}
+                `,
+                    )
+                    .join('')}
             </table>
             ${entries.length === 0 ? '<p style="color: #9ca3af; text-align: center; padding: 8px;">No data available</p>' : ''}
-            <div style="position: sticky; bottom: 0; height: 4px; background: linear-gradient(to bottom, transparent, white);"></div>
         </div>
     `;
 };
 
-// Legend component
+const useFilterConditions = (interactiveFilters?: Record<string, any>) => {
+    return useMemo(() => {
+        const conditions: FilterCondition[] = [];
+        if (!interactiveFilters) return conditions;
+        const processedColumns = new Set<string>();
+
+        for (const [key, val] of Object.entries(interactiveFilters)) {
+            if (val === '' || val === undefined || val === null) continue;
+            if (Array.isArray(val) && val.length === 0) continue;
+
+            if (key.endsWith('_min')) {
+                const column = key.slice(0, -4);
+                const maxVal = interactiveFilters[`${column}_max`];
+                if (maxVal !== undefined && maxVal !== '' && maxVal !== null) {
+                    conditions.push({
+                        column,
+                        operator: 'between',
+                        value: [Number(val), Number(maxVal)],
+                    });
+                    processedColumns.add(column);
+                } else {
+                    conditions.push({ column, operator: '>=', value: Number(val) });
+                    processedColumns.add(column);
+                }
+            } else if (key.endsWith('_max')) {
+                const column = key.slice(0, -4);
+                if (!processedColumns.has(column)) {
+                    conditions.push({ column, operator: '<=', value: Number(val) });
+                    processedColumns.add(column);
+                }
+            } else if (Array.isArray(val) && val.length > 0) {
+                conditions.push({ column: key, operator: 'in', value: val });
+            } else if (typeof val === 'object' && val !== null) {
+                if ('min' in val && (val as any).min !== undefined) {
+                    conditions.push({
+                        column: key,
+                        operator: '>=',
+                        value: Number((val as any).min),
+                    });
+                }
+                if ('max' in val && (val as any).max !== undefined) {
+                    conditions.push({
+                        column: key,
+                        operator: '<=',
+                        value: Number((val as any).max),
+                    });
+                }
+            } else if (val !== '') {
+                conditions.push({ column: key, operator: '=', value: String(val) });
+            }
+        }
+        return conditions;
+    }, [interactiveFilters]);
+};
+
 const Legend = ({ style, position }: { style: any; position: string }) => {
-    const positionClasses = {
+    const positionClasses: Record<string, string> = {
         topleft: 'top-4 left-4',
         topright: 'top-4 right-4',
         bottomleft: 'bottom-4 left-4',
-        bottomright: 'bottom-4 right-4'
+        bottomright: 'bottom-4 right-4',
     };
-    const legendItems = style.rules
-        .filter((rule: MapStyleRule, index: number, self: MapStyleRule[]) => 
-            index === self.findIndex((r) => r.color === rule.color)
+    const legendItems = (style.rules || [])
+        .filter((rule: MapStyleRule, index: number, self: MapStyleRule[]) =>
+            index === self.findIndex((r) => r.color === rule.color),
         )
         .map((rule: MapStyleRule) => ({
             color: rule.color,
-            label: rule.label || `${rule.field}: ${rule.value}`
+            label: rule.label || `${rule.field}: ${rule.value}`,
         }));
+
     return (
-        <div className={`absolute ${positionClasses[position as keyof typeof positionClasses] || 'bottom-4 right-4'} z-1000`}>
+        <div className={`absolute ${positionClasses[position] || 'bottom-4 right-4'} z-[1000]`}>
             <div className="bg-white p-3 rounded-lg shadow-lg border border-gray-200 max-h-60 overflow-y-auto">
                 <h4 className="font-bold text-sm mb-2">{style.legend?.title || 'Legend'}</h4>
                 <div className="space-y-1.5">
                     {legendItems.map((item: any, idx: number) => (
                         <div key={idx} className="flex items-center gap-2">
-                            <span className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }}></span>
+                            <span
+                                className="w-4 h-4 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: item.color }}
+                            />
                             <span className="text-xs break-words">{item.label}</span>
                         </div>
                     ))}
@@ -3102,117 +3182,215 @@ const Legend = ({ style, position }: { style: any; position: string }) => {
     );
 };
 
+// ---------------------------------------------------------------------------
+// Main component
+// ---------------------------------------------------------------------------
+
 export default function MapView({ dashboardId, interactiveFilters }: Props) {
-    const [map, setMap] = useState<L.Map | null>(null);
     const [config, setConfig] = useState<DashboardConfig | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [useClustering, setUseClustering] = useState(false);
+    const [isLoadingConfig, setIsLoadingConfig] = useState(true);
+    const [isLoadingPoints, setIsLoadingPoints] = useState(false);
+    const [isMapReady, setIsMapReady] = useState(false);
+
     const mapInstanceRef = useRef<L.Map | null>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const markersRef = useRef<L.LayerGroup | null>(null);
     const clusterRef = useRef<any>(null);
-  
+    const markersRef = useRef<L.LayerGroup | null>(null);
+    const hasFitBoundsRef = useRef(false);
+    const abortRef = useRef<AbortController | null>(null);
+
     const filterConditions = useFilterConditions(interactiveFilters);
 
-    // Fetch config and decide on clustering strategy
+    // ------------------------------------------------------------------
+    // Fetch dashboard config once
+    // ------------------------------------------------------------------
     useEffect(() => {
+        let cancelled = false;
+        setIsLoadingConfig(true);
         fetchDashboardConfig(dashboardId)
-            .then(configData => {
-                setConfig(configData);
-                const clusteringEnabled = configData.map?.clustering?.enabled ?? false;
-                setUseClustering(clusteringEnabled);
+            .then((cfg) => {
+                if (!cancelled) setConfig(cfg);
             })
-            .catch(err => console.error('Error fetching map config:', err))
-            .finally(() => setIsLoading(false));
+            .catch((err) => console.error('Error fetching map config:', err))
+            .finally(() => {
+                if (!cancelled) setIsLoadingConfig(false);
+            });
+        return () => {
+            cancelled = true;
+        };
     }, [dashboardId]);
 
-    // Initialize map
+    // ------------------------------------------------------------------
+    // Initialise the Leaflet map exactly once
+    // ------------------------------------------------------------------
     const mapRef = useCallback((node: HTMLDivElement | null) => {
-        if (node !== null && !mapInstanceRef.current) {
+        if (node && !mapInstanceRef.current) {
             const instance = L.map(node, {
-                center: [0, 0],
+                center: [20, 0],
                 zoom: 2,
-                maxZoom: 18
+                maxZoom: 18,
+                worldCopyJump: true,
             });
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2u0c_1_b25b10c1633c2853d7bdce86', {
-                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
-                subdomains: 'abcd',
-                maxZoom: 20
-            }).addTo(instance);
+            L.tileLayer(
+                'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png?key=cb1_2u0c_1_b25b10c1633c2853d7bdce86',
+                {
+                    attribution:
+                        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>, &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains: 'abcd',
+                    maxZoom: 20,
+                },
+            ).addTo(instance);
             mapInstanceRef.current = instance;
-            setMap(instance);
-            setTimeout(() => {
-                if (mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
-            }, 100);
+            setIsMapReady(true);
+            setTimeout(() => mapInstanceRef.current?.invalidateSize(), 100);
         }
     }, []);
 
-    // Fetch all points (no clustering)
-    const fetchAllPoints = useCallback(async () => {
-        try {
-            if (filterConditions.length > 0) {
-                const response = await fetch(DASHBOARD_FILTERED_MAP_POINTS_URL(Number(dashboardId)), {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ filters: filterConditions })
-                });
-                if (!response.ok) throw new Error('Failed to fetch filtered points');
-                const data = await response.json();
-                console.log(`Fetched ${data.features?.length || 0} filtered points`);
-                return data;
-            } else {
-                const response = await fetch(DASHBOARD_MAP_POINTS_URL(Number(dashboardId)));
-                if (!response.ok) throw new Error('Failed to fetch points');
-                const data = await response.json();
-                console.log(`Fetched ${data.features?.length || 0} points`);
-                return data;
+    // ------------------------------------------------------------------
+    // Data fetchers
+    // ------------------------------------------------------------------
+    const fetchAllPoints = useCallback(
+        async (signal: AbortSignal) => {
+            try {
+                const url =
+                    filterConditions.length > 0
+                        ? DASHBOARD_FILTERED_MAP_POINTS_URL(Number(dashboardId))
+                        : DASHBOARD_MAP_POINTS_URL(Number(dashboardId));
+
+                const response =
+                    filterConditions.length > 0
+                        ? await fetch(url, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ filters: filterConditions }),
+                              signal,
+                          })
+                        : await fetch(url, { signal });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (err: any) {
+                if (err?.name !== 'AbortError') console.error('Error fetching all points:', err);
+                return null;
             }
-        } catch (err) {
-            console.error('Error fetching points:', err);
-            return null;
-        }
-    }, [dashboardId, filterConditions]);
+        },
+        [dashboardId, filterConditions],
+    );
 
-    // Fetch points in viewport (for clustered datasets)
-    const fetchPointsInView = useCallback(async (bounds: L.LatLngBounds) => {
-        if (!config?.map?.clustering) return null;
-        try {
-            const sw = bounds.getSouthWest();
-            const ne = bounds.getNorthEast();
-            const limit = config.map.clustering.limit ?? 10000;
-            const response = await fetch(DASHBOARD_MAP_POINTS_IN_VIEW_URL(Number(dashboardId)), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    bbox: [sw.lng, sw.lat, ne.lng, ne.lat],
-                    limit: limit,
-                    filters: filterConditions
-                })
-            });
-            if (!response.ok) throw new Error('Failed to fetch points in view');
-            const data = await response.json();
-            console.log(`Fetched ${data.features?.length || 0} points in view with filters`);
-            return data;
-        } catch (err) {
-            console.error('Error loading points in view:', err);
-            return null;
-        }
-    }, [dashboardId, config, filterConditions]);
+    const fetchViewport = useCallback(
+        async (
+            bbox: [number, number, number, number],
+            limit: number,
+            signal: AbortSignal,
+        ) => {
+            try {
+                const response = await fetch(
+                    DASHBOARD_MAP_POINTS_IN_VIEW_URL(Number(dashboardId)),
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ bbox, limit, filters: filterConditions }),
+                        signal,
+                    },
+                );
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (err: any) {
+                if (err?.name !== 'AbortError') console.error('Error fetching viewport:', err);
+                return null;
+            }
+        },
+        [dashboardId, filterConditions],
+    );
 
-    // Render points (runs when config, clustering, or filters change)
+    // ------------------------------------------------------------------
+    // Build markers into a Leaflet layer/cluster group
+    // ------------------------------------------------------------------
+    const addMarkersToLayer = useCallback(
+        (
+            features: Feature[],
+            target: any,
+            mapStyle: any,
+            map: L.Map,
+            fitBounds: boolean,
+        ) => {
+            const bounds = L.latLngBounds([]);
+
+            for (const feature of features) {
+                if (!isPointFeature(feature)) continue;
+                const props = feature.properties;
+                const [lon, lat] = feature.geometry.coordinates;
+                if (
+                    typeof lat !== 'number' ||
+                    typeof lon !== 'number' ||
+                    isNaN(lat) ||
+                    isNaN(lon) ||
+                    lat < -90 ||
+                    lat > 90 ||
+                    lon < -180 ||
+                    lon > 180
+                ) {
+                    continue;
+                }
+
+                const color = getColorFromRules(
+                    props,
+                    mapStyle.rules || [],
+                    mapStyle.defaultColor,
+                );
+                const size = getSizeFromField(
+                    props,
+                    mapStyle.sizeBy,
+                    mapStyle.defaultSize,
+                    mapStyle.minSize || 4,
+                    mapStyle.maxSize || 12,
+                );
+                const title =
+                    (props as any)?.species || (props as any)?.name || 'Details';
+                const popupContent = createScrollablePopupContent(props, title);
+
+                const marker = L.circleMarker([lat, lon], {
+                    radius: size,
+                    fillColor: color,
+                    color: '#fff',
+                    weight: 1,
+                    fillOpacity: 0.85,
+                }).bindPopup(popupContent, {
+                    maxWidth: 400,
+                    className: 'scrollable-popup',
+                });
+
+                target.addLayer(marker);
+                bounds.extend([lat, lon]);
+            }
+
+            if (fitBounds && bounds.isValid()) {
+                map.fitBounds(bounds, { padding: [20, 20], maxZoom: 10 });
+            }
+        },
+        [],
+    );
+
+    // ------------------------------------------------------------------
+    // Main effect: (re)build markers whenever config or filters change
+    // ------------------------------------------------------------------
     useEffect(() => {
-        if (!mapInstanceRef.current || !config) return;
-
         const map = mapInstanceRef.current;
+        if (!map || !config) return;
+
         const mapStyle = config.map.style || {
             defaultColor: '#6b7280',
             defaultSize: 6,
             minSize: 4,
             maxSize: 12,
-            rules: []
+            rules: [],
         };
 
-        // Clear existing layers
+        // Cancel any prior in-flight request
+        abortRef.current?.abort();
+        const controller = new AbortController();
+        abortRef.current = controller;
+
+        // Wipe any existing marker layer
         if (clusterRef.current) {
             map.removeLayer(clusterRef.current);
             clusterRef.current = null;
@@ -3222,121 +3400,137 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
             markersRef.current = null;
         }
 
-        if (useClustering) {
-            // Clustering mode
-            const clusterConfig = config.map.clustering;
-            if (!clusterConfig) return;
+        const clusteringCfg = config.map.clustering;
+        const clusteringEnabled = clusteringCfg?.enabled ?? false;
 
+        let moveEndHandler: (() => void) | null = null;
+        let moveEndTimer: ReturnType<typeof setTimeout> | null = null;
+
+        // ------------------------------------------------------------------
+        // Case A — clustering enabled: viewport-based loading
+        // ------------------------------------------------------------------
+        if (clusteringEnabled && clusteringCfg) {
             const clusterGroup = (L as any).markerClusterGroup({
-                maxClusterRadius: clusterConfig.maxClusterRadius ?? 60,
-                spiderfyOnMaxZoom: clusterConfig.spiderfyOnMaxZoom ?? true,
-                showCoverageOnHover: clusterConfig.showCoverageOnHover ?? false,
-                zoomToBoundsOnClick: clusterConfig.zoomToBoundsOnClick ?? true,
-                disableClusteringAtZoom: clusterConfig.disableClusteringAtZoom ?? 16,
-                chunkedLoading: clusterConfig.chunkedLoading ?? true,
-                chunkInterval: clusterConfig.chunkInterval ?? 100,
-                chunkDelay: clusterConfig.chunkDelay ?? 50
+                maxClusterRadius: clusteringCfg.maxClusterRadius ?? 60,
+                spiderfyOnMaxZoom: clusteringCfg.spiderfyOnMaxZoom ?? true,
+                showCoverageOnHover: clusteringCfg.showCoverageOnHover ?? false,
+                zoomToBoundsOnClick: clusteringCfg.zoomToBoundsOnClick ?? true,
+                disableClusteringAtZoom: clusteringCfg.disableClusteringAtZoom ?? 16,
+                chunkedLoading: clusteringCfg.chunkedLoading ?? true,
+                chunkInterval: clusteringCfg.chunkInterval ?? 100,
+                chunkDelay: clusteringCfg.chunkDelay ?? 50,
             });
             clusterRef.current = clusterGroup;
             map.addLayer(clusterGroup);
 
-            const loadViewportPoints = async () => {
-                const bounds = map.getBounds();
-                const pointsData = await fetchPointsInView(bounds);
-                if (!pointsData?.features) return;
+            const limit = clusteringCfg.limit ?? 10000;
+
+            // --- Initial load: one wide-bbox request ---------------------
+            (async () => {
+                setIsLoadingPoints(true);
+                const data = await fetchViewport(WORLD_BBOX, limit, controller.signal);
+                setIsLoadingPoints(false);
+                if (!data?.features || controller.signal.aborted) return;
 
                 clusterGroup.clearLayers();
-                pointsData.features.forEach((feature: Feature) => {
-                    if (!isPointFeature(feature)) return;
-                    const props = feature.properties;
-                    const [lon, lat] = feature.geometry.coordinates;
-                    if (typeof lat !== 'number' || typeof lon !== 'number' || isNaN(lat) || isNaN(lon)) return;
-                    const color = getColorFromRules(props, mapStyle.rules || [], mapStyle.defaultColor);
-                    const size = getSizeFromField(props, mapStyle.sizeBy, mapStyle.defaultSize, mapStyle.minSize || 4, mapStyle.maxSize || 12);
-                    
-                    // Get title for popup
-                    const title = props?.plant_specie_name || props?.species || 'Unknown';
-                    
-                    // Create scrollable popup content
-                    const popupContent = createScrollablePopupContent(props, title);
-                    
-                    const marker = L.circleMarker([lat, lon], {
-                        radius: size,
-                        fillColor: color,
-                        color: '#fff',
-                        weight: 1,
-                        fillOpacity: 0.8,
-                    }).bindPopup(popupContent, {
-                        maxWidth: 400,
-                        className: 'scrollable-popup'
-                    });
-                    clusterGroup.addLayer(marker);
-                });
-            };
+                addMarkersToLayer(
+                    data.features,
+                    clusterGroup,
+                    mapStyle,
+                    map,
+                    !hasFitBoundsRef.current,
+                );
+                hasFitBoundsRef.current = true;
 
-            loadViewportPoints();
-            let timeoutId: NodeJS.Timeout;
-            const handleMoveEnd = () => {
-                clearTimeout(timeoutId);
-                timeoutId = setTimeout(loadViewportPoints, 300);
-            };
-            map.on('moveend', handleMoveEnd);
-            map.on('zoomend', handleMoveEnd);
-            return () => {
-                map.off('moveend', handleMoveEnd);
-                map.off('zoomend', handleMoveEnd);
-                if (clusterRef.current) map.removeLayer(clusterRef.current);
-            };
-        } else {
-            // Simple mode
-            const loadAllPoints = async () => {
-                const pointsData = await fetchAllPoints();
-                if (!pointsData?.features) return;
+                // If we hit the API limit, more data exists off-screen.
+                // Only then do we install the viewport-reload handler.
+                if (data.features.length >= limit) {
+                    moveEndHandler = () => {
+                        if (moveEndTimer) clearTimeout(moveEndTimer);
+                        moveEndTimer = setTimeout(async () => {
+                            const b = map.getBounds();
+                            const sw = b.getSouthWest();
+                            const ne = b.getNorthEast();
+                            const viewBbox: [number, number, number, number] = [
+                                sw.lng,
+                                sw.lat,
+                                ne.lng,
+                                ne.lat,
+                            ];
 
-                const layerGroup = L.layerGroup();
-                markersRef.current = layerGroup;
-                map.addLayer(layerGroup);
-                let bounds = L.latLngBounds([]);
+                            setIsLoadingPoints(true);
+                            const inView = await fetchViewport(
+                                viewBbox,
+                                limit,
+                                controller.signal,
+                            );
+                            setIsLoadingPoints(false);
+                            if (!inView?.features || controller.signal.aborted) return;
 
-                pointsData.features.forEach((feature: Feature) => {
-                    if (!isPointFeature(feature)) return;
-                    const props = feature.properties;
-                    const [lon, lat] = feature.geometry.coordinates;
-                    if (typeof lat !== 'number' || typeof lon !== 'number' || isNaN(lat) || isNaN(lon)) return;
-                    const color = getColorFromRules(props, mapStyle.rules || [], mapStyle.defaultColor);
-                    const size = getSizeFromField(props, mapStyle.sizeBy, mapStyle.defaultSize, mapStyle.minSize || 4, mapStyle.maxSize || 12);
-                    
-                    // Get title for popup
-                    const title = props?.plant_specie_name || props?.species || 'Unknown';
-                    
-                    // Create scrollable popup content
-                    const popupContent = createScrollablePopupContent(props, title);
-                    
-                    const marker = L.circleMarker([lat, lon], {
-                        radius: size,
-                        fillColor: color,
-                        color: '#fff',
-                        weight: 1,
-                        fillOpacity: 0.8,
-                    }).bindPopup(popupContent, {
-                        maxWidth: 400,
-                        className: 'scrollable-popup'
-                    });
-                    marker.addTo(layerGroup);
-                    bounds.extend([lat, lon]);
-                });
-
-                if (bounds.isValid()) {
-                    map.fitBounds(bounds, { padding: [20, 20] });
+                            clusterGroup.clearLayers();
+                            addMarkersToLayer(
+                                inView.features,
+                                clusterGroup,
+                                mapStyle,
+                                map,
+                                false,
+                            );
+                        }, VIEWPORT_DEBOUNCE_MS);
+                    };
+                    map.on('moveend', moveEndHandler);
                 }
-            };
-            loadAllPoints();
+            })();
         }
-    }, [config, useClustering, fetchAllPoints, fetchPointsInView, filterConditions]);
+        // ------------------------------------------------------------------
+        // Case B — clustering disabled: load everything once
+        // ------------------------------------------------------------------
+        else {
+            const layerGroup = L.layerGroup();
+            markersRef.current = layerGroup;
+            map.addLayer(layerGroup);
 
-    // Clean up
+            (async () => {
+                setIsLoadingPoints(true);
+                const data = await fetchAllPoints(controller.signal);
+                setIsLoadingPoints(false);
+                if (!data?.features || controller.signal.aborted) return;
+
+                layerGroup.clearLayers();
+                addMarkersToLayer(
+                    data.features,
+                    layerGroup,
+                    mapStyle,
+                    map,
+                    !hasFitBoundsRef.current,
+                );
+                hasFitBoundsRef.current = true;
+            })();
+        }
+
+        // ------------------------------------------------------------------
+        // Cleanup for this effect run
+        // ------------------------------------------------------------------
+        return () => {
+            controller.abort();
+            if (moveEndTimer) clearTimeout(moveEndTimer);
+            if (moveEndHandler) map.off('moveend', moveEndHandler);
+            if (clusterRef.current) {
+                map.removeLayer(clusterRef.current);
+                clusterRef.current = null;
+            }
+            if (markersRef.current) {
+                map.removeLayer(markersRef.current);
+                markersRef.current = null;
+            }
+        };
+    }, [config, fetchAllPoints, fetchViewport, addMarkersToLayer]);
+
+    // ------------------------------------------------------------------
+    // Full cleanup on unmount
+    // ------------------------------------------------------------------
     useEffect(() => {
         return () => {
+            abortRef.current?.abort();
             if (mapInstanceRef.current) {
                 mapInstanceRef.current.remove();
                 mapInstanceRef.current = null;
@@ -3344,24 +3538,32 @@ export default function MapView({ dashboardId, interactiveFilters }: Props) {
         };
     }, []);
 
-    if (isLoading) {
-        return <div className="w-full h-full min-h-100 bg-gray-100 animate-pulse rounded-xl" />;
+    // ------------------------------------------------------------------
+    // Render
+    // ------------------------------------------------------------------
+    if (isLoadingConfig) {
+        return (
+            <div className="w-full h-full min-h-100 bg-gray-100 animate-pulse rounded-xl" />
+        );
     }
 
     return (
         <div className="relative w-full h-full min-h-100">
-            <div 
-                ref={(node) => {
-                    containerRef.current = node;
-                    mapRef(node);
-                }}
+            <div
+                ref={mapRef}
                 className="w-full h-full bg-gray-50 rounded-xl"
-                style={{ isolation: 'isolate' }} 
+                style={{ isolation: 'isolate' }}
             />
-            {config?.map?.style && map && (
-                <Legend 
-                    style={config.map.style} 
-                    position={config.map.style.legend?.position || 'bottomright'} 
+            {isLoadingPoints && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-white/95 px-3 py-1.5 rounded-full shadow text-xs text-gray-600 flex items-center gap-2">
+                    <span className="w-2 h-2 bg-purple-500 rounded-full animate-pulse" />
+                    Loading points…
+                </div>
+            )}
+            {config?.map?.style && isMapReady && (
+                <Legend
+                    style={config.map.style}
+                    position={config.map.style.legend?.position || 'bottomright'}
                 />
             )}
         </div>
@@ -5505,6 +5707,689 @@ export default theme;
 
 
 =========================================
+FILE: frontend/app/doc/page.tsx
+=========================================
+import React from 'react';
+import Link from 'next/link';
+import Header from "@/components/header";
+import Footer from "@/components/footer";
+
+
+export default function DocPage() {
+  return (
+    <>
+      <Header></Header>
+        <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 pt-8 mt-5">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <h1 className="text-3xl font-bold text-gray-900">Documentation</h1>
+            <p className="mt-2 text-lg text-gray-600">
+              Learn how to create, configure, and share interactive geo-dashboards
+            </p>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            {/* Sidebar Navigation */}
+            <div className="lg:col-span-1">
+              <nav className="sticky top-8 space-y-2">
+                <a href="#getting-started" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                  🚀 Getting Started
+                </a>
+                <a href="#authentication" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                  🔐 Authentication
+                </a>
+                <a href="#dashboards" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                  📊 Dashboards
+                </a>
+                <a href="#data-upload" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                  📤 Data Upload
+                </a>
+                <a href="#yaml-configuration" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                  ⚙️ YAML Configuration
+                </a>
+                <a href="#chart-types" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                  📈 Chart Types
+                </a>
+                <a href="#map-configuration" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                  🗺️ Map Configuration
+                </a>
+                <a href="#filters" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                  🔍 Filters
+                </a>
+                <a href="#interactive-filters" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                  🎛️ Interactive Filters
+                </a>
+                <a href="#data-download" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                  💾 Data Download
+                </a>
+                <a href="#data-preview" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                  👁️ Data Preview
+                </a>
+                <a href="#examples" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                  📋 Examples
+                </a>
+                <a href="#api-reference" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                  🔌 API Reference
+                </a>
+                <a href="#troubleshooting" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
+                  🛠️ Troubleshooting
+                </a>
+              </nav>
+            </div>
+
+            {/* Documentation Content */}
+            <div className="lg:col-span-3 prose prose-purple max-w-none">
+              {/* Getting Started */}
+              <section id="getting-started" className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">🚀 Getting Started</h2>
+                <p className="text-gray-700">
+                  Welcome to the QGeoDash tool! This platform allows you to transform your CSV or Excel data into interactive, 
+                  shareable geo-dashboards using a simple YAML configuration language. No coding experience required!
+                </p>
+                
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Quick Start</h3>
+                <ol className="list-decimal pl-6 space-y-2 text-gray-700">
+                  <li><strong>Create an account</strong> or log in to your existing account</li>
+                  <li><strong>Create a new dashboard</strong> from the admin panel</li>
+                  <li><strong>Upload your data</strong> (CSV or Excel format)</li>
+                  <li><strong>Configure your dashboard</strong> using YAML</li>
+                  <li><strong>Share your dashboard</strong> with a unique URL</li>
+                </ol>
+              </section>
+
+              {/* Authentication */}
+              <section id="authentication" className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">🔐 Authentication</h2>
+                <p className="text-gray-700">
+                  All dashboards are private by default. You need to be authenticated to create, edit, or delete dashboards.
+                </p>
+                
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Creating an Account</h3>
+                <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                  <li>Navigate to the <Link href="/login" className="text-purple-600 hover:underline">login page</Link></li>
+                  <li>Click on "Sign up here" to create a new account</li>
+                  <li>Provide a username, email, and password</li>
+                  <li>Once registered, you can log in with your credentials</li>
+                </ul>
+
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mt-4">
+                  <p className="text-blue-800 text-sm">
+                    <strong>💡 Note:</strong> Your session will remain active for 30 days. You can log out at any time.
+                  </p>
+                </div>
+              </section>
+
+              {/* Dashboards */}
+              <section id="dashboards" className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">📊 Dashboards</h2>
+                
+                <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Creating a Dashboard</h3>
+                <ol className="list-decimal pl-6 space-y-2 text-gray-700">
+                  <li>From the admin panel, click "New Dashboard"</li>
+                  <li>Give your dashboard a meaningful name (at least 3 characters)</li>
+                  <li>A unique dashboard ID and sharing URL will be generated</li>
+                </ol>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Managing Dashboards</h3>
+                <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                  <li><strong>View:</strong> Click on any dashboard in the list to see its public view</li>
+                  <li><strong>Edit:</strong> Click the pencil icon to open a modal and rename the dashboard</li>
+                  <li><strong>Delete:</strong> Click the trash icon, confirm deletion in the modal</li>
+                  <li><strong>Share:</strong> Each dashboard has a unique URL that you can share with anyone</li>
+                </ul>
+              </section>
+
+              {/* Data Upload */}
+              <section id="data-upload" className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">📤 Data Upload</h2>
+                
+                <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Supported Formats</h3>
+                <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                  <li><strong>CSV</strong> (Comma-separated values) - Recommended</li>
+                  <li><strong>Excel</strong> (.xlsx, .xls) - Automatically converted</li>
+                </ul>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Upload Process</h3>
+                <ol className="list-decimal pl-6 space-y-2 text-gray-700">
+                  <li>Navigate to your dashboard's edit page</li>
+                  <li>Click on "Add Data" button</li>
+                  <li>Select one or more files (CSV or Excel)</li>
+                  <li>Optionally, provide column type overrides in JSON format:
+                    <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg mt-2 text-sm">
+  {`{
+    "date_column": "DATE",
+    "value_column": "FLOAT",
+    "category_column": "TEXT"
+  }`}
+                    </pre>
+                  </li>
+                  <li>The system will automatically create a database table and import your data</li>
+                </ol>
+
+                <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mt-4">
+                  <p className="text-yellow-800 text-sm">
+                    <strong>⚠️ Important:</strong> Column names with spaces or special characters are automatically 
+                    sanitized. Use quotes in your YAML when referencing them (e.g., <code>"Specie counts"</code>).
+                  </p>
+                </div>
+              </section>
+
+              {/* YAML Configuration */}
+              <section id="yaml-configuration" className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">⚙️ YAML Configuration</h2>
+                
+                <p className="text-gray-700 mb-4">
+                  The heart of your dashboard is the YAML configuration file. It defines the dashboard's name, layout, 
+                  charts, map, and menus. YAML is a human-readable data format that's easy to learn.
+                </p>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Basic Structure</h3>
+                <pre className="bg-gray-800 text-gray-200 p-4 rounded-lg overflow-x-auto text-sm">
+  {`geo-dashboard:
+    name: "My Dashboard Name"
+    template: side_content
+    download: false  # Set to true to enable data download button
+    filters:
+      - column: Year
+        operator: ">="
+        value: 2020
+    stats:
+      - type: bar
+        title: "My Chart Title"
+        x: category_column
+        y: count
+    interactiveFilters:
+      - column: Year
+        label: Year Range
+        type: range
+      - column: Country
+        label: Country
+        type: multiselect
+    map:
+      lat: latitude_column
+      lon: longitude_column
+    menus:
+      about: "Information about this dashboard"
+      stats: "Statistical summary"
+      map: "Map description"`}
+                </pre>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Available Templates</h3>
+                <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                  <li><code>side_content</code> - Sidebar on the left, main content on the right (recommended)</li>
+                  <li><code>top_content</code> - Menus on top, charts below</li>
+                  <li><code>content_side</code> - Main content on the left, sidebar on the right</li>
+                  <li><code>content_bottom</code> - Menus on top, charts in the middle, map at bottom</li>
+                </ul>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Data Download</h3>
+                <p className="text-gray-700 mb-2">
+                  Set <code>download: true</code> in the root of the config to display a "Download Data" button in the sidebar. 
+                  When clicked, it exports the currently filtered dataset (respecting global and interactive filters) as a CSV file.
+                </p>
+              </section>
+
+              {/* Chart Types */}
+              <section id="chart-types" className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">📈 Chart Types</h2>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Bar Chart</h3>
+                <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+  {`- type: bar
+    title: "Sales by Category"
+    x: category
+    y: 
+      column: sales
+      aggregation: sum`}
+                </pre>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Line Chart</h3>
+                <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+  {`- type: line
+    title: "Trend Over Time"
+    x: year
+    y: 
+      column: value
+      aggregation: avg`}
+                </pre>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Pie Chart</h3>
+                <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+  {`- type: pie
+    title: "Distribution by Category"
+    x: category
+    y: count  # Simple count of rows`}
+                </pre>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Stacked Bar Chart</h3>
+                <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+  {`- type: stackedbar
+    title: "Species by Country"
+    x: country
+    y:
+      column: count
+      aggregation: sum
+    stackBy: species`}
+                </pre>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Aggregation Functions</h3>
+                <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                  <li><code>sum</code> - Total sum of values</li>
+                  <li><code>avg</code> - Average value</li>
+                  <li><code>count</code> - Number of records</li>
+                  <li><code>min</code> - Minimum value</li>
+                  <li><code>max</code> - Maximum value</li>
+                  <li><code>count distinct</code> - Number of unique values</li>
+                </ul>
+              </section>
+
+              {/* Map Configuration */}
+              <section id="map-configuration" className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">🗺️ Map Configuration</h2>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Basic Map</h3>
+                <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+  {`map:
+    lat: latitude_column
+    lon: longitude_column`}
+                </pre>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Styled Map with Clustering</h3>
+                <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+  {`map:
+    lat: lat
+    lon: lon
+    clustering:
+      enabled: true
+      maxClusterRadius: 80
+      disableClusteringAtZoom: 14
+      limit: 15000
+    style:
+      colorBy: category_column
+      sizeBy: value_column
+      defaultColor: "#94a3b8"
+      defaultSize: 6
+      minSize: 4
+      maxSize: 14
+      rules:
+        - field: category
+          operator: "="
+          value: "Type A"
+          color: "#ef4444"
+          label: "Category A"
+        - field: category
+          operator: "="
+          value: "Type B"
+          color: "#3b82f6"
+          label: "Category B"
+      legend:
+        title: "Legend Title"
+        position: "bottomright"`}
+                </pre>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Clustering Options</h3>
+                <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                  <li><code>enabled</code> - Enable/disable clustering (boolean)</li>
+                  <li><code>maxClusterRadius</code> - Maximum radius of clusters in pixels</li>
+                  <li><code>disableClusteringAtZoom</code> - Zoom level where clusters break apart</li>
+                  <li><code>spiderfyOnMaxZoom</code> - Spread out clusters when zooming in</li>
+                  <li><code>chunkedLoading</code> - Load markers in batches for performance</li>
+                  <li><code>limit</code> - Maximum points to load per viewport</li>
+                </ul>
+              </section>
+
+              {/* Filters */}
+              <section id="filters" className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">🔍 Filters</h2>
+
+                <p className="text-gray-700 mb-4">
+                  Filters can be applied globally to all charts and the map, or specifically to individual charts.
+                </p>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Filter Operators</h3>
+                <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                  <li><code>=</code> - Equal to</li>
+                  <li><code>!=</code> - Not equal to</li>
+                  <li><code>&gt;</code> - Greater than</li>
+                  <li><code>&gt;=</code> - Greater than or equal to</li>
+                  <li><code>&lt;</code> - Less than</li>
+                  <li><code>&lt;=</code> - Less than or equal to</li>
+                  <li><code>like</code> - Pattern matching (use % as wildcard)</li>
+                  <li><code>in</code> - Value in a list</li>
+                  <li><code>between</code> - Between two values</li>
+                </ul>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Global Filters</h3>
+                <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+  {`filters:
+    - column: year
+      operator: ">="
+      value: 2020
+    - column: country
+      operator: in
+      value: ["USA", "Canada", "Mexico"]`}
+                </pre>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Chart-Specific Filters</h3>
+                <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+  {`- type: bar
+    title: "Filtered Chart"
+    x: category
+    y: count
+    filters:
+      - column: status
+        operator: "="
+        value: "active"
+      - column: value
+        operator: ">"
+        value: 100`}
+                </pre>
+              </section>
+
+              {/* Interactive Filters */}
+              <section id="interactive-filters" className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">🎛️ Interactive Filters</h2>
+                <p className="text-gray-700 mb-4">
+                  Interactive filters appear in the sidebar and allow users to dynamically filter the dashboard without editing YAML. They are defined in the YAML under <code>interactiveFilters</code>.
+                </p>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Types</h3>
+                <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                  <li><code>dropdown</code> - Single-select dropdown</li>
+                  <li><code>multiselect</code> - Multi-select dropdown with search</li>
+                  <li><code>range</code> - Range slider for numeric columns</li>
+                </ul>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Example</h3>
+                <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+  {`interactiveFilters:
+    - column: Year
+      label: Year Range
+      type: range
+    - column: Country
+      label: Country
+      type: multiselect
+    - column: Form
+      label: Disease Form
+      type: dropdown`}
+                </pre>
+
+                <div className="bg-green-50 border-l-4 border-green-500 p-4 mt-4">
+                  <p className="text-green-800 text-sm">
+                    <strong>💡 Tip:</strong> The range filter automatically fetches the minimum and maximum values from your data (respecting global filters) and displays a slider. Adjusting it instantly updates all charts and the map.
+                  </p>
+                </div>
+              </section>
+
+              {/* Data Download */}
+              <section id="data-download" className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">💾 Data Download</h2>
+                <p className="text-gray-700 mb-4">
+                  If you set <code>download: true</code> in the YAML, a "Download Data" button appears in the sidebar. When clicked, it exports the currently filtered dataset (including all applied global and interactive filters) as a CSV file.
+                </p>
+                <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
+  {`geo-dashboard:
+    download: true
+    # ... rest of config`}
+                </pre>
+                <p className="text-gray-700 mt-2">
+                  The download respects all active filters, so users can export exactly the subset they're viewing.
+                </p>
+              </section>
+
+              {/* Data Preview */}
+              <section id="data-preview" className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">👁️ Data Preview</h2>
+                <p className="text-gray-700 mb-4">
+                  On the dashboard edit page, a rich preview shows information about the uploaded data:
+                </p>
+                <ul className="list-disc pl-6 space-y-2 text-gray-700">
+                  <li>Total number of records</li>
+                  <li>Table name</li>
+                  <li>Column names and their SQL types</li>
+                  <li>First 5 sample rows</li>
+                </ul>
+                <p className="text-gray-700 mt-2">
+                  This helps you understand the structure of your data before building charts and maps.
+                </p>
+              </section>
+
+              {/* Examples */}
+              <section id="examples" className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">📋 Examples</h2>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Leishmaniasis Vector Dashboard</h3>
+                <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm overflow-x-auto">
+  {`geo-dashboard:
+    name: "Leishmaniasis Vector Surveillance Dashboard"
+    template: side_content
+    download: true
+    filters:
+      - column: Year
+        operator: ">="
+        value: 2000
+    interactiveFilters:
+      - column: Year
+        label: Year Range
+        type: range
+      - column: Country
+        label: Country
+        type: multiselect
+      - column: Form
+        label: Disease Form
+        type: dropdown
+    stats:
+      - type: pie
+        title: "Top 10 VL Vectors by Abundance"
+        x: species
+        y:
+          column: "Specie counts"
+          aggregation: sum
+        filters:
+          - column: Form
+            operator: "="
+            value: VL
+      - type: bar
+        title: "VL Vector Abundance by Country"
+        x: Country
+        y:
+          column: "Specie counts"
+          aggregation: sum
+        filters:
+          - column: Form
+            operator: "="
+            value: VL
+    map:
+      lat: Lat
+      lon: Lon
+      clustering:
+        enabled: false
+      style:
+        colorBy: Form
+        sizeBy: "Specie counts"
+        rules:
+          - field: Form
+            operator: "="
+            value: VL
+            color: "#ef4444"
+            label: "VL Vectors"
+          - field: Form
+            operator: "="
+            value: CL
+            color: "#3b82f6"
+            label: "CL Vectors"
+      legend:
+        title: "Vector Types"
+        position: "bottomright"
+    menus:
+      about: |
+        ## 🦟 Leishmaniasis Vector Surveillance Dashboard
+        A comprehensive visualization platform for sand fly vector surveillance data...`}
+                </pre>
+              </section>
+
+              {/* API Reference */}
+              <section id="api-reference" className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">🔌 API Reference</h2>
+
+                <p className="text-gray-700 mb-4">
+                  All API endpoints are available under the <code>/qgd_api</code> base path.
+                </p>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Authentication</h3>
+                <ul className="space-y-3">
+                  <li className="bg-gray-50 p-3 rounded-lg">
+                    <code className="text-purple-600 font-mono">POST /token</code>
+                    <p className="text-sm text-gray-600 mt-1">Get access token (username/password)</p>
+                  </li>
+                </ul>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Dashboards</h3>
+                <ul className="space-y-3">
+                  <li className="bg-gray-50 p-3 rounded-lg">
+                    <code className="text-purple-600 font-mono">GET /dashboards/</code>
+                    <p className="text-sm text-gray-600 mt-1">List all dashboards (paginated)</p>
+                  </li>
+                  <li className="bg-gray-50 p-3 rounded-lg">
+                    <code className="text-purple-600 font-mono">POST /dashboards/add</code>
+                    <p className="text-sm text-gray-600 mt-1">Create a new dashboard</p>
+                  </li>
+                  <li className="bg-gray-50 p-3 rounded-lg">
+                    <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}</code>
+                    <p className="text-sm text-gray-600 mt-1">Get dashboard details</p>
+                  </li>
+                  <li className="bg-gray-50 p-3 rounded-lg">
+                    <code className="text-purple-600 font-mono">PUT /dashboards/{`{id}`}/edit</code>
+                    <p className="text-sm text-gray-600 mt-1">Rename dashboard</p>
+                  </li>
+                  <li className="bg-gray-50 p-3 rounded-lg">
+                    <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/delete</code>
+                    <p className="text-sm text-gray-600 mt-1">Delete a dashboard</p>
+                  </li>
+                  <li className="bg-gray-50 p-3 rounded-lg">
+                    <code className="text-purple-600 font-mono">PUT /dashboards/{`{id}`}/config</code>
+                    <p className="text-sm text-gray-600 mt-1">Update dashboard YAML configuration</p>
+                  </li>
+                  <li className="bg-gray-50 p-3 rounded-lg">
+                    <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/add_data</code>
+                    <p className="text-sm text-gray-600 mt-1">Upload data files (CSV/Excel)</p>
+                  </li>
+                </ul>
+
+                <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Data Endpoints</h3>
+                <ul className="space-y-3">
+                  <li className="bg-gray-50 p-3 rounded-lg">
+                    <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}/config</code>
+                    <p className="text-sm text-gray-600 mt-1">Get dashboard configuration (public)</p>
+                  </li>
+                  <li className="bg-gray-50 p-3 rounded-lg">
+                    <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}/points</code>
+                    <p className="text-sm text-gray-600 mt-1">Get all map points as GeoJSON</p>
+                  </li>
+                  <li className="bg-gray-50 p-3 rounded-lg">
+                    <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/points-in-view</code>
+                    <p className="text-sm text-gray-600 mt-1">Get points within bounding box (for clustering)</p>
+                  </li>
+                  <li className="bg-gray-50 p-3 rounded-lg">
+                    <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/chart-data</code>
+                    <p className="text-sm text-gray-600 mt-1">Get aggregated data for a chart</p>
+                  </li>
+                  <li className="bg-gray-50 p-3 rounded-lg">
+                    <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/distinct-values</code>
+                    <p className="text-sm text-gray-600 mt-1">Get distinct values for a column (for stacked charts)</p>
+                  </li>
+                  <li className="bg-gray-50 p-3 rounded-lg">
+                    <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}/dashboard.js</code>
+                    <p className="text-sm text-gray-600 mt-1">Get generated JavaScript config</p>
+                  </li>
+                  <li className="bg-gray-50 p-3 rounded-lg">
+                    <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}/data-info</code>
+                    <p className="text-sm text-gray-600 mt-1">Get data preview (rows, columns, sample)</p>
+                  </li>
+                  <li className="bg-gray-50 p-3 rounded-lg">
+                    <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/export</code>
+                    <p className="text-sm text-gray-600 mt-1">Export filtered data as CSV</p>
+                  </li>
+                </ul>
+              </section>
+
+              {/* Troubleshooting */}
+              <section id="troubleshooting" className="mb-12">
+                <h2 className="text-2xl font-bold text-gray-900 mb-4">🛠️ Troubleshooting</h2>
+
+                <div className="space-y-4">
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900">Map not displaying points</h3>
+                    <ul className="list-disc pl-6 mt-2 text-sm text-gray-700">
+                      <li>Verify that your data has valid latitude/longitude columns</li>
+                      <li>Check that column names in YAML match exactly (case-sensitive)</li>
+                      <li>Ensure lat/lon values are within valid ranges (-90 to 90, -180 to 180)</li>
+                      <li>For large datasets, enable clustering in map configuration</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900">Charts showing no data</h3>
+                    <ul className="list-disc pl-6 mt-2 text-sm text-gray-700">
+                      <li>Verify that column names in YAML match your data</li>
+                      <li>Check if filters are too restrictive</li>
+                      <li>Ensure data was successfully uploaded to the database</li>
+                      <li>For pie charts with many categories, the backend automatically shows top 10 + "Others"</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900">YAML validation errors</h3>
+                    <ul className="list-disc pl-6 mt-2 text-sm text-gray-700">
+                      <li>Use online YAML validators to check syntax</li>
+                      <li>Ensure proper indentation (2 spaces per level)</li>
+                      <li>Quote strings containing special characters</li>
+                      <li>Check that all required fields are present (name, template, stats, map, menus)</li>
+                    </ul>
+                  </div>
+
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900">Performance issues with large datasets</h3>
+                    <ul className="list-disc pl-6 mt-2 text-sm text-gray-700">
+                      <li>Enable clustering on the map for millions of points</li>
+                      <li>Use TOP 10 aggregations in charts to limit data processed</li>
+                      <li>Add global filters to focus on relevant subsets</li>
+                      <li>Consider using count distinct instead of listing all values</li>
+                    </ul>
+                  </div>
+                </div>
+
+                {/* <div className="bg-green-50 border-l-4 border-green-500 p-4 mt-6">
+                  <p className="text-green-800 text-sm">
+                    <strong>💬 Need more help?</strong> Check the console logs for detailed error messages 
+                    or contact support with your dashboard ID and YAML configuration.
+                  </p>
+                </div> */}
+              </section>
+
+              {/* Footer */}
+              <div className="border-t border-gray-200 pt-8 mt-12">
+                <p className="text-sm text-gray-500 text-center">
+                  Version 1.1.0 | Last updated: September 2026 | © 2025 QGeoDash Platform
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <Footer></Footer>
+    </>
+    
+  );
+}
+
+
+
+=========================================
 FILE: frontend/app/base_api/auth/[...nextauth]/route.ts
 =========================================
 import { handlers } from "@/auth";
@@ -5585,681 +6470,6 @@ export default async function Page({
 
 
 =========================================
-FILE: frontend/app/admin/doc/page.tsx
-=========================================
-import React from 'react';
-import Link from 'next/link';
-
-export default function DocPage() {
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-3xl font-bold text-gray-900">Documentation</h1>
-          <p className="mt-2 text-lg text-gray-600">
-            Learn how to create, configure, and share interactive geo-dashboards
-          </p>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar Navigation */}
-          <div className="lg:col-span-1">
-            <nav className="sticky top-8 space-y-2">
-              <a href="#getting-started" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                🚀 Getting Started
-              </a>
-              <a href="#authentication" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                🔐 Authentication
-              </a>
-              <a href="#dashboards" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                📊 Dashboards
-              </a>
-              <a href="#data-upload" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                📤 Data Upload
-              </a>
-              <a href="#yaml-configuration" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                ⚙️ YAML Configuration
-              </a>
-              <a href="#chart-types" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                📈 Chart Types
-              </a>
-              <a href="#map-configuration" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                🗺️ Map Configuration
-              </a>
-              <a href="#filters" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                🔍 Filters
-              </a>
-              <a href="#interactive-filters" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                🎛️ Interactive Filters
-              </a>
-              <a href="#data-download" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                💾 Data Download
-              </a>
-              <a href="#data-preview" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                👁️ Data Preview
-              </a>
-              <a href="#examples" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                📋 Examples
-              </a>
-              <a href="#api-reference" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                🔌 API Reference
-              </a>
-              <a href="#troubleshooting" className="block px-3 py-2 text-sm font-medium text-gray-700 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors">
-                🛠️ Troubleshooting
-              </a>
-            </nav>
-          </div>
-
-          {/* Documentation Content */}
-          <div className="lg:col-span-3 prose prose-purple max-w-none">
-            {/* Getting Started */}
-            <section id="getting-started" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">🚀 Getting Started</h2>
-              <p className="text-gray-700">
-                Welcome to the Geo-Dashboard tool! This platform allows you to transform your CSV or Excel data into interactive, 
-                shareable geo-dashboards using a simple YAML configuration language. No coding experience required!
-              </p>
-              
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Quick Start</h3>
-              <ol className="list-decimal pl-6 space-y-2 text-gray-700">
-                <li><strong>Create an account</strong> or log in to your existing account</li>
-                <li><strong>Create a new dashboard</strong> from the admin panel</li>
-                <li><strong>Upload your data</strong> (CSV or Excel format)</li>
-                <li><strong>Configure your dashboard</strong> using YAML</li>
-                <li><strong>Share your dashboard</strong> with a unique URL</li>
-              </ol>
-            </section>
-
-            {/* Authentication */}
-            <section id="authentication" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">🔐 Authentication</h2>
-              <p className="text-gray-700">
-                All dashboards are private by default. You need to be authenticated to create, edit, or delete dashboards.
-              </p>
-              
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Creating an Account</h3>
-              <ul className="list-disc pl-6 space-y-2 text-gray-700">
-                <li>Navigate to the <Link href="/login" className="text-purple-600 hover:underline">login page</Link></li>
-                <li>Click on "Sign up here" to create a new account</li>
-                <li>Provide a username, email, and password</li>
-                <li>Once registered, you can log in with your credentials</li>
-              </ul>
-
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mt-4">
-                <p className="text-blue-800 text-sm">
-                  <strong>💡 Note:</strong> Your session will remain active for 30 days. You can log out at any time.
-                </p>
-              </div>
-            </section>
-
-            {/* Dashboards */}
-            <section id="dashboards" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">📊 Dashboards</h2>
-              
-              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Creating a Dashboard</h3>
-              <ol className="list-decimal pl-6 space-y-2 text-gray-700">
-                <li>From the admin panel, click "New Dashboard"</li>
-                <li>Give your dashboard a meaningful name (at least 3 characters)</li>
-                <li>A unique dashboard ID and sharing URL will be generated</li>
-              </ol>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Managing Dashboards</h3>
-              <ul className="list-disc pl-6 space-y-2 text-gray-700">
-                <li><strong>View:</strong> Click on any dashboard in the list to see its public view</li>
-                <li><strong>Edit:</strong> Click the pencil icon to open a modal and rename the dashboard</li>
-                <li><strong>Delete:</strong> Click the trash icon, confirm deletion in the modal</li>
-                <li><strong>Share:</strong> Each dashboard has a unique URL that you can share with anyone</li>
-              </ul>
-            </section>
-
-            {/* Data Upload */}
-            <section id="data-upload" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">📤 Data Upload</h2>
-              
-              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Supported Formats</h3>
-              <ul className="list-disc pl-6 space-y-2 text-gray-700">
-                <li><strong>CSV</strong> (Comma-separated values) - Recommended</li>
-                <li><strong>Excel</strong> (.xlsx, .xls) - Automatically converted</li>
-              </ul>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Upload Process</h3>
-              <ol className="list-decimal pl-6 space-y-2 text-gray-700">
-                <li>Navigate to your dashboard's edit page</li>
-                <li>Click on "Add Data" button</li>
-                <li>Select one or more files (CSV or Excel)</li>
-                <li>Optionally, provide column type overrides in JSON format:
-                  <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg mt-2 text-sm">
-{`{
-  "date_column": "DATE",
-  "value_column": "FLOAT",
-  "category_column": "TEXT"
-}`}
-                  </pre>
-                </li>
-                <li>The system will automatically create a database table and import your data</li>
-              </ol>
-
-              <div className="bg-yellow-50 border-l-4 border-yellow-500 p-4 mt-4">
-                <p className="text-yellow-800 text-sm">
-                  <strong>⚠️ Important:</strong> Column names with spaces or special characters are automatically 
-                  sanitized. Use quotes in your YAML when referencing them (e.g., <code>"Specie counts"</code>).
-                </p>
-              </div>
-            </section>
-
-            {/* YAML Configuration */}
-            <section id="yaml-configuration" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">⚙️ YAML Configuration</h2>
-              
-              <p className="text-gray-700 mb-4">
-                The heart of your dashboard is the YAML configuration file. It defines the dashboard's name, layout, 
-                charts, map, and menus. YAML is a human-readable data format that's easy to learn.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Basic Structure</h3>
-              <pre className="bg-gray-800 text-gray-200 p-4 rounded-lg overflow-x-auto text-sm">
-{`geo-dashboard:
-  name: "My Dashboard Name"
-  template: side_content
-  download: false  # Set to true to enable data download button
-  filters:
-    - column: Year
-      operator: ">="
-      value: 2020
-  stats:
-    - type: bar
-      title: "My Chart Title"
-      x: category_column
-      y: count
-  interactiveFilters:
-    - column: Year
-      label: Year Range
-      type: range
-    - column: Country
-      label: Country
-      type: multiselect
-  map:
-    lat: latitude_column
-    lon: longitude_column
-  menus:
-    about: "Information about this dashboard"
-    stats: "Statistical summary"
-    map: "Map description"`}
-              </pre>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Available Templates</h3>
-              <ul className="list-disc pl-6 space-y-2 text-gray-700">
-                <li><code>side_content</code> - Sidebar on the left, main content on the right (recommended)</li>
-                <li><code>top_content</code> - Menus on top, charts below</li>
-                <li><code>content_side</code> - Main content on the left, sidebar on the right</li>
-                <li><code>content_bottom</code> - Menus on top, charts in the middle, map at bottom</li>
-              </ul>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Data Download</h3>
-              <p className="text-gray-700 mb-2">
-                Set <code>download: true</code> in the root of the config to display a "Download Data" button in the sidebar. 
-                When clicked, it exports the currently filtered dataset (respecting global and interactive filters) as a CSV file.
-              </p>
-            </section>
-
-            {/* Chart Types */}
-            <section id="chart-types" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">📈 Chart Types</h2>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Bar Chart</h3>
-              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
-{`- type: bar
-  title: "Sales by Category"
-  x: category
-  y: 
-    column: sales
-    aggregation: sum`}
-              </pre>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Line Chart</h3>
-              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
-{`- type: line
-  title: "Trend Over Time"
-  x: year
-  y: 
-    column: value
-    aggregation: avg`}
-              </pre>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Pie Chart</h3>
-              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
-{`- type: pie
-  title: "Distribution by Category"
-  x: category
-  y: count  # Simple count of rows`}
-              </pre>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Stacked Bar Chart</h3>
-              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
-{`- type: stackedbar
-  title: "Species by Country"
-  x: country
-  y:
-    column: count
-    aggregation: sum
-  stackBy: species`}
-              </pre>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Aggregation Functions</h3>
-              <ul className="list-disc pl-6 space-y-2 text-gray-700">
-                <li><code>sum</code> - Total sum of values</li>
-                <li><code>avg</code> - Average value</li>
-                <li><code>count</code> - Number of records</li>
-                <li><code>min</code> - Minimum value</li>
-                <li><code>max</code> - Maximum value</li>
-                <li><code>count distinct</code> - Number of unique values</li>
-              </ul>
-            </section>
-
-            {/* Map Configuration */}
-            <section id="map-configuration" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">🗺️ Map Configuration</h2>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Basic Map</h3>
-              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
-{`map:
-  lat: latitude_column
-  lon: longitude_column`}
-              </pre>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Styled Map with Clustering</h3>
-              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
-{`map:
-  lat: lat
-  lon: lon
-  clustering:
-    enabled: true
-    maxClusterRadius: 80
-    disableClusteringAtZoom: 14
-    limit: 15000
-  style:
-    colorBy: category_column
-    sizeBy: value_column
-    defaultColor: "#94a3b8"
-    defaultSize: 6
-    minSize: 4
-    maxSize: 14
-    rules:
-      - field: category
-        operator: "="
-        value: "Type A"
-        color: "#ef4444"
-        label: "Category A"
-      - field: category
-        operator: "="
-        value: "Type B"
-        color: "#3b82f6"
-        label: "Category B"
-    legend:
-      title: "Legend Title"
-      position: "bottomright"`}
-              </pre>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Clustering Options</h3>
-              <ul className="list-disc pl-6 space-y-2 text-gray-700">
-                <li><code>enabled</code> - Enable/disable clustering (boolean)</li>
-                <li><code>maxClusterRadius</code> - Maximum radius of clusters in pixels</li>
-                <li><code>disableClusteringAtZoom</code> - Zoom level where clusters break apart</li>
-                <li><code>spiderfyOnMaxZoom</code> - Spread out clusters when zooming in</li>
-                <li><code>chunkedLoading</code> - Load markers in batches for performance</li>
-                <li><code>limit</code> - Maximum points to load per viewport</li>
-              </ul>
-            </section>
-
-            {/* Filters */}
-            <section id="filters" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">🔍 Filters</h2>
-
-              <p className="text-gray-700 mb-4">
-                Filters can be applied globally to all charts and the map, or specifically to individual charts.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Filter Operators</h3>
-              <ul className="list-disc pl-6 space-y-2 text-gray-700">
-                <li><code>=</code> - Equal to</li>
-                <li><code>!=</code> - Not equal to</li>
-                <li><code>&gt;</code> - Greater than</li>
-                <li><code>&gt;=</code> - Greater than or equal to</li>
-                <li><code>&lt;</code> - Less than</li>
-                <li><code>&lt;=</code> - Less than or equal to</li>
-                <li><code>like</code> - Pattern matching (use % as wildcard)</li>
-                <li><code>in</code> - Value in a list</li>
-                <li><code>between</code> - Between two values</li>
-              </ul>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Global Filters</h3>
-              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
-{`filters:
-  - column: year
-    operator: ">="
-    value: 2020
-  - column: country
-    operator: in
-    value: ["USA", "Canada", "Mexico"]`}
-              </pre>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Chart-Specific Filters</h3>
-              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
-{`- type: bar
-  title: "Filtered Chart"
-  x: category
-  y: count
-  filters:
-    - column: status
-      operator: "="
-      value: "active"
-    - column: value
-      operator: ">"
-      value: 100`}
-              </pre>
-            </section>
-
-            {/* Interactive Filters */}
-            <section id="interactive-filters" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">🎛️ Interactive Filters</h2>
-              <p className="text-gray-700 mb-4">
-                Interactive filters appear in the sidebar and allow users to dynamically filter the dashboard without editing YAML. They are defined in the YAML under <code>interactiveFilters</code>.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Types</h3>
-              <ul className="list-disc pl-6 space-y-2 text-gray-700">
-                <li><code>dropdown</code> - Single-select dropdown</li>
-                <li><code>multiselect</code> - Multi-select dropdown with search</li>
-                <li><code>range</code> - Range slider for numeric columns</li>
-              </ul>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Example</h3>
-              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
-{`interactiveFilters:
-  - column: Year
-    label: Year Range
-    type: range
-  - column: Country
-    label: Country
-    type: multiselect
-  - column: Form
-    label: Disease Form
-    type: dropdown`}
-              </pre>
-
-              <div className="bg-green-50 border-l-4 border-green-500 p-4 mt-4">
-                <p className="text-green-800 text-sm">
-                  <strong>💡 Tip:</strong> The range filter automatically fetches the minimum and maximum values from your data (respecting global filters) and displays a slider. Adjusting it instantly updates all charts and the map.
-                </p>
-              </div>
-            </section>
-
-            {/* Data Download */}
-            <section id="data-download" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">💾 Data Download</h2>
-              <p className="text-gray-700 mb-4">
-                If you set <code>download: true</code> in the YAML, a "Download Data" button appears in the sidebar. When clicked, it exports the currently filtered dataset (including all applied global and interactive filters) as a CSV file.
-              </p>
-              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm">
-{`geo-dashboard:
-  download: true
-  # ... rest of config`}
-              </pre>
-              <p className="text-gray-700 mt-2">
-                The download respects all active filters, so users can export exactly the subset they're viewing.
-              </p>
-            </section>
-
-            {/* Data Preview */}
-            <section id="data-preview" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">👁️ Data Preview</h2>
-              <p className="text-gray-700 mb-4">
-                On the dashboard edit page, a rich preview shows information about the uploaded data:
-              </p>
-              <ul className="list-disc pl-6 space-y-2 text-gray-700">
-                <li>Total number of records</li>
-                <li>Table name</li>
-                <li>Column names and their SQL types</li>
-                <li>First 5 sample rows</li>
-              </ul>
-              <p className="text-gray-700 mt-2">
-                This helps you understand the structure of your data before building charts and maps.
-              </p>
-            </section>
-
-            {/* Examples */}
-            <section id="examples" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">📋 Examples</h2>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Leishmaniasis Vector Dashboard</h3>
-              <pre className="bg-gray-800 text-gray-200 p-3 rounded-lg text-sm overflow-x-auto">
-{`geo-dashboard:
-  name: "Leishmaniasis Vector Surveillance Dashboard"
-  template: side_content
-  download: true
-  filters:
-    - column: Year
-      operator: ">="
-      value: 2000
-  interactiveFilters:
-    - column: Year
-      label: Year Range
-      type: range
-    - column: Country
-      label: Country
-      type: multiselect
-    - column: Form
-      label: Disease Form
-      type: dropdown
-  stats:
-    - type: pie
-      title: "Top 10 VL Vectors by Abundance"
-      x: species
-      y:
-        column: "Specie counts"
-        aggregation: sum
-      filters:
-        - column: Form
-          operator: "="
-          value: VL
-    - type: bar
-      title: "VL Vector Abundance by Country"
-      x: Country
-      y:
-        column: "Specie counts"
-        aggregation: sum
-      filters:
-        - column: Form
-          operator: "="
-          value: VL
-  map:
-    lat: Lat
-    lon: Lon
-    clustering:
-      enabled: false
-    style:
-      colorBy: Form
-      sizeBy: "Specie counts"
-      rules:
-        - field: Form
-          operator: "="
-          value: VL
-          color: "#ef4444"
-          label: "VL Vectors"
-        - field: Form
-          operator: "="
-          value: CL
-          color: "#3b82f6"
-          label: "CL Vectors"
-    legend:
-      title: "Vector Types"
-      position: "bottomright"
-  menus:
-    about: |
-      ## 🦟 Leishmaniasis Vector Surveillance Dashboard
-      A comprehensive visualization platform for sand fly vector surveillance data...`}
-              </pre>
-            </section>
-
-            {/* API Reference */}
-            <section id="api-reference" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">🔌 API Reference</h2>
-
-              <p className="text-gray-700 mb-4">
-                All API endpoints are available under the <code>/qgd_api</code> base path.
-              </p>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-4 mb-3">Authentication</h3>
-              <ul className="space-y-3">
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">POST /token</code>
-                  <p className="text-sm text-gray-600 mt-1">Get access token (username/password)</p>
-                </li>
-              </ul>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Dashboards</h3>
-              <ul className="space-y-3">
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">GET /dashboards/</code>
-                  <p className="text-sm text-gray-600 mt-1">List all dashboards (paginated)</p>
-                </li>
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">POST /dashboards/add</code>
-                  <p className="text-sm text-gray-600 mt-1">Create a new dashboard</p>
-                </li>
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}</code>
-                  <p className="text-sm text-gray-600 mt-1">Get dashboard details</p>
-                </li>
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">PUT /dashboards/{`{id}`}/edit</code>
-                  <p className="text-sm text-gray-600 mt-1">Rename dashboard</p>
-                </li>
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/delete</code>
-                  <p className="text-sm text-gray-600 mt-1">Delete a dashboard</p>
-                </li>
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">PUT /dashboards/{`{id}`}/config</code>
-                  <p className="text-sm text-gray-600 mt-1">Update dashboard YAML configuration</p>
-                </li>
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/add_data</code>
-                  <p className="text-sm text-gray-600 mt-1">Upload data files (CSV/Excel)</p>
-                </li>
-              </ul>
-
-              <h3 className="text-xl font-semibold text-gray-800 mt-6 mb-3">Data Endpoints</h3>
-              <ul className="space-y-3">
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}/config</code>
-                  <p className="text-sm text-gray-600 mt-1">Get dashboard configuration (public)</p>
-                </li>
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}/points</code>
-                  <p className="text-sm text-gray-600 mt-1">Get all map points as GeoJSON</p>
-                </li>
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/points-in-view</code>
-                  <p className="text-sm text-gray-600 mt-1">Get points within bounding box (for clustering)</p>
-                </li>
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/chart-data</code>
-                  <p className="text-sm text-gray-600 mt-1">Get aggregated data for a chart</p>
-                </li>
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/distinct-values</code>
-                  <p className="text-sm text-gray-600 mt-1">Get distinct values for a column (for stacked charts)</p>
-                </li>
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}/dashboard.js</code>
-                  <p className="text-sm text-gray-600 mt-1">Get generated JavaScript config</p>
-                </li>
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">GET /dashboards/{`{id}`}/data-info</code>
-                  <p className="text-sm text-gray-600 mt-1">Get data preview (rows, columns, sample)</p>
-                </li>
-                <li className="bg-gray-50 p-3 rounded-lg">
-                  <code className="text-purple-600 font-mono">POST /dashboards/{`{id}`}/export</code>
-                  <p className="text-sm text-gray-600 mt-1">Export filtered data as CSV</p>
-                </li>
-              </ul>
-            </section>
-
-            {/* Troubleshooting */}
-            <section id="troubleshooting" className="mb-12">
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">🛠️ Troubleshooting</h2>
-
-              <div className="space-y-4">
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900">Map not displaying points</h3>
-                  <ul className="list-disc pl-6 mt-2 text-sm text-gray-700">
-                    <li>Verify that your data has valid latitude/longitude columns</li>
-                    <li>Check that column names in YAML match exactly (case-sensitive)</li>
-                    <li>Ensure lat/lon values are within valid ranges (-90 to 90, -180 to 180)</li>
-                    <li>For large datasets, enable clustering in map configuration</li>
-                  </ul>
-                </div>
-
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900">Charts showing no data</h3>
-                  <ul className="list-disc pl-6 mt-2 text-sm text-gray-700">
-                    <li>Verify that column names in YAML match your data</li>
-                    <li>Check if filters are too restrictive</li>
-                    <li>Ensure data was successfully uploaded to the database</li>
-                    <li>For pie charts with many categories, the backend automatically shows top 10 + "Others"</li>
-                  </ul>
-                </div>
-
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900">YAML validation errors</h3>
-                  <ul className="list-disc pl-6 mt-2 text-sm text-gray-700">
-                    <li>Use online YAML validators to check syntax</li>
-                    <li>Ensure proper indentation (2 spaces per level)</li>
-                    <li>Quote strings containing special characters</li>
-                    <li>Check that all required fields are present (name, template, stats, map, menus)</li>
-                  </ul>
-                </div>
-
-                <div className="bg-white border border-gray-200 rounded-lg p-4">
-                  <h3 className="font-semibold text-gray-900">Performance issues with large datasets</h3>
-                  <ul className="list-disc pl-6 mt-2 text-sm text-gray-700">
-                    <li>Enable clustering on the map for millions of points</li>
-                    <li>Use TOP 10 aggregations in charts to limit data processed</li>
-                    <li>Add global filters to focus on relevant subsets</li>
-                    <li>Consider using count distinct instead of listing all values</li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="bg-green-50 border-l-4 border-green-500 p-4 mt-6">
-                <p className="text-green-800 text-sm">
-                  <strong>💬 Need more help?</strong> Check the console logs for detailed error messages 
-                  or contact support with your dashboard ID and YAML configuration.
-                </p>
-              </div>
-            </section>
-
-            {/* Footer */}
-            <div className="border-t border-gray-200 pt-8 mt-12">
-              <p className="text-sm text-gray-500 text-center">
-                Version 1.1.0 | Last updated: March 2025 | © 2025 Geo-Dashboard Platform
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
-
-=========================================
 FILE: frontend/app/admin/loading.tsx
 =========================================
 
@@ -6306,7 +6516,7 @@ import Footer from "@/components/footer";
 import { lusitana } from "@/components/fonts";
 import Link from "next/link";
 import { Button } from "@/components/buttons";
-import { DocumentArrowDownIcon, DocumentIcon } from "@heroicons/react/24/outline";
+import { DocumentArrowDownIcon, DocumentIcon, UserCircleIcon } from "@heroicons/react/24/outline";
 import { DocumentChartBarIcon } from "@heroicons/react/24/solid";
 
 export default function Home() {
@@ -6334,7 +6544,7 @@ export default function Home() {
                   </p>
                   <p className="mt-3">
                     You can consult our documentation using the link bellow:
-                    <Link href="/admin/doc">
+                    <Link href="/doc">
                       <Button> 
                         Go to Documentation
                         <DocumentIcon className="ml-auto h-5 w-5 text-gray-50" />
@@ -6345,8 +6555,17 @@ export default function Home() {
                     You can consult free dashboard examples using the link bellow
                     <Link href="#">
                       <Button> 
-                        See examples of dashboards
+                        See published dashboards
                         <DocumentChartBarIcon className="ml-auto h-5 w-5 text-gray-50" />
+                      </Button>
+                    </Link>
+                  </p>
+                  <p className="mt-3">
+                    Join the platform.
+                    <Link href="/signup">
+                      <Button> 
+                        Create Account
+                        <UserCircleIcon className="ml-auto h-5 w-5 text-gray-50" />
                       </Button>
                     </Link>
                   </p>

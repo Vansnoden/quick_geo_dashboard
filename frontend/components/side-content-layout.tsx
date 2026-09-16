@@ -8,6 +8,8 @@ import dynamic from 'next/dynamic';
 import InteractiveFilters from '@/components/interactive-filters';
 import { filterValuesToConditions } from '@/lib/filter-helpers';
 import DownloadButton from '@/components/data-download-button';
+import Link from 'next/link';
+import { ArrowLeftIcon, BackwardIcon, HomeIcon } from '@heroicons/react/24/outline';
 
 // Dynamic import with a consistent height loader to prevent layout shift
 const MapView = dynamic(() => import('@/components/map-view'), { 
@@ -101,7 +103,14 @@ export default function SideContentLayout({ config, dashboardId }: Props) {
 
                 {/* Menu navigation items */}
                 <nav className="mb-6 pb-4 border-b border-gray-200">
-                    <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Jump to</h2>
+                    <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+                        <Link href="/" className='flex'>
+                            <ArrowLeftIcon className='w-4 h-4'/>
+                            <span className="ml-2">
+                                Go to Homepage
+                            </span>
+                        </Link>
+                    </h2>
                     <div className="space-y-2">
                         <button
                             onClick={() => handleMenuItemClick('about-section')}
